@@ -81,7 +81,7 @@ def main(args):
     if args.analyze:
         analyze_cmd = [
             "python",
-            "run_translation.py",
+            "run_llm_analyzer.py",
             "--log_dir",
             log_dir,
             "--repo",

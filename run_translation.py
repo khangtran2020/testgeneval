@@ -36,7 +36,10 @@ Here are some examples of how to import the code file, (you should use these as 
 {imports}
 ```
 
-And here is the function name of the method under test: {method}
+And here is the function names of the methods and classes under test: 
+```json
+{method}
+```
 
 Your job is to output a corresponding unit test function in Pytest format that obtains the same coverage as the human-written test script.
 In your response, the value of the variables and entities before calling the method under test should be between the tags <fuzz> and </fuzz>.
