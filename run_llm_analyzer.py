@@ -126,6 +126,9 @@ def main(args):
                 )
 
                 response = completion.choices[0].text
+                if args.debug:
+                    logger.info(f"Prompt: {prompt}")
+                    logger.info(f"Response: {response}")
                 response = response.replace("```json", "```")
                 if "```" not in response:
                     task_dict[key]["func_info"][test_case_key] = ""
