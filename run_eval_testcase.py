@@ -23,7 +23,7 @@ async def main(
     timeout: int = 60,
     num_processes: int = -1,
     debug: bool = False,
-    translated: bool = False,
+    translated: int = -1,
 ):
     """
     Runs evaluation on predictions for each model/repo/version combination.
@@ -126,12 +126,12 @@ async def main(
         if result is None:
             continue
         res, setting = result
-        if translated == False:
+        if translated == -1:
             branch_key = "branches"
             test_case_key = "test_cases"
         else:
-            branch_key = "branch_translate"
-            test_case_key = "translate"
+            branch_key = f"branch_translate_{translated}"
+            test_case_key = f"translate_{translated}"
         logger.info(f"================== Task {res[KEY_ID]} ==================")
         # logger.info(f"Task instance branches at setting {setting}: {res[branch_key]}")
         logger.info(

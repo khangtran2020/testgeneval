@@ -204,7 +204,7 @@ def postprocess_tests(
     successful_tests,
     tcm,
     setting,
-    translated=False,
+    translated=-1,
 ):
     repo = task_instance["repo"]
     django_repo = repo == "django/django"
@@ -236,54 +236,55 @@ def postprocess_tests(
         _, success = tcm.run_tests_task(
             task_instance, log_data=False, skip_mutation=True
         )
+
+        # check if .corverage exist
+        if os.path.exists(".coverage") == False:
+            raise Exception("Coverage file not found")
+
+        data = CoverageData(
+            basename=".coverage",
+            suffix=None,
+            warn=None,
+            debug=None,
+        )
+        data.read()
+        prefix = os.getcwd()
+        code_file_name = os.path.join(prefix, task_instance["code_file"])
+        logger.info(f"Testing for code file: {code_file_name}")
+        logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
+        logger.info(f"Coverage data: {data._file_map}")
+
+        arcs = data.arcs(filename=code_file_name)
+        if arcs is None:
+            logger.info(f"Arcs not found")
+        else:
+            branches = []
+            visited = []
+            for e in arcs:
+                if e[0] < 0:
+                    continue
+                if e[1] < 0:
+                    continue
+                if e[0] in visited:
+                    for i, branch in enumerate(branches):
+                        if e[0] in branch:
+                            branches[i].append(e[1])
+                            visited.append(e[1])
+                else:
+                    branches.append([e[0], e[1]])
+                    visited.append(e[0])
+                    visited.append(e[1])
+            if translated == -1:
+                task_instance["branches"][setting] = branches
+            else:
+                task_instance[f"branch_translate_{translated}"][setting] = branches
+
+            if os.path.exists(".coverage"):
+                logger.info("Removing coverage")
+                os.remove(".coverage")
+
         if success:
             successful_tests.append((class_name, method_name, test_case))
-
-            # check if .corverage exist
-            if os.path.exists(".coverage") == False:
-                raise Exception("Coverage file not found")
-
-            data = CoverageData(
-                basename=".coverage",
-                suffix=None,
-                warn=None,
-                debug=None,
-            )
-            data.read()
-            prefix = os.getcwd()
-            code_file_name = os.path.join(prefix, task_instance["code_file"])
-            logger.info(f"Testing for code file: {code_file_name}")
-            logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
-            logger.info(f"Coverage data: {data._file_map}")
-
-            arcs = data.arcs(filename=code_file_name)
-            if arcs is None:
-                logger.info(f"Arcs not found")
-            else:
-                branches = []
-                visited = []
-                for e in arcs:
-                    if e[0] < 0:
-                        continue
-                    if e[1] < 0:
-                        continue
-                    if e[0] in visited:
-                        for i, branch in enumerate(branches):
-                            if e[0] in branch:
-                                branches[i].append(e[1])
-                                visited.append(e[1])
-                    else:
-                        branches.append([e[0], e[1]])
-                        visited.append(e[0])
-                        visited.append(e[1])
-                if translated == False:
-                    task_instance["branches"][setting] = branches
-                else:
-                    task_instance["branch_translate"][setting] = branches
-
-                if os.path.exists(".coverage"):
-                    logger.info("Removing coverage")
-                    os.remove(".coverage")
 
 
 def postprocess_functions(
@@ -293,7 +294,7 @@ def postprocess_functions(
     successful_tests,
     tcm,
     setting,
-    translated=False,
+    translated=-1,
 ):
     repo = task_instance["repo"]
     django_repo = repo == "django/django"
@@ -325,6 +326,51 @@ def postprocess_functions(
         _, success = tcm.run_tests_task(
             task_instance, log_data=False, skip_mutation=True
         )
+        if os.path.exists(".coverage") == False:
+            raise Exception("Coverage file not found")
+
+        data = CoverageData(
+            basename=".coverage",
+            suffix=None,
+            warn=None,
+            debug=None,
+        )
+        data.read()
+        prefix = os.getcwd()
+        code_file_name = os.path.join(prefix, task_instance["code_file"])
+        logger.info(f"Testing for code file: {code_file_name}")
+        logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
+        logger.info(f"Coverage data: {data._file_map}")
+
+        arcs = data.arcs(filename=code_file_name)
+        if arcs is None:
+            logger.info(f"\n\nArcs not found\n\n")
+        else:
+            branches = []
+            visited = []
+            for e in arcs:
+                if e[0] < 0:
+                    continue
+                if e[1] < 0:
+                    continue
+                if e[0] in visited:
+                    for i, branch in enumerate(branches):
+                        if e[0] in branch:
+                            branches[i].append(e[1])
+                            visited.append(e[1])
+                else:
+                    branches.append([e[0], e[1]])
+                    visited.append(e[0])
+                    visited.append(e[1])
+            if translated == -1:
+                task_instance["branches"][setting] = branches
+            else:
+                task_instance[f"branch_translate_{translated}"][setting] = branches
+            logger.info(f"====================== Branches: {branches}")
+
+            if os.path.exists(".coverage"):
+                logger.info("Removing coverage")
+                os.remove(".coverage")
         if success:
             if django_repo and added_class:
                 class_content += indent_text(test_function, 4) + "\n"
@@ -332,51 +378,6 @@ def postprocess_functions(
                 successful_tests.append((None, test_function))
 
             # check if .corverage exist
-            if os.path.exists(".coverage") == False:
-                raise Exception("Coverage file not found")
-
-            data = CoverageData(
-                basename=".coverage",
-                suffix=None,
-                warn=None,
-                debug=None,
-            )
-            data.read()
-            prefix = os.getcwd()
-            code_file_name = os.path.join(prefix, task_instance["code_file"])
-            logger.info(f"Testing for code file: {code_file_name}")
-            logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
-            logger.info(f"Coverage data: {data._file_map}")
-
-            arcs = data.arcs(filename=code_file_name)
-            if arcs is None:
-                logger.info(f"\n\nArcs not found\n\n")
-            else:
-                branches = []
-                visited = []
-                for e in arcs:
-                    if e[0] < 0:
-                        continue
-                    if e[1] < 0:
-                        continue
-                    if e[0] in visited:
-                        for i, branch in enumerate(branches):
-                            if e[0] in branch:
-                                branches[i].append(e[1])
-                                visited.append(e[1])
-                    else:
-                        branches.append([e[0], e[1]])
-                        visited.append(e[0])
-                        visited.append(e[1])
-                if translated == False:
-                    task_instance["branches"][setting] = branches
-                else:
-                    task_instance["branch_translate"][setting] = branches
-                logger.info(f"====================== Branches: {branches}")
-
-                if os.path.exists(".coverage"):
-                    logger.info("Removing coverage")
-                    os.remove(".coverage")
 
     if django_repo and class_content:
         successful_tests.append((None, class_wrapper_start + class_content))
@@ -401,11 +402,18 @@ def full_processing(
                     successful_tests,
                     tcm,
                     setting,
+                    translated=tranlsated,
                 )
 
         if test_functions:
             postprocess_functions(
-                task_instance, preamble, test_functions, successful_tests, tcm, setting
+                task_instance,
+                preamble,
+                test_functions,
+                successful_tests,
+                tcm,
+                setting,
+                translated=tranlsated,
             )
 
         # save task_instance
@@ -497,7 +505,7 @@ def main(
     repo_dir: str,
     log_dir: str,
     timeout: Optional[int],
-    translated: bool = False,
+    translated: int = -1,
     image_type: str = "conda",
     only_baseline: bool = False,
     skip_mutation: bool = False,
@@ -552,8 +560,8 @@ def main(
                 else task_instance[KEY_PREDICTIONS][setting]
             )
         else:
-            if translated:
-                prompt_list = [task_instance["translate"][setting]]
+            if translated != -1:
+                prompt_list = [task_instance[f"translate_{translated}"][setting]]
             else:
                 prompt_list = [task_instance["test_cases"][setting]]
         if setting == "full" or "test_case" in setting:
@@ -611,7 +619,7 @@ if __name__ == "__main__":
     translated = os.getenv("TRANSLATED")
     if translated is None:
         raise ValueError("TRANSLATED environment variable is not set")
-    translated = translated == "True"
+    translated = int(translated)
 
     main(
         task_instance=task_instance,

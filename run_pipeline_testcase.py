@@ -76,8 +76,8 @@ def main(args):
             eval_cmd.append("--debug")
         subprocess.run(eval_cmd)
 
-    if args.translate:
-        translate_cmd = [
+    if args.analyze:
+        analyze_cmd = [
             "python",
             "run_translation.py",
             "--log_dir",
@@ -87,7 +87,7 @@ def main(args):
             "--data_path",
             os.path.join(args.data_path, f"{data_suf}.jsonl"),
             "--res_path",
-            os.path.join(args.data_path, f"{data_suf}_translated.jsonl"),
+            os.path.join(args.data_path, f"{data_suf}_analyzed.jsonl"),
             "--model",
             args.model,
             "--temperature",
@@ -96,6 +96,35 @@ def main(args):
             args.host,
             "--port",
             args.port,
+        ]
+        if args.debug:
+            analyze_cmd.append("--debug")
+        subprocess.run(analyze_cmd)
+
+    if args.translate:
+        translate_cmd = [
+            "python",
+            "run_translation.py",
+            "--log_dir",
+            log_dir,
+            "--repo",
+            args.repo,
+            "--data_path",
+            os.path.join(args.data_path, f"{data_suf}_analyzed.jsonl"),
+            "--res_path",
+            os.path.join(
+                args.data_path, f"{data_suf}_translated_num_try_{args.num_try}.jsonl"
+            ),
+            "--model",
+            args.model,
+            "--temperature",
+            str(args.temperature),
+            "--host",
+            args.host,
+            "--port",
+            args.port,
+            "--num_try",
+            str(args.num_try),
         ]
         if args.debug:
             eval_cmd.append("--debug")
@@ -124,6 +153,13 @@ if __name__ == "__main__":
         help="LLM to translate the test cases",
         required=False,
         default="Qwen/CodeQwen1.5-7B-Chat",
+    )
+    parser.add_argument(
+        "--num_try",
+        type=int,
+        help="number of tries to run the translate",
+        required=False,
+        default=1,
     )
     parser.add_argument(
         "--namespace",
@@ -182,6 +218,11 @@ if __name__ == "__main__":
         "--get_ground_truth_branch",
         action="store_true",
         help="Extract ground truth branch from human testcases",
+    )
+    parser.add_argument(
+        "--analyze",
+        action="store_true",
+        help="Extract the method under test with LLM",
     )
     parser.add_argument("--debug", action="store_true", help="(Optional) Debug mode")
     args = parser.parse_args()

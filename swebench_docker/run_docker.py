@@ -28,7 +28,7 @@ async def run_docker_evaluation(
     ind: int,
     timeout: int = 60,
     verbose: bool = False,
-    translated: bool = False,
+    translated: int = -1,
     base64_instance: bool = True,
     only_baseline: bool = False,
     skip_mutation: bool = False,
@@ -169,6 +169,10 @@ async def run_docker_evaluation(
                 f"[{task_instance['id']}][{docker_image}]  Container ran successfully in {elapsed_time} seconds."
             )
         # read task instance from tmpfile_path
+        if translated == -1:
+            branch_key = "branches"
+        else:
+            branch_key = f"branch_translate_{translated}"
         if os.path.exists(
             os.path.join(log_dir, f"{task_instance[KEY_ID]}_setting_{setting}.json")
         ):
@@ -182,7 +186,7 @@ async def run_docker_evaluation(
                 logger.info(
                     f"Task instance {task_instance[KEY_ID]} for setting {setting} loaded from {task_instance[KEY_ID]}_setting_{setting}.json"
                 )
-                logger.info(f"Task instance branches: {task_instance['branches']}")
+                logger.info(f"Task instance branches: {task_instance[branch_key]}")
             return task_instance, setting
         else:
             logger.error("task_instance_results.json not found")

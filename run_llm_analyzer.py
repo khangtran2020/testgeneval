@@ -1,4 +1,3 @@
-import ast
 import argparse
 import asyncio
 import logging
@@ -19,7 +18,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("run_evaluation_baseline")
 
-SYSTEM_MESSAGE_FULL = "You are an expert Python automated testing assistant. Your job is to generate a test function in Pytest format given a human-written test script for a Python module."
+SYSTEM_MESSAGE_FULL = "You are an expert Python automated testing assistant. Your job is to analyze a test script for a Python module."
 
 PROMPT_FULL = """Below is a code file:
 ```python
@@ -35,25 +34,19 @@ Here are some examples of how to import the code file, (you should use these as 
 ```python
 {imports}
 ```
+Your job is to output function names or class functions that are being test in the test script .
+Output the answer in this format:
 
-And here is the function name of the method under test: {method}
-
-Your job is to output a corresponding unit test function in Pytest format that obtains the same coverage as the human-written test script.
-In your response, the value of the variables and entities before calling the method under test should be between the tags <fuzz> and </fuzz>.
-The unit test must be a function starting with test_. Include all your test imports and setup before your first test. Do not 
-run the tests in the function, just output a test function. Do not include a main method to run the tests.
-
-Output the unit test Python function in this format:
-
-```python
-Unit test Python code (file level)
+```json
+{{
+    "function_names": <YOUR ANSWERS>,
+    "class_functions": <YOUR ANSWERS>
+}}
 ```
 """
 
 
-def construct_prompt(
-    code_src: str, test_case: str, preamble: str, method: str, tokenizer
-) -> str:
+def construct_prompt(code_src: str, test_case: str, preamble: str, tokenizer) -> str:
     message_text = [
         {
             "role": "system",
@@ -65,12 +58,11 @@ def construct_prompt(
                 code_src=code_src,
                 test_src=test_case,
                 imports=preamble,
-                method=method,
             ),
         },
     ]
     prompt = tokenizer.apply_chat_template(message_text, tokenize=False)
-    prompt += "\nLet's think step by step and execute the request"
+    prompt += "\nLet's think step by step"
     return prompt
 
 
@@ -108,12 +100,9 @@ def main(args):
     )
 
     for key in task_dict.keys():
-        for time in range(args.num_try):
-            task_dict[key][f"translate_{time}"] = {}
-            task_dict[key][f"branch_translate_{time}"] = {}
-            for test_case_key in task_dict[key]["test_cases"].keys():
-                task_dict[key][f"translate_{time}"][test_case_key] = ""
-                task_dict[key][f"branch_translate_{time}"][test_case_key] = []
+        task_dict[key]["func_info"] = {}
+        for test_case_key in task_dict[key]["test_cases"].keys():
+            task_dict[key]["func_info"][test_case_key] = ""
 
     with Progress() as progress:
         main_task = progress.add_task("# of Task", total=len(task_dict.keys()))
@@ -126,82 +115,36 @@ def main(args):
 
                 # if task_dict[key]["branches"][test_case_key] == []:
                 #     continue
+
                 src_code = task_dict[key]["code_src"]
                 test_case = task_dict[key]["test_cases"][test_case_key]
                 preamble = task_dict[key]["preds_context"]["preamble"]
-                method = task_dict[key]["func_info"][test_case_key]
 
-                prompt = construct_prompt(
-                    src_code, test_case, preamble, method, tokenizer
+                prompt = construct_prompt(src_code, test_case, preamble, tokenizer)
+                completion = client.completions.create(
+                    model=args.model, prompt=prompt, temperature=args.temperature
                 )
-                for time in range(args.num_try):
-                    completion = client.completions.create(
-                        model=args.model, prompt=prompt, temperature=args.temperature
-                    )
 
-                    response = completion.choices[0].text
-                    response = response.replace("```python", "```")
-                    if "```" not in response:
-                        task_dict[key][f"translate_{time}"][test_case_key] = ""
-                    else:
-                        text_cleaned = response.split("```")[1].split("```")[0]
-                        if is_pytest_test_case(text_cleaned):
-                            task_dict[key][f"translate_{time}"][
-                                test_case_key
-                            ] = text_cleaned
-                        else:
-                            task_dict[key][f"translate_{time}"][test_case_key] = ""
+                response = completion.choices[0].text
+                response = response.replace("```json", "```")
+                if "```" not in response:
+                    task_dict[key]["func_info"][test_case_key] = ""
+                else:
+                    text_cleaned = response.split("```")[1].split("```")[0]
+                    task_dict[key]["func_info"][test_case_key] = text_cleaned
                 progress.advance(inner_task_progress)
             progress.remove_task(inner_task_progress)
             progress.advance(main_task)
 
-    # res_path = args.res_path.replace(".jsonl", f"num_try_{args.num_try}.jsonl")
     with open(args.res_path, "w") as f:
         for item in task_dict.values():
             f.write(json.dumps(item) + "\n")
     print(f"Translation complete")
 
 
-def is_pytest_test_case(code_snippet):
-    """
-    Checks if the given code snippet is a pytest test case.
-
-    Args:
-        code_snippet (str): The Python code snippet to analyze.
-
-    Returns:
-        bool: True if it is a pytest test case, otherwise False.
-    """
-    try:
-        tree = ast.parse(code_snippet)
-
-        for node in ast.walk(tree):
-            # Look for function definitions
-            if isinstance(node, ast.FunctionDef):
-                # Check if function name starts with "test_"
-                if node.name.startswith("test_"):
-                    return True
-
-                # Check if the function has a pytest decorator (@pytest.mark.*)
-                for decorator in node.decorator_list:
-                    if isinstance(decorator, ast.Attribute) and isinstance(
-                        decorator.value, ast.Name
-                    ):
-                        if (
-                            decorator.value.id == "pytest"
-                            and decorator.attr.startswith("mark")
-                        ):
-                            return True
-
-        return False
-    except SyntaxError:
-        return False
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--log_dir", type=str, required=True)
-    parser.add_argument("--num_try", type=int, required=True)
     parser.add_argument("--data_path", type=str, required=True)
     parser.add_argument("--res_path", type=str, required=True)
     parser.add_argument("--repo", type=str, required=True)

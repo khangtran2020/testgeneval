@@ -75,10 +75,6 @@ class Data(object):
         num_test_cases = 0
         num_data_point = 0
 
-        # open(
-        #     os.path.join(self.save_path, f"{self.data_name.split('/')[-1]}.jsonl"), "w"
-        # ).close()
-
         semaphore = asyncio.Semaphore(self.num_processes)
 
         tasks = [
@@ -86,22 +82,6 @@ class Data(object):
             for i in range(len(self.dataset))
         ]
         await asyncio.gather(*tasks)
-
-        # with open(
-        #     os.path.join(self.save_path, f"{self.data_name.split('/')[-1]}.jsonl"), "w"
-        # ) as f:
-        #     for i in tqdm(range(len(self.dataset))):
-        #         self.console.log(f"Processing data point {i}")
-        #         data = self.dataset[i]
-        #         processed_data = self.process_one_raw(data)
-        #         data_list.append(processed_data)
-        #         num_data_point += 1
-        #         num_test_cases += len(processed_data["test_cases"])
-        #         f.write(json.dumps(processed_data) + "\n")
-        # self.console.log(
-        #     f"Num data points: {num_data_point}, num test cases: {num_test_cases}"
-        # )
-        # self.console.log(f"Data {self.data_name} processed successfully")
 
     async def process_one_raw(self, data: Dict, semaphore) -> Dict:
 
@@ -176,6 +156,3 @@ class Data(object):
             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.console.log(f"Done {idx} at {current_time}")
             return len(processed_data["test_cases"].keys())
-
-    # def get_branches(self):
-    #     return self.dataset["base_commit"].unique()
