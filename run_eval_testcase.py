@@ -186,6 +186,6 @@ if __name__ == "__main__":
     parser.add_argument("--timeout", type=int, default=60)
     parser.add_argument("--num_processes", type=int, default=-1)
     parser.add_argument("--debug", action="store_true")
-    parser.add_argument("--translated", action="store_true")
+    parser.add_argument("--translated", type=int, required=True)
     args = parser.parse_args()
     asyncio.run(main(**vars(args)))

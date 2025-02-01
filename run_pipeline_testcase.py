@@ -71,6 +71,8 @@ def main(args):
             os.path.join(args.data_path, f"{data_suf}.jsonl"),
             "--res_path",
             os.path.join(args.data_path, f"{data_suf}_processed.jsonl"),
+            "--translated",
+            str(-1),
         ]
         if args.debug:
             eval_cmd.append("--debug")
@@ -129,6 +131,29 @@ def main(args):
         if args.debug:
             eval_cmd.append("--debug")
         subprocess.run(translate_cmd)
+
+        for time in range(args.num_try):
+            eval_cmd = [
+                "python",
+                "run_eval_testcase.py",
+                "--log_dir",
+                log_dir,
+                "--num_processes",
+                str(args.num_processes),
+                "--namespace",
+                args.namespace,
+                "--repo",
+                args.repo,
+                "--data_path",
+                os.path.join(args.data_path, f"{data_suf}.jsonl"),
+                "--res_path",
+                os.path.join(args.data_path, f"{data_suf}_processed.jsonl"),
+                "--translated",
+                str(time),
+            ]
+            if args.debug:
+                eval_cmd.append("--debug")
+            subprocess.run(eval_cmd)
 
 
 if __name__ == "__main__":
@@ -225,5 +250,10 @@ if __name__ == "__main__":
         help="Extract the method under test with LLM",
     )
     parser.add_argument("--debug", action="store_true", help="(Optional) Debug mode")
+    parser.add_argument(
+        "--eval_translate",
+        action="store_true",
+        help="Extract ground truth branch from human testcases",
+    )
     args = parser.parse_args()
     main(args)
