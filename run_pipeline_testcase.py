@@ -132,6 +132,7 @@ def main(args):
             eval_cmd.append("--debug")
         subprocess.run(translate_cmd)
 
+    if args.eval_translate:
         for time in range(args.num_try):
             eval_cmd = [
                 "python",
