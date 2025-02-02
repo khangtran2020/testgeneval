@@ -125,10 +125,10 @@ def main(args):
                     model=args.model,
                     messages=message_text,
                     temperature=args.temperature,
-                    max_tokens=8192,
+                    max_tokens=1024,
                 )
 
-                response = completion.choices[0].text
+                response = completion.choices[0].message.content
                 if args.debug:
                     logger.info(f"Prompt: {message_text}")
                     logger.info(f"Response: {response}")

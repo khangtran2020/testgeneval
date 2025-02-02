@@ -145,7 +145,7 @@ def main(args):
                         max_tokens=8192,
                     )
 
-                    response = completion.choices[0].text
+                    response = completion.choices[0].message.content
                     response = response.replace("```python", "```")
                     if "```" not in response:
                         task_dict[key][f"translate_{time}"][test_case_key] = ""
