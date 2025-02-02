@@ -72,9 +72,9 @@ def construct_prompt(
             ),
         },
     ]
-    prompt = tokenizer.apply_chat_template(message_text, tokenize=False)
-    prompt += "\nLet's think step by step and execute the request"
-    return prompt
+    # prompt = tokenizer.apply_chat_template(message_text, tokenize=False)
+    # prompt += "\nLet's think step by step and execute the request"
+    return message_text
 
 
 def main(args):
@@ -134,12 +134,15 @@ def main(args):
                 preamble = task_dict[key]["preds_context"]["preamble"]
                 method = task_dict[key]["func_info"][test_case_key]
 
-                prompt = construct_prompt(
+                message_text = construct_prompt(
                     src_code, test_case, preamble, method, tokenizer
                 )
                 for time in range(args.num_try):
-                    completion = client.completions.create(
-                        model=args.model, prompt=prompt, temperature=args.temperature
+                    completion = client.chat.completions.create(
+                        model=args.model,
+                        messages=message_text,
+                        temperature=args.temperature,
+                        max_tokens=8192,
                     )
 
                     response = completion.choices[0].text

@@ -61,9 +61,7 @@ def construct_prompt(code_src: str, test_case: str, preamble: str, tokenizer) ->
             ),
         },
     ]
-    prompt = tokenizer.apply_chat_template(message_text, tokenize=False)
-    prompt += "\nLet's think step by step"
-    return prompt
+    return message_text
 
 
 def main(args):
@@ -120,14 +118,19 @@ def main(args):
                 test_case = task_dict[key]["test_cases"][test_case_key]
                 preamble = task_dict[key]["preds_context"]["preamble"]
 
-                prompt = construct_prompt(src_code, test_case, preamble, tokenizer)
-                completion = client.completions.create(
-                    model=args.model, prompt=prompt, temperature=args.temperature
+                message_text = construct_prompt(
+                    src_code, test_case, preamble, tokenizer
+                )
+                completion = client.chat.completions.create(
+                    model=args.model,
+                    messages=message_text,
+                    temperature=args.temperature,
+                    max_tokens=8192,
                 )
 
                 response = completion.choices[0].text
                 if args.debug:
-                    logger.info(f"Prompt: {prompt}")
+                    logger.info(f"Prompt: {message_text}")
                     logger.info(f"Response: {response}")
                 response = response.replace("```json", "```")
                 if "```" not in response:
