@@ -121,23 +121,32 @@ def main(args):
                 message_text = construct_prompt(
                     src_code, test_case, preamble, tokenizer
                 )
-                completion = client.chat.completions.create(
-                    model=args.model,
-                    messages=message_text,
-                    temperature=args.temperature,
-                    max_tokens=1024,
-                )
+                response_ok = False
+                try:
+                    completion = client.chat.completions.create(
+                        model=args.model,
+                        messages=message_text,
+                        temperature=args.temperature,
+                        max_tokens=1024,
+                    )
 
-                response = completion.choices[0].message.content
-                if args.debug:
-                    logger.info(f"Prompt: {message_text}")
-                    logger.info(f"Response: {response}")
-                response = response.replace("```json", "```")
-                if "```" not in response:
-                    task_dict[key]["func_info"][test_case_key] = ""
+                    response = completion.choices[0].message.content
+                    response_ok = True
+                except Exception as e:
+                    logger.error(f"Error: {e}")
+
+                if response_ok:
+                    if args.debug:
+                        logger.info(f"Prompt: {message_text}")
+                        logger.info(f"Response: {response}")
+                    response = response.replace("```json", "```")
+                    if "```" not in response:
+                        task_dict[key]["func_info"][test_case_key] = ""
+                    else:
+                        text_cleaned = response.split("```")[1].split("```")[0]
+                        task_dict[key]["func_info"][test_case_key] = text_cleaned
                 else:
-                    text_cleaned = response.split("```")[1].split("```")[0]
-                    task_dict[key]["func_info"][test_case_key] = text_cleaned
+                    task_dict[key]["func_info"][test_case_key] = ""
                 progress.advance(inner_task_progress)
             progress.remove_task(inner_task_progress)
             progress.advance(main_task)

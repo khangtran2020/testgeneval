@@ -138,25 +138,33 @@ def main(args):
                     src_code, test_case, preamble, method, tokenizer
                 )
                 for time in range(args.num_try):
-                    completion = client.chat.completions.create(
-                        model=args.model,
-                        messages=message_text,
-                        temperature=args.temperature,
-                        max_tokens=8192,
-                    )
+                    response_ok = False
+                    try:
+                        completion = client.chat.completions.create(
+                            model=args.model,
+                            messages=message_text,
+                            temperature=args.temperature,
+                            max_tokens=8192,
+                        )
+                        response = completion.choices[0].message.content
+                        response_ok = True
+                    except Exception as e:
+                        logger.error(f"Error: {e}")
 
-                    response = completion.choices[0].message.content
-                    response = response.replace("```python", "```")
-                    if "```" not in response:
-                        task_dict[key][f"translate_{time}"][test_case_key] = ""
-                    else:
-                        text_cleaned = response.split("```")[1].split("```")[0]
-                        if is_pytest_test_case(text_cleaned):
-                            task_dict[key][f"translate_{time}"][
-                                test_case_key
-                            ] = text_cleaned
-                        else:
+                    if response_ok:
+                        response = response.replace("```python", "```")
+                        if "```" not in response:
                             task_dict[key][f"translate_{time}"][test_case_key] = ""
+                        else:
+                            text_cleaned = response.split("```")[1].split("```")[0]
+                            if is_pytest_test_case(text_cleaned):
+                                task_dict[key][f"translate_{time}"][
+                                    test_case_key
+                                ] = text_cleaned
+                            else:
+                                task_dict[key][f"translate_{time}"][test_case_key] = ""
+                    else:
+                        task_dict[key][f"translate_{time}"][test_case_key] = ""
                 progress.advance(inner_task_progress)
             progress.remove_task(inner_task_progress)
             progress.advance(main_task)
