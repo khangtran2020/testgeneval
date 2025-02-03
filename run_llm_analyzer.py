@@ -64,7 +64,29 @@ def construct_prompt(code_src: str, test_case: str, preamble: str, tokenizer) ->
     return message_text
 
 
-def main(args):
+async def run_request(data, client, args, semaphore):
+    async with semaphore:
+        key, test_case_key, message_text = data
+        try:
+            completion = await client.chat.completions.create(
+                model=args.model,
+                messages=message_text,
+                temperature=args.temperature,
+                max_tokens=1024,
+            )
+
+            response = completion.choices[0].message.content
+            return key, test_case_key, response
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            return key, test_case_key, ""
+
+
+async def run_analyze(data, client, args, semaphore):
+    return await run_request(data, client, args, semaphore)
+
+
+async def main(args):
 
     tokenizer = AutoTokenizer.from_pretrained(args.model)
 
@@ -102,54 +124,90 @@ def main(args):
         for test_case_key in task_dict[key]["test_cases"].keys():
             task_dict[key]["func_info"][test_case_key] = ""
 
-    with Progress() as progress:
-        main_task = progress.add_task("# of Task", total=len(task_dict.keys()))
-        for key in task_dict.keys():
+    prompt_list = []
+    prompt_dict = {}
 
-            inner_task_progress = progress.add_task(
-                f"# test case", total=len(task_dict[key]["test_cases"].keys())
-            )
-            for test_case_key in task_dict[key]["test_cases"].keys():
+    for key in task_dict.keys():
 
-                # if task_dict[key]["branches"][test_case_key] == []:
-                #     continue
+        for test_case_key in task_dict[key]["test_cases"].keys():
+            src_code = task_dict[key]["code_src"]
+            test_case = task_dict[key]["test_cases"][test_case_key]
+            preamble = task_dict[key]["preds_context"]["preamble"]
 
-                src_code = task_dict[key]["code_src"]
-                test_case = task_dict[key]["test_cases"][test_case_key]
-                preamble = task_dict[key]["preds_context"]["preamble"]
+            message_text = construct_prompt(src_code, test_case, preamble, tokenizer)
+            prompt_list.append((key, test_case_key, message_text))
+            prompt_dict[(key, test_case_key)] = message_text
 
-                message_text = construct_prompt(
-                    src_code, test_case, preamble, tokenizer
-                )
-                response_ok = False
-                try:
-                    completion = client.chat.completions.create(
-                        model=args.model,
-                        messages=message_text,
-                        temperature=args.temperature,
-                        max_tokens=1024,
-                    )
+    semaphore = asyncio.Semaphore(args.num_processes)
+    tasks = []
+    for data in prompt_list:
+        task = asyncio.create_task(
+            run_analyze(data=data, client=client, args=args, semaphore=semaphore)
+        )
+        tasks.append(task)
+    results = await asyncio.gather(*tasks)
 
-                    response = completion.choices[0].message.content
-                    response_ok = True
-                except Exception as e:
-                    logger.error(f"Error: {e}")
+    for res in results:
+        key, test_case_key, response = res
+        if args.debug:
+            logger.info(f"Prompt: {prompt_dict[(key, test_case_key)]}")
+            logger.info(f"Response: {response}")
 
-                if response_ok:
-                    if args.debug:
-                        logger.info(f"Prompt: {message_text}")
-                        logger.info(f"Response: {response}")
-                    response = response.replace("```json", "```")
-                    if "```" not in response:
-                        task_dict[key]["func_info"][test_case_key] = ""
-                    else:
-                        text_cleaned = response.split("```")[1].split("```")[0]
-                        task_dict[key]["func_info"][test_case_key] = text_cleaned
-                else:
-                    task_dict[key]["func_info"][test_case_key] = ""
-                progress.advance(inner_task_progress)
-            progress.remove_task(inner_task_progress)
-            progress.advance(main_task)
+        response = response.replace("```json", "```")
+        if "```" not in response:
+            task_dict[key]["func_info"][test_case_key] = ""
+        else:
+            text_cleaned = response.split("```")[1].split("```")[0]
+            task_dict[key]["func_info"][test_case_key] = text_cleaned
+
+    # with Progress() as progress:
+    #     main_task = progress.add_task("# of Task", total=len(task_dict.keys()))
+    #     for key in task_dict.keys():
+
+    #         inner_task_progress = progress.add_task(
+    #             f"# test case", total=len(task_dict[key]["test_cases"].keys())
+    #         )
+    #         for test_case_key in task_dict[key]["test_cases"].keys():
+
+    #             # if task_dict[key]["branches"][test_case_key] == []:
+    #             #     continue
+
+    #             src_code = task_dict[key]["code_src"]
+    #             test_case = task_dict[key]["test_cases"][test_case_key]
+    #             preamble = task_dict[key]["preds_context"]["preamble"]
+
+    #             message_text = construct_prompt(
+    #                 src_code, test_case, preamble, tokenizer
+    #             )
+    #             response_ok = False
+    #             try:
+    #                 completion = client.chat.completions.create(
+    #                     model=args.model,
+    #                     messages=message_text,
+    #                     temperature=args.temperature,
+    #                     max_tokens=1024,
+    #                 )
+
+    #                 response = completion.choices[0].message.content
+    #                 response_ok = True
+    #             except Exception as e:
+    #                 logger.error(f"Error: {e}")
+
+    #             if response_ok:
+    #                 if args.debug:
+    #                     logger.info(f"Prompt: {message_text}")
+    #                     logger.info(f"Response: {response}")
+    #                 response = response.replace("```json", "```")
+    #                 if "```" not in response:
+    #                     task_dict[key]["func_info"][test_case_key] = ""
+    #                 else:
+    #                     text_cleaned = response.split("```")[1].split("```")[0]
+    #                     task_dict[key]["func_info"][test_case_key] = text_cleaned
+    #             else:
+    #                 task_dict[key]["func_info"][test_case_key] = ""
+    #             progress.advance(inner_task_progress)
+    #         progress.remove_task(inner_task_progress)
+    #         progress.advance(main_task)
 
     with open(args.res_path, "w") as f:
         for item in task_dict.values():
@@ -166,6 +224,7 @@ if __name__ == "__main__":
     parser.add_argument("--model", type=str, default="aorwall")
     parser.add_argument("--host", type=str, default="localhost")
     parser.add_argument("--port", type=str, default="2605")
+    parser.add_argument("--num_processes", type=int, default=1)
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
