@@ -42,7 +42,23 @@ And here is the function names of the methods and classes under test:
 ```
 
 Your job is to output a corresponding unit test function in Pytest format that obtains the same coverage as the human-written test script.
-In your response, the value of the variables and entities before calling the method under test should be between the tags <fuzz> and </fuzz>.
+
+In your response, the value of the variables and entities before calling the method under test should be between the tags <fuzz> and </fuzz>. For example, given the following test script that tests the function `example_function(var_1, var_2)`:
+```python
+def test_example_function():
+    var_1 = 1
+    var_2 = 2
+    assert example_function(var_1, var_2) == 3
+```
+
+The response should be:
+```python
+def test_example_function():
+    var_1 = <fuzz>1</fuzz>
+    var_2 = <fuzz>2</fuzz>
+    assert example_function(var_1, var_2) == <fuzz>3</fuzz>
+```
+
 The unit test must be a function starting with test_. Include all your test imports and setup before your first test. Do not 
 run the tests in the function, just output a test function. Do not include a main method to run the tests.
 
@@ -52,6 +68,30 @@ Output the unit test Python function in this format:
 Unit test Python code (file level)
 ```
 """
+
+
+async def run_request(data, client, args, semaphore):
+    async with semaphore:
+        key, test_case_key, message_text = data
+        try:
+            completion = client.chat.completions.create(
+                model=args.model,
+                messages=message_text,
+                temperature=args.temperature,
+                max_tokens=1024,
+                n=args.num_try,
+            )
+            response = [
+                completion.choices[i].message.content for i in range(args.num_try)
+            ]
+            return key, test_case_key, response
+        except Exception as e:
+            logger.error(f"Error: {e}")
+            return key, test_case_key, []
+
+
+async def run_translate(data, client, args, semaphore):
+    return await run_request(data, client, args, semaphore)
 
 
 def construct_prompt(
@@ -77,7 +117,7 @@ def construct_prompt(
     return message_text
 
 
-def main(args):
+async def main(args):
 
     tokenizer = AutoTokenizer.from_pretrained(args.model)
 
@@ -118,56 +158,103 @@ def main(args):
                 task_dict[key][f"translate_{time}"][test_case_key] = ""
                 task_dict[key][f"branch_translate_{time}"][test_case_key] = []
 
-    with Progress() as progress:
-        main_task = progress.add_task("# of Task", total=len(task_dict.keys()))
-        for key in task_dict.keys():
+    semaphore = asyncio.Semaphore(args.num_processes)
+    prompt_list = []
+    prompt_dict = {}
 
-            inner_task_progress = progress.add_task(
-                f"# test case", total=len(task_dict[key]["test_cases"].keys())
+    for key in task_dict.keys():
+
+        for test_case_key in task_dict[key]["test_cases"].keys():
+            src_code = task_dict[key]["code_src"]
+            test_case = task_dict[key]["test_cases"][test_case_key]
+            preamble = task_dict[key]["preds_context"]["preamble"]
+            method = task_dict[key]["func_info"][test_case_key]
+
+            message_text = construct_prompt(
+                code_src=src_code,
+                test_case=test_case,
+                preamble=preamble,
+                method=method,
+                tokenizer=None,
             )
-            for test_case_key in task_dict[key]["test_cases"].keys():
+            prompt_list.append((key, test_case_key, message_text))
+            prompt_dict[(key, test_case_key)] = message_text
 
-                # if task_dict[key]["branches"][test_case_key] == []:
-                #     continue
-                src_code = task_dict[key]["code_src"]
-                test_case = task_dict[key]["test_cases"][test_case_key]
-                preamble = task_dict[key]["preds_context"]["preamble"]
-                method = task_dict[key]["func_info"][test_case_key]
+    tasks = []
+    for data in prompt_list:
+        task = asyncio.create_task(
+            run_translate(data=data, client=client, args=args, semaphore=semaphore)
+        )
+        tasks.append(task)
+    results = await asyncio.gather(*tasks)
 
-                message_text = construct_prompt(
-                    src_code, test_case, preamble, method, tokenizer
-                )
-                for time in range(args.num_try):
-                    response_ok = False
-                    try:
-                        completion = client.chat.completions.create(
-                            model=args.model,
-                            messages=message_text,
-                            temperature=args.temperature,
-                            max_tokens=8192,
-                        )
-                        response = completion.choices[0].message.content
-                        response_ok = True
-                    except Exception as e:
-                        logger.error(f"Error: {e}")
+    for res in results:
+        key, test_case_key, response = res
+        if args.debug:
+            logger.info(f"Prompt: {prompt_dict[(key, test_case_key)]}")
+            logger.info(f"Response: {response}")
 
-                    if response_ok:
-                        response = response.replace("```python", "```")
-                        if "```" not in response:
-                            task_dict[key][f"translate_{time}"][test_case_key] = ""
-                        else:
-                            text_cleaned = response.split("```")[1].split("```")[0]
-                            if is_pytest_test_case(text_cleaned):
-                                task_dict[key][f"translate_{time}"][
-                                    test_case_key
-                                ] = text_cleaned
-                            else:
-                                task_dict[key][f"translate_{time}"][test_case_key] = ""
-                    else:
-                        task_dict[key][f"translate_{time}"][test_case_key] = ""
-                progress.advance(inner_task_progress)
-            progress.remove_task(inner_task_progress)
-            progress.advance(main_task)
+        for time in range(args.num_try):
+            response[time] = response[time].replace("```json", "```")
+            if "```" not in response[time]:
+                task_dict[key][f"translate_{time}"][test_case_key] = ""
+            else:
+                text_cleaned = response[time].split("```")[1].split("```")[0]
+                if is_pytest_test_case(text_cleaned):
+                    task_dict[key][f"translate_{time}"][test_case_key] = text_cleaned
+                else:
+                    task_dict[key][f"translate_{time}"][test_case_key] = ""
+
+    # with Progress() as progress:
+    #     main_task = progress.add_task("# of Task", total=len(task_dict.keys()))
+    #     for key in task_dict.keys():
+
+    #         inner_task_progress = progress.add_task(
+    #             f"# test case", total=len(task_dict[key]["test_cases"].keys())
+    #         )
+    #         for test_case_key in task_dict[key]["test_cases"].keys():
+
+    #             # if task_dict[key]["branches"][test_case_key] == []:
+    #             #     continue
+    #             src_code = task_dict[key]["code_src"]
+    #             test_case = task_dict[key]["test_cases"][test_case_key]
+    #             preamble = task_dict[key]["preds_context"]["preamble"]
+    #             method = task_dict[key]["func_info"][test_case_key]
+
+    #             message_text = construct_prompt(
+    #                 src_code, test_case, preamble, method, tokenizer
+    #             )
+    #             for time in range(args.num_try):
+    #                 response_ok = False
+    #                 try:
+    #                     completion = client.chat.completions.create(
+    #                         model=args.model,
+    #                         messages=message_text,
+    #                         temperature=args.temperature,
+    #                         max_tokens=8192,
+    #                     )
+    #                     response = completion.choices[0].message.content
+    #                     response_ok = True
+    #                 except Exception as e:
+    #                     logger.error(f"Error: {e}")
+
+    #                 if response_ok:
+    #                     response = response.replace("```python", "```")
+    #                     if "```" not in response:
+    #                         task_dict[key][f"translate_{time}"][test_case_key] = ""
+    #                     else:
+    #                         text_cleaned = response.split("```")[1].split("```")[0]
+    #                         if is_pytest_test_case(text_cleaned):
+    #                             task_dict[key][f"translate_{time}"][
+    #                                 test_case_key
+    #                             ] = text_cleaned
+    #                         else:
+    #                             task_dict[key][f"translate_{time}"][test_case_key] = ""
+    #                 else:
+    #                     task_dict[key][f"translate_{time}"][test_case_key] = ""
+    #             progress.advance(inner_task_progress)
+    #         progress.remove_task(inner_task_progress)
+    #         progress.advance(main_task)
 
     # res_path = args.res_path.replace(".jsonl", f"num_try_{args.num_try}.jsonl")
     with open(args.res_path, "w") as f:
@@ -216,6 +303,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--log_dir", type=str, required=True)
     parser.add_argument("--num_try", type=int, required=True)
+    parser.add_argument("--num_processes", type=int, required=True)
     parser.add_argument("--data_path", type=str, required=True)
     parser.add_argument("--res_path", type=str, required=True)
     parser.add_argument("--repo", type=str, required=True)
