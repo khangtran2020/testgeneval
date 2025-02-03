@@ -98,6 +98,8 @@ def main(args):
             args.host,
             "--port",
             args.port,
+            "--num_processes",
+            str(args.num_processes),
         ]
         if args.debug:
             analyze_cmd.append("--debug")
@@ -127,6 +129,8 @@ def main(args):
             args.port,
             "--num_try",
             str(args.num_try),
+            "--num_processes",
+            str(args.num_processes),
         ]
         if args.debug:
             eval_cmd.append("--debug")
