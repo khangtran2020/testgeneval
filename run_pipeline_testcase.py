@@ -1,4 +1,5 @@
 import os
+import asyncio
 import argparse
 import subprocess
 from utils.data import Data
@@ -261,4 +262,4 @@ if __name__ == "__main__":
         help="Extract ground truth branch from human testcases",
     )
     args = parser.parse_args()
-    main(args)
+    asyncio.run(main(args))

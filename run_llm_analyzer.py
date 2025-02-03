@@ -228,4 +228,4 @@ if __name__ == "__main__":
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
-    main(args)
+    asyncio.run(main(args))
