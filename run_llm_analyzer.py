@@ -7,7 +7,7 @@ from rich.pretty import pretty_repr
 from swebench_docker.constants import KEY_BASELINES, KEY_ID, REPO_ID
 from swebench_docker.run_docker import run_docker_evaluation
 from swebench_docker.utils import get_test_tasks
-from openai import OpenAI
+from openai import AsyncOpenAI
 from transformers import AutoTokenizer
 from rich.progress import Progress
 
@@ -66,7 +66,7 @@ def construct_prompt(code_src: str, test_case: str, preamble: str, tokenizer) ->
 
 async def run_request(data, client, args, semaphore):
     async with semaphore:
-        key, test_case_key, message_text = data
+        test_case_key, message_text = data
         try:
             completion = client.chat.completions.create(
                 model=args.model,
@@ -76,17 +76,24 @@ async def run_request(data, client, args, semaphore):
             )
 
             response = completion.choices[0].message.content
-            return key, test_case_key, response
+            return test_case_key, response
         except Exception as e:
             logger.error(f"Error: {e}")
-            return key, test_case_key, ""
+            return test_case_key, ""
 
 
-async def run_analyze(data, client, args, semaphore):
-    return await run_request(data, client, args, semaphore)
+async def run_analyze(prompt_list, client, args, semaphore):
+    tasks = []
+    for data in prompt_list:
+        task = asyncio.create_task(
+            run_request(data=data, client=client, args=args, semaphore=semaphore)
+        )
+        tasks.append(task)
+    results = await results = await asyncio.gather(*tasks)
+    return results
 
 
-async def main(args):
+def main(args):
 
     tokenizer = AutoTokenizer.from_pretrained(args.model)
 
@@ -114,7 +121,7 @@ async def main(args):
 
     openai_api_key = "EMPTY"
     openai_api_base = f"http://{args.host}:{args.port}/v1"
-    client = OpenAI(
+    client = AsyncOpenAI(
         api_key=openai_api_key,
         base_url=openai_api_base,
     )
@@ -124,10 +131,11 @@ async def main(args):
         for test_case_key in task_dict[key]["test_cases"].keys():
             task_dict[key]["func_info"][test_case_key] = ""
 
-    prompt_list = []
-    prompt_dict = {}
-
+    semaphore = asyncio.Semaphore(args.num_processes)
     for key in task_dict.keys():
+
+        prompt_list = []
+        prompt_dict = {}
 
         for test_case_key in task_dict[key]["test_cases"].keys():
             src_code = task_dict[key]["code_src"]
@@ -135,30 +143,31 @@ async def main(args):
             preamble = task_dict[key]["preds_context"]["preamble"]
 
             message_text = construct_prompt(src_code, test_case, preamble, tokenizer)
-            prompt_list.append((key, test_case_key, message_text))
-            prompt_dict[(key, test_case_key)] = message_text
+            prompt_list.append((test_case_key, message_text))
+            prompt_dict[test_case_key] = message_text
 
-    semaphore = asyncio.Semaphore(args.num_processes)
-    tasks = []
-    for data in prompt_list:
-        task = asyncio.create_task(
-            run_analyze(data=data, client=client, args=args, semaphore=semaphore)
-        )
-        tasks.append(task)
-    results = await asyncio.gather(*tasks)
+        results = asyncio.run(run_analyze(prompt_list, client, args, semaphore))
+        for res in results:
+            test_case_key, response = res
+            if args.debug:
+                logger.info(f"Prompt: {prompt_dict[test_case_key]}")
+                logger.info(f"Response: {response}")
 
-    for res in results:
-        key, test_case_key, response = res
-        if args.debug:
-            logger.info(f"Prompt: {prompt_dict[(key, test_case_key)]}")
-            logger.info(f"Response: {response}")
+            response = response.replace("```json", "```")
+            if "```" not in response:
+                task_dict[key]["func_info"][test_case_key] = ""
+            else:
+                text_cleaned = response.split("```")[1].split("```")[0]
+                task_dict[key]["func_info"][test_case_key] = text_cleaned
 
-        response = response.replace("```json", "```")
-        if "```" not in response:
-            task_dict[key]["func_info"][test_case_key] = ""
-        else:
-            text_cleaned = response.split("```")[1].split("```")[0]
-            task_dict[key]["func_info"][test_case_key] = text_cleaned
+        with open(args.res_path, "a") as f:
+            f.write(json.dumps(task_dict[key]) + "\n")
+        
+
+
+    # results = await asyncio.gather(*tasks)
+
+    
 
     # with Progress() as progress:
     #     main_task = progress.add_task("# of Task", total=len(task_dict.keys()))
@@ -209,10 +218,10 @@ async def main(args):
     #         progress.remove_task(inner_task_progress)
     #         progress.advance(main_task)
 
-    with open(args.res_path, "w") as f:
-        for item in task_dict.values():
-            f.write(json.dumps(item) + "\n")
-    print(f"Translation complete")
+    # with open(args.res_path, "w") as f:
+    #     for item in task_dict.values():
+    #         f.write(json.dumps(item) + "\n")
+    logger.info(f"Translation complete")
 
 
 if __name__ == "__main__":
@@ -229,4 +238,4 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
     logger.info(f"Running with # processes: {args.num_processes}")
-    asyncio.run(main(args))
+    main(args)
