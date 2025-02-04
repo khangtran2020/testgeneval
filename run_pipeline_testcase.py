@@ -137,6 +137,7 @@ def main(args):
             eval_cmd.append("--debug")
         subprocess.run(translate_cmd)
 
+    args.num_processes = args.num_processes * 8
     if args.eval_translate:
         for time in range(args.num_try):
             if time == 0:
