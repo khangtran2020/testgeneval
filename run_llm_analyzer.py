@@ -68,7 +68,7 @@ async def run_request(data, client, args, semaphore):
     async with semaphore:
         test_case_key, message_text = data
         try:
-            completion = client.chat.completions.create(
+            completion = await client.chat.completions.create(
                 model=args.model,
                 messages=message_text,
                 temperature=args.temperature,
