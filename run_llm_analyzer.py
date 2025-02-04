@@ -13,6 +13,11 @@ from rich.progress import Progress
 
 from typing import Dict
 
+import nest_asyncio
+
+nest_asyncio.apply()
+
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
