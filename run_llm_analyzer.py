@@ -131,13 +131,31 @@ def main(args):
         base_url=openai_api_base,
     )
 
+    # check existed results
+    already_processed = []
+    if os.path.exists(args.res_path):
+        with open(args.res_path, "r") as f:
+            for line in f:
+                task = json.loads(line)
+                already_processed.append(task[KEY_ID])
+        logger.info(f"Already processed: {len(already_processed)}")
+
+    if len(already_processed) == len(task_dict.keys()):
+        logger.info(f"All tasks are already processed")
+        return
+
     for key in task_dict.keys():
+        if key in already_processed:
+            continue
         task_dict[key]["func_info"] = {}
         for test_case_key in task_dict[key]["test_cases"].keys():
             task_dict[key]["func_info"][test_case_key] = ""
 
     semaphore = asyncio.Semaphore(args.num_processes)
     for key in task_dict.keys():
+
+        if key in already_processed:
+            continue
 
         prompt_list = []
         prompt_dict = {}
