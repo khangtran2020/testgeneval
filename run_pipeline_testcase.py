@@ -139,6 +139,18 @@ def main(args):
 
     if args.eval_translate:
         for time in range(args.num_try):
+            if time == 0:
+                in_path = f"{data_suf}_translated_num_try_{args.num_try}.jsonl"
+                out_path = (
+                    f"{data_suf}_translated_num_try_{args.num_try}_processed.jsonl"
+                )
+            else:
+                in_path = (
+                    f"{data_suf}_translated_num_try_{args.num_try}_processed.jsonl"
+                )
+                out_path = (
+                    f"{data_suf}_translated_num_try_{args.num_try}_processed.jsonl"
+                )
             eval_cmd = [
                 "python",
                 "run_eval_testcase.py",
@@ -151,9 +163,15 @@ def main(args):
                 "--repo",
                 args.repo,
                 "--data_path",
-                os.path.join(args.data_path, f"{data_suf}.jsonl"),
+                os.path.join(
+                    args.data_path,
+                    in_path,
+                ),
                 "--res_path",
-                os.path.join(args.data_path, f"{data_suf}_processed.jsonl"),
+                os.path.join(
+                    args.data_path,
+                    out_path,
+                ),
                 "--translated",
                 str(time),
             ]
