@@ -89,7 +89,7 @@ async def run_analyze(prompt_list, client, args, semaphore):
             run_request(data=data, client=client, args=args, semaphore=semaphore)
         )
         tasks.append(task)
-    results = await results = await asyncio.gather(*tasks)
+    results = await asyncio.gather(*tasks)
     return results
 
 
@@ -162,12 +162,8 @@ def main(args):
 
         with open(args.res_path, "a") as f:
             f.write(json.dumps(task_dict[key]) + "\n")
-        
-
 
     # results = await asyncio.gather(*tasks)
-
-    
 
     # with Progress() as progress:
     #     main_task = progress.add_task("# of Task", total=len(task_dict.keys()))
