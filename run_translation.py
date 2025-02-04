@@ -8,11 +8,14 @@ from rich.pretty import pretty_repr
 from swebench_docker.constants import KEY_BASELINES, KEY_ID, REPO_ID
 from swebench_docker.run_docker import run_docker_evaluation
 from swebench_docker.utils import get_test_tasks
-from openai import OpenAI
+from openai import AsyncOpenAI
 from transformers import AutoTokenizer
 from rich.progress import Progress
-
 from typing import Dict
+import nest_asyncio
+
+nest_asyncio.apply()
+
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -21,12 +24,7 @@ logger = logging.getLogger("run_evaluation_baseline")
 
 SYSTEM_MESSAGE_FULL = "You are an expert Python automated testing assistant. Your job is to generate a test function in Pytest format given a human-written test script for a Python module."
 
-PROMPT_FULL = """Below is a code file:
-```python
-{code_src}
-```
-
-The human-written test script for the code file:
+PROMPT_FULL = """Below is a human-written test script for the code file:
 ```python
 {test_src}
 ```
@@ -72,9 +70,9 @@ Unit test Python code (file level)
 
 async def run_request(data, client, args, semaphore):
     async with semaphore:
-        key, test_case_key, message_text = data
+        test_case_key, message_text = data
         try:
-            completion = client.chat.completions.create(
+            completion = await client.chat.completions.create(
                 model=args.model,
                 messages=message_text,
                 temperature=args.temperature,
@@ -84,14 +82,21 @@ async def run_request(data, client, args, semaphore):
             response = [
                 completion.choices[i].message.content for i in range(args.num_try)
             ]
-            return key, test_case_key, response
+            return test_case_key, response
         except Exception as e:
             logger.error(f"Error: {e}")
-            return key, test_case_key, []
+            return test_case_key, []
 
 
-async def run_translate(data, client, args, semaphore):
-    return await run_request(data, client, args, semaphore)
+async def run_translate(prompt_list, client, args, semaphore):
+    tasks = []
+    for data in prompt_list:
+        task = asyncio.create_task(
+            run_request(data=data, client=client, args=args, semaphore=semaphore)
+        )
+        tasks.append(task)
+    results = await asyncio.gather(*tasks)
+    return results
 
 
 def construct_prompt(
@@ -117,7 +122,7 @@ def construct_prompt(
     return message_text
 
 
-async def main(args):
+def main(args):
 
     tokenizer = AutoTokenizer.from_pretrained(args.model)
 
@@ -145,12 +150,24 @@ async def main(args):
 
     openai_api_key = "EMPTY"
     openai_api_base = f"http://{args.host}:{args.port}/v1"
-    client = OpenAI(
+    client = AsyncOpenAI(
         api_key=openai_api_key,
         base_url=openai_api_base,
     )
 
+    # check existed results
+    already_processed = []
+    if os.path.exists(args.res_path):
+        with open(args.res_path, "r") as f:
+            for line in f:
+                task = json.loads(line)
+                already_processed.append(task[KEY_ID])
+        logger.info(f"Already processed: {len(already_processed)}")
+
     for key in task_dict.keys():
+        if key in already_processed:
+            continue
+
         for time in range(args.num_try):
             task_dict[key][f"translate_{time}"] = {}
             task_dict[key][f"branch_translate_{time}"] = {}
@@ -159,16 +176,21 @@ async def main(args):
                 task_dict[key][f"branch_translate_{time}"][test_case_key] = []
 
     semaphore = asyncio.Semaphore(args.num_processes)
-    prompt_list = []
-    prompt_dict = {}
 
     for key in task_dict.keys():
+
+        if key in already_processed:
+            continue
+
+        prompt_list = []
+        prompt_dict = {}
 
         for test_case_key in task_dict[key]["test_cases"].keys():
             src_code = task_dict[key]["code_src"]
             test_case = task_dict[key]["test_cases"][test_case_key]
             preamble = task_dict[key]["preds_context"]["preamble"]
             method = task_dict[key]["func_info"][test_case_key]
+            test_case = test_case.replace(preamble, "")
 
             message_text = construct_prompt(
                 code_src=src_code,
@@ -177,33 +199,32 @@ async def main(args):
                 method=method,
                 tokenizer=None,
             )
-            prompt_list.append((key, test_case_key, message_text))
-            prompt_dict[(key, test_case_key)] = message_text
+            prompt_list.append((test_case_key, message_text))
+            prompt_dict[test_case_key] = message_text
 
-    tasks = []
-    for data in prompt_list:
-        task = asyncio.create_task(
-            run_translate(data=data, client=client, args=args, semaphore=semaphore)
-        )
-        tasks.append(task)
-    results = await asyncio.gather(*tasks)
+        results = asyncio.run(run_translate(prompt_list, client, args, semaphore))
 
-    for res in results:
-        key, test_case_key, response = res
-        if args.debug:
-            logger.info(f"Prompt: {prompt_dict[(key, test_case_key)]}")
-            logger.info(f"Response: {response}")
+        for res in results:
+            test_case_key, response = res
+            if args.debug:
+                logger.info(f"Prompt: {prompt_dict[test_case_key]}")
+                logger.info(f"Response: {response}")
 
-        for time in range(args.num_try):
-            response[time] = response[time].replace("```json", "```")
-            if "```" not in response[time]:
-                task_dict[key][f"translate_{time}"][test_case_key] = ""
-            else:
-                text_cleaned = response[time].split("```")[1].split("```")[0]
-                if is_pytest_test_case(text_cleaned):
-                    task_dict[key][f"translate_{time}"][test_case_key] = text_cleaned
-                else:
+            for time in range(args.num_try):
+                response[time] = response[time].replace("```json", "```")
+                if "```" not in response[time]:
                     task_dict[key][f"translate_{time}"][test_case_key] = ""
+                else:
+                    text_cleaned = response[time].split("```")[1].split("```")[0]
+                    if is_pytest_test_case(text_cleaned):
+                        task_dict[key][f"translate_{time}"][
+                            test_case_key
+                        ] = text_cleaned
+                    else:
+                        task_dict[key][f"translate_{time}"][test_case_key] = ""
+
+        with open(args.res_path, "a") as f:
+            f.write(json.dumps(task_dict[key]) + "\n")
 
     # with Progress() as progress:
     #     main_task = progress.add_task("# of Task", total=len(task_dict.keys()))
@@ -257,10 +278,10 @@ async def main(args):
     #         progress.advance(main_task)
 
     # res_path = args.res_path.replace(".jsonl", f"num_try_{args.num_try}.jsonl")
-    with open(args.res_path, "w") as f:
-        for item in task_dict.values():
-            f.write(json.dumps(item) + "\n")
-    print(f"Translation complete")
+    # with open(args.res_path, "w") as f:
+    #     for item in task_dict.values():
+    #         f.write(json.dumps(item) + "\n")
+    logger.info(f"Translation complete")
 
 
 def is_pytest_test_case(code_snippet):

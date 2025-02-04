@@ -10,9 +10,7 @@ from swebench_docker.utils import get_test_tasks
 from openai import AsyncOpenAI
 from transformers import AutoTokenizer
 from rich.progress import Progress
-
 from typing import Dict
-
 import nest_asyncio
 
 nest_asyncio.apply()
@@ -164,6 +162,7 @@ def main(args):
             src_code = task_dict[key]["code_src"]
             test_case = task_dict[key]["test_cases"][test_case_key]
             preamble = task_dict[key]["preds_context"]["preamble"]
+            test_case = test_case.replace(preamble, "")
 
             message_text = construct_prompt(src_code, test_case, preamble, tokenizer)
             prompt_list.append((test_case_key, message_text))
@@ -240,7 +239,7 @@ def main(args):
     # with open(args.res_path, "w") as f:
     #     for item in task_dict.values():
     #         f.write(json.dumps(item) + "\n")
-    logger.info(f"Translation complete")
+    logger.info(f"Analyzation complete")
 
 
 if __name__ == "__main__":
