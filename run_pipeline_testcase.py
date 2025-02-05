@@ -134,7 +134,7 @@ def main(args):
             str(args.num_processes),
         ]
         if args.debug:
-            eval_cmd.append("--debug")
+            translate_cmd.append("--debug")
         subprocess.run(translate_cmd)
 
     args.num_processes = args.num_processes * 8
