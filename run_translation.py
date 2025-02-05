@@ -85,7 +85,7 @@ async def run_request(data, client, args, semaphore):
             return test_case_key, response
         except Exception as e:
             logger.error(f"Error: {e}")
-            return test_case_key, []
+            return None
 
 
 async def run_translate(prompt_list, client, args, semaphore):
@@ -205,6 +205,10 @@ def main(args):
         results = asyncio.run(run_translate(prompt_list, client, args, semaphore))
 
         for res in results:
+
+            if res is None:
+                return
+
             test_case_key, response = res
             if args.debug:
                 logger.info(f"Prompt: {prompt_dict[test_case_key]}")
