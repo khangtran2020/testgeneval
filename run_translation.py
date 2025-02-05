@@ -199,8 +199,12 @@ def main(args):
                 method=method,
                 tokenizer=None,
             )
+
             prompt_list.append((test_case_key, message_text))
             prompt_dict[test_case_key] = message_text
+
+            if args.debug:
+                logger.info(f"Prompt: {message_text}")
 
         results = asyncio.run(run_translate(prompt_list, client, args, semaphore))
 
