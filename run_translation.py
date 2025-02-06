@@ -40,23 +40,6 @@ And here is the function names of the methods and classes under test:
 ```
 
 Your job is to output a corresponding unit test function in Pytest format that obtains the same coverage as the human-written test script.
-
-In your response, the value of the variables and entities before calling the method under test should be between the tags <fuzz> and </fuzz>. For example, given the following test script that tests the function `example_function(var_1, var_2)`:
-```python
-def test_example_function():
-    var_1 = 1
-    var_2 = 2
-    assert example_function(var_1, var_2) == 3
-```
-
-The response should be:
-```python
-def test_example_function():
-    var_1 = <fuzz>1</fuzz>
-    var_2 = <fuzz>2</fuzz>
-    assert example_function(var_1, var_2) == <fuzz>3</fuzz>
-```
-
 The unit test must be a function starting with test_. Include all your test imports and setup before your first test. Do not 
 run the tests in the function, just output a test function. Do not include a main method to run the tests.
 
