@@ -59,7 +59,7 @@ async def run_request(data, client, args, semaphore):
                 model=args.model,
                 messages=message_text,
                 temperature=args.temperature,
-                max_tokens=1024,
+                max_tokens=512,
                 n=args.num_try,
             )
             response = [
