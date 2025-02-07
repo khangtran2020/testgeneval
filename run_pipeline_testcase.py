@@ -3,6 +3,7 @@ import asyncio
 import argparse
 import subprocess
 from utils.data import Data
+from utils.function_analyzer import combine_translate_all
 from utils.console import console
 
 
@@ -137,11 +138,29 @@ def main(args):
             translate_cmd.append("--debug")
         subprocess.run(translate_cmd)
 
-    args.num_processes = args.num_processes * 8
+    # args.num_processes = args.num_processes * 8
     if args.eval_translate:
+        if args.translate:
+            args.num_processes = args.num_processes * 8
+        if args.combine:
+            res = combine_translate_all(
+                data_path=os.path.join(
+                    args.data_path,
+                    f"{data_suf}_translated_num_try_{args.num_try}.jsonl",
+                ),
+                num_try=args.num_try,
+            )
+            if res == 0:
+                raise ValueError("Combine failed")
+
         for time in range(args.num_try):
             if time == 0:
-                in_path = f"{data_suf}_translated_num_try_{args.num_try}.jsonl"
+                if args.combine:
+                    in_path = (
+                        f"{data_suf}_translated_num_try_{args.num_try}_combined.jsonl"
+                    )
+                else:
+                    in_path = f"{data_suf}_translated_num_try_{args.num_try}.jsonl"
                 out_path = (
                     f"{data_suf}_translated_num_try_{args.num_try}_processed.jsonl"
                 )
@@ -275,6 +294,11 @@ if __name__ == "__main__":
         help="Extract the method under test with LLM",
     )
     parser.add_argument("--debug", action="store_true", help="(Optional) Debug mode")
+    parser.add_argument(
+        "--combine",
+        action="store_true",
+        help="combine the preamble and the translation",
+    )
     parser.add_argument(
         "--eval_translate",
         action="store_true",

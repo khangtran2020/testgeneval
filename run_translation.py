@@ -12,6 +12,7 @@ from openai import AsyncOpenAI
 from transformers import AutoTokenizer
 from rich.progress import Progress
 from typing import Dict
+from utils.function_analyzer import combine_translate_one_task
 import nest_asyncio
 
 nest_asyncio.apply()
@@ -213,6 +214,8 @@ def main(args):
                         ] = text_cleaned
                     else:
                         task_dict[key][f"translate_{time}"][test_case_key] = ""
+
+        combine_translate_one_task(task_instance=task_dict[key], num_try=args.num_try)
 
         with open(args.res_path, "a") as f:
             f.write(json.dumps(task_dict[key]) + "\n")
