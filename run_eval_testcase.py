@@ -100,6 +100,11 @@ async def main(
 
             for testcase in task_instance["test_cases"].keys():
 
+                if translated != -1:
+
+                    if task_instance[f"translate_{translated}"][testcase] == "":
+                        continue
+
                 async def run_docker_throttled(task_instance, testcase):
                     async with sem:
                         return await run_docker_evaluation(
