@@ -94,7 +94,7 @@ def combine_translate_and_preamble(preamble: str, translated: str, repo: str) ->
     # extract imports
     import_list = []
     for line in translated.split("\n"):
-        if line.strip().startswith("import"):
+        if line.strip().startswith("import "):
             import_list.append(line.strip())
 
     for import_item in import_list:
