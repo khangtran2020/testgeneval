@@ -1,9 +1,12 @@
-# TestGenEval: A Large Scale Test Generation Benchmark
+# TestGenEval Dataset
 
+
+**Forked from [testgeneval](https://github.com/facebookresearch/testgeneval.git) of facebook research**
 
 TestGenEval consists of 1,210 code test file pairs from 11 large, well-maintained repositories (3,523-78,287 stars). We use these file pairs to construct two testing tasks: 1) unit test completion for the first, last and additional tests and 2) full file unit test generation. Our benchmark is easy to run and extend, as we have docker containers for each version of each repository with coverage and mutation testing dependencies installed. For both task we use execution based metrics, including pass@1, pass@5 along with code coverage improvement, and mutation score improvement compared to the gold (human written) tests. Code and test files in \benchmark are long in length (on average 782 LOC per code file and 677 LOC per test file) and high coverage (median coverage of 60.4\%).
 
-We measure the following metrics for the test completion task:
+<!-- We measure the following metrics for the test completion task:
+
 - pass@k (k = 1, 5)
 - coverage improvement (how much generated test improves existing coverage)
 - coverage improvement@pass (coverage improvement averaged only over passing tests)
@@ -15,7 +18,7 @@ We measure the following metrics for the test generation task:
 - coverage (coverage of generated tests)
 - coverage@pass (coverage of generated tests for passing examples)
 - mutation score (mutation score of generated tests)
-- mutation score@pass (mutation score of generated tests for passing examples)
+- mutation score@pass (mutation score of generated tests for passing examples) -->
 
 ## Datasets
 
@@ -28,16 +31,16 @@ Docker images for testbeds used in the `TestGenEval` dataset has been built and 
 ## Setup
 
 To setup the repository run
-```
-git clone git@github.com:facebookresearch/testgeneval.git
-cd testgeneval
+```shell
 conda env create -f testgeneval.yaml
 conda activate testgeneval
 ```
 
-Modify the `.env_template` file with the appropriate values and rename it to `.env` (specifically make sure to set SWEBENCH_DOCKER_FORK_DIR to the current directory where the repository was cloned)
+Set SWEBENCH_DOCKER_FORK_DIR to the current directory where the repository was cloned
 
-**The env template setup is important, make sure you do this**
+```shell
+export SWEBENCH_DOCKER_FORK_DIR=<current-directory-of-testgeneval>
+```
 
 ## Building TestGenEval
 
@@ -53,66 +56,31 @@ make -f Makefile.testgenevallite
 make -f Makefile.testgeneval
 ```
 
-**OR** 
-
-You can simply just run with images pushed to Dockerhub
-
-To pull all images (TestGenEval) run
-```
-python scripts/pull_images.py --makefile Makefile.testgeneval
-```
-
-To pull lite images (TestGenEvalLite) run
-```
-python scripts/pull_images.py --makefile Makefile.testgenevallite
-```
-
-## TestGenEval Datasets
-
-The TestGenEval datasets are available on huggingface:
-- [kjain14/testgeneval](https://huggingface.co/datasets/kjain14/testgeneval)
-- [kjain14/testgenevallite](https://huggingface.co/datasets/kjain14/testgenevallite)
-
 ## Running TestGenEval
 
-Running TestGenEval is relatively simple.
+### Get branches of the human-written test cases
 
-There is a python script that will run both prediction and inference.
-
-If you built docker images locally:
-
-```
-python run_pipeline.py \
---results_dir results \
---dataset_name_or_path kjain14/testgenevallite \
---model meta-llama/Meta-Llama-3.1-8B-Instruct
+```shell
+python run_pipeline_testcase.py --dataset kjain14/testgenevallite \
+    --results_dir ./results/ \
+    --num_processes 128 \
+    --repo all \
+    --get_ground_truth_branch
 ```
 
-Otherwise to pull from Dockerhub:
+### Analyze \& Translate
 
+```shell
+python run_pipeline_testcase.py --dataset kjain14/testgenevallite \
+    --results_dir ./results/ \
+    --num_processes 16 \
+    --repo all \
+    --analyze \
+    --translate \
+    --eval_translate \
+    --port 1234 --model Qwen/Qwen2.5-Coder-32B-Instruct 
+    --num_try <num-sample-for-each-testcase>
 ```
-python run_pipeline.py \
---results_dir results \
---dataset_name_or_path kjain14/testgenevallite \
---model meta-llama/Meta-Llama-3.1-8B-Instruct \
---namespace kdjain
-```
-
-## Adding a new model to TestGenEval
-
-Adding a new model is quite simple. Under `inference/configs` create a new file with the system prompts and the function to add prompts to the dataset.
-
-`add_prompts_to_dataset` should output a prompt for all four settings: `full`, `first`, `last`, `extra`. The `preds_context` attribute of each datapoint contains the preamble of the file, the first test, the file without the last test and the file with the last test (full file)
-
-Once you update this file our standard evaluation flow will work.
-
-## TestGenEval creation
-
-All creation scripts are housed in the `creation` subdirectory.
-
-`transform_swebench.py` is the main script that takes the SWEBench dataset and converts it for test generation.
-
-`filter_unittests.py` takes the baseline results and filters out datapoints with no coverage of gold tests (gold tests must cover the code under test).
 
 ## Licensing
 
