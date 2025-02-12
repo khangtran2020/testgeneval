@@ -33,10 +33,6 @@ The human-written test script for the code file:
 {test_src}
 ```
 
-Here are some examples of how to import the code file, (you should use these as reference)
-```python
-{imports}
-```
 Your job is to output function names or class functions that are being test in the test script .
 Output the answer in this format:
 
@@ -60,7 +56,7 @@ def construct_prompt(code_src: str, test_case: str, preamble: str, tokenizer) ->
             "content": PROMPT_FULL.format(
                 code_src=code_src,
                 test_src=test_case,
-                imports=preamble,
+                # imports=preamble,
             ),
         },
     ]
