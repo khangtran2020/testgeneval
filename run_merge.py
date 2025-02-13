@@ -36,10 +36,17 @@ def finalizing_data(
     for key in data.keys():
         for sub_key in data[key]["branches"].keys():
             for mode in modes:
+
+                if data[key][mode][sub_key] == "":
+                    continue
+                if branches.append(data[key][f"branch_{mode}"][sub_key]) == []:
+                    continue
+
                 uuids.append(data[key]["id"])
                 repos.append(data[key]["repo"])
                 src_codes.append(data[key]["code_src"])
                 test_cases.append(data[key][mode][sub_key])
+
                 if mode == "test_cases":
                     branches.append(data[key]["branches"][sub_key])
                 else:
