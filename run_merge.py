@@ -58,18 +58,32 @@ def finalizing_data(
         }
     )
 
-    final_data = []
+    final_data = {}
     for i in range(df.shape[0]):
-        final_data.append(
-            {
+
+        uuid = df["uuid"].iloc[i]
+        if uuid not in final_data.keys():
+            data = {
                 "uuid": df["uuid"].iloc[i],
                 "repo": df["repo"].iloc[i],
-                "src_code": df["src_code"].iloc[i],
-                "test_case": df["test_case"].iloc[i],
-                "branch": df["branch"].iloc[i],
+                "code_src": df["src_code"].iloc[i],
+                "test_cases": {
+                    "test_case_0": df["test_case"].iloc[i],
+                },
+                "branches": {
+                    "test_case_0": df["branch"].iloc[i],
+                },
             }
-        )
+            final_data[uuid] = data
+        else:
+            final_data[uuid]["test_cases"][
+                f"test_case_{len(final_data[uuid]['test_cases'])}"
+            ] = df["test_case"].iloc[i]
+            final_data[uuid]["branches"][
+                f"test_case_{len(final_data[uuid]['branches'])}"
+            ] = df["branch"].iloc[i]
 
+    final_data = [final_data[key] for key in final_data.keys()]
     with open(final_path, "w") as f:
         for line in final_data:
             f.write(json.dumps(line) + "\n")
