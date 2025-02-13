@@ -324,5 +324,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Extract ground truth branch from human testcases",
     )
+    parser.add_argument(
+        "--merge",
+        action="store_true",
+        help="Merge the ground truth and the translated data",
+    )
     args = parser.parse_args()
     main(args)
