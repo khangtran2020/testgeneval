@@ -13,7 +13,7 @@ def finalizing_data(
     assert ".jsonl" in groun_truth_path
     assert ".jsonl" in translate_path
 
-    modes = ["test_cases"]
+    modes = []
     for i in range(num_try):
         modes.append(f"translate_{i}")
 
