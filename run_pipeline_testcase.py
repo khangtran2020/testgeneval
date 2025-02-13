@@ -199,6 +199,26 @@ def main(args):
                 eval_cmd.append("--debug")
             subprocess.run(eval_cmd)
 
+    if args.merge:
+        merge_cmd = [
+            "python",
+            "run_merge.py",
+            "--ground_truth_path",
+            os.path.join(args.data_path, f"{data_suf}_processed.jsonl"),
+            "--translate_path",
+            os.path.join(
+                args.data_path,
+                f"{data_suf}_translated_num_try_{args.num_try}_processed.jsonl",
+            ),
+            "--num_try",
+            str(args.num_try),
+            "--final_path",
+            os.path.join(args.data_path, f"{data_suf}_final.jsonl"),
+        ]
+        if args.debug:
+            merge_cmd.append("--debug")
+        subprocess.run(merge_cmd)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the pipeline testcase")
