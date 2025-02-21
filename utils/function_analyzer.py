@@ -80,7 +80,7 @@ def combine_translate_all(data_path: str, num_try: int) -> int:
         return 1
     except Exception as e:
         print(f"An error occurred: {e}")
-        return 0
+        # return 0
 
 
 def combine_translate_and_preamble(preamble: str, translated: str, repo: str) -> str:
@@ -89,24 +89,28 @@ def combine_translate_and_preamble(preamble: str, translated: str, repo: str) ->
         return ""
 
     # extract test function
-    test_function = extract_test_functions_from_code(source_code=translated)[0]
+    try:
+        test_function = extract_test_functions_from_code(source_code=translated)[0]
 
-    # extract imports
-    import_list = []
-    for line in translated.split("\n"):
-        if line.strip().startswith("import "):
-            import_list.append(line.strip())
+        # extract imports
+        import_list = []
+        for line in translated.split("\n"):
+            if line.strip().startswith("import "):
+                import_list.append(line.strip())
 
-    for import_item in import_list:
-        if import_item in preamble:
-            import_list.remove(import_item)
-    imports = "\n".join(import_list)
-    preamble = f"{imports}\n\n{preamble}"
+        for import_item in import_list:
+            if import_item in preamble:
+                import_list.remove(import_item)
+        imports = "\n".join(import_list)
+        preamble = f"{imports}\n\n{preamble}"
 
-    if repo == "django/django":
-        if "(self):" not in test_function:
-            test_function = test_function.replace("():", "(self):", 1)
-        test_content = preamble + "\n\n" + indent_text(test_function, 4)
-    else:
-        test_content = preamble + "\n\n" + test_function
-    return test_content
+        if repo == "django/django":
+            if "(self):" not in test_function:
+                test_function = test_function.replace("():", "(self):", 1)
+            test_content = preamble + "\n\n" + indent_text(test_function, 4)
+        else:
+            test_content = preamble + "\n\n" + test_function
+        return test_content
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return ""
