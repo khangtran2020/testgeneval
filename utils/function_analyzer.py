@@ -52,9 +52,10 @@ def extract_test_functions_from_code(source_code: str):
     return extractor.test_functions
 
 
-def combine_translate_one_task(task_instance: dict, num_try: int) -> None:
+def combine_translate_one_task(task_instance: dict, num_try: int) -> int:
 
     preamble = task_instance["preds_context"]["preamble"]
+    num_fail = 0
     for i in range(num_try):
         for key in task_instance[f"translate_{i}"].keys():
             test_content = combine_translate_and_preamble(
@@ -63,21 +64,28 @@ def combine_translate_one_task(task_instance: dict, num_try: int) -> None:
                 repo=task_instance["repo"],
             )
             task_instance[f"translate_{i}"][key] = test_content
+            if test_content == "":
+                num_fail += 1
+    return num_fail
 
 
 def combine_translate_all(data_path: str, num_try: int) -> int:
 
+    num_fails = 0
     try:
         out_path = data_path.replace(".jsonl", "_combined.jsonl")
         tasks = get_test_tasks(data_path)
         task_dict = {task[KEY_ID]: task for task in tasks}
         for key in task_dict.keys():
-            combine_translate_one_task(task_instance=task_dict[key], num_try=num_try)
+            num_fail = combine_translate_one_task(
+                task_instance=task_dict[key], num_try=num_try
+            )
+            num_fails += num_fail
         with open(out_path, "w") as f:
             for item in task_dict.values():
                 f.write(json.dumps(item) + "\n")
         print(f"Combine complete")
-        return 1
+        return num_fails
     except Exception as e:
         print(f"An error occurred: {e}")
         # return 0
