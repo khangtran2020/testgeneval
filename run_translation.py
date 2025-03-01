@@ -62,7 +62,7 @@ async def run_request(data, client, args, semaphore):
                 temperature=args.temperature,
                 max_tokens=8192,
                 n=args.num_try,
-                timeout=180,
+                timeout=300,
             )
             response = [
                 completion.choices[i].message.content for i in range(args.num_try)
