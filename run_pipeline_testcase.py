@@ -138,19 +138,29 @@ def main(args):
             translate_cmd.append("--debug")
         subprocess.run(translate_cmd)
 
+    if args.combine:
+        num_fail = combine_translate_all(
+            data_path=os.path.join(
+                args.data_path,
+                f"{data_suf}_translated_num_try_{args.num_try}.jsonl",
+            ),
+            num_try=args.num_try,
+        )
+        console.log(f"Number of failed combination: {num_fail}")
+
     # args.num_processes = args.num_processes * 8
     if args.eval_translate:
         if args.translate:
             args.num_processes = args.num_processes * 8
-        if args.combine:
-            num_fail = combine_translate_all(
-                data_path=os.path.join(
-                    args.data_path,
-                    f"{data_suf}_translated_num_try_{args.num_try}.jsonl",
-                ),
-                num_try=args.num_try,
-            )
-            console.log(f"Number of failed combination: {num_fail}")
+        # if args.combine:
+        #     num_fail = combine_translate_all(
+        #         data_path=os.path.join(
+        #             args.data_path,
+        #             f"{data_suf}_translated_num_try_{args.num_try}.jsonl",
+        #         ),
+        #         num_try=args.num_try,
+        #     )
+        #     console.log(f"Number of failed combination: {num_fail}")
 
         for time in range(args.num_try):
             if time == 0:
