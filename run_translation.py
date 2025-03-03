@@ -162,10 +162,12 @@ def main(args):
 
     semaphore = asyncio.Semaphore(args.num_processes)
 
-    for key in task_dict.keys():
+    for i, key in enumerate(task_dict.keys()):
 
         if key in already_processed:
             continue
+
+        logger.info(f"Processing task {i+1}/{len(task_dict.keys())}")
 
         prompt_list = []
         prompt_dict = {}
@@ -277,6 +279,7 @@ def main(args):
     #     for item in task_dict.values():
     #         f.write(json.dumps(item) + "\n")
     logger.info(f"Translation complete")
+    logger.info(f"Processing task {i+1}/{len(task_dict.keys())}")
 
 
 def is_pytest_test_case(code_snippet):
