@@ -121,4 +121,4 @@ def combine_translate_and_preamble(preamble: str, translated: str, repo: str) ->
         return test_content
     except Exception as e:
         print(f"An error occurred: {e}")
-        return "N/A"
+        return ""
