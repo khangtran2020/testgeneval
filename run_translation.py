@@ -198,7 +198,7 @@ def main(args):
         for res in results:
 
             if res is None:
-                return
+                continue
 
             test_case_key, response = res
             if args.debug:
