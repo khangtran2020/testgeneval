@@ -75,6 +75,8 @@ def main(args):
             os.path.join(args.data_path, f"{data_suf}_processed.jsonl"),
             "--translated",
             str(-1),
+            "--timeout",
+            str(args.timeout),
         ]
         if args.debug:
             eval_cmd.append("--debug")
@@ -203,6 +205,8 @@ def main(args):
                 ),
                 "--translated",
                 str(time),
+                "--timeout",
+                str(args.timeout),
             ]
             if args.debug:
                 eval_cmd.append("--debug")
@@ -296,6 +300,12 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--temperature", type=float, help="(Optional) Model temperature", default=0.2
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        help="(Optional) Timeout for evaluation testcase",
+        default=60,
     )
     parser.add_argument(
         "--num_processes", type=int, help="Number of processes to run", default=1
