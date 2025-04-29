@@ -205,6 +205,7 @@ def postprocess_tests(
     tcm,
     setting,
     translated=-1,
+    generated=False,
 ):
     repo = task_instance["repo"]
     django_repo = repo == "django/django"
@@ -276,6 +277,8 @@ def postprocess_tests(
                     visited.append(e[1])
             if translated == -1:
                 task_instance["branches"][setting] = branches
+            elif generated:
+                task_instance["gen_tests_branches"][setting] = branches
             else:
                 task_instance[f"branch_translate_{translated}"][setting] = branches
 
@@ -295,6 +298,7 @@ def postprocess_functions(
     tcm,
     setting,
     translated=-1,
+    generated=False,
 ):
     repo = task_instance["repo"]
     django_repo = repo == "django/django"
@@ -364,6 +368,8 @@ def postprocess_functions(
                     visited.append(e[1])
             if translated == -1:
                 task_instance["branches"][setting] = branches
+            elif generated:
+                task_instance["gen_tests_branches"][setting] = branches
             else:
                 task_instance[f"branch_translate_{translated}"][setting] = branches
             logger.info(f"====================== Branches: {branches}")
@@ -384,7 +390,7 @@ def postprocess_functions(
 
 
 def full_processing(
-    prompt_list, tcm, task_instance, tranlsated, skip_mutation, setting: str
+    prompt_list, tcm, task_instance, tranlsated, generated, skip_mutation, setting: str
 ):
     for prompt in prompt_list:
         preamble, classes, test_functions = extract_preamble_classes_and_functions(
@@ -403,6 +409,7 @@ def full_processing(
                     tcm,
                     setting,
                     translated=tranlsated,
+                    generated=generated,
                 )
 
         if test_functions:
@@ -414,6 +421,7 @@ def full_processing(
                 tcm,
                 setting,
                 translated=tranlsated,
+                generated=generated,
             )
 
         # save task_instance
@@ -506,6 +514,7 @@ def main(
     log_dir: str,
     timeout: Optional[int],
     translated: int = -1,
+    generated: bool = False,
     image_type: str = "conda",
     only_baseline: bool = False,
     skip_mutation: bool = False,
@@ -557,11 +566,19 @@ def main(
             prompt_list = (
                 [task_instance[KEY_BASELINES][setting]]
                 if only_baseline
-                else task_instance[KEY_PREDICTIONS][setting]
+                else task_instance["gen_tests"][setting]
+            )
+        elif generated:
+            prompt_list = (
+                [task_instance[KEY_BASELINES][setting]]
+                if only_baseline
+                else task_instance["test_cases"][setting]
             )
         else:
             if translated != -1:
                 prompt_list = [task_instance[f"translate_{translated}"][setting]]
+            elif generated:
+                prompt_list = [task_instance[f"gen_tests"][setting]]
             else:
                 prompt_list = [task_instance["test_cases"][setting]]
         if setting == "full" or "test_case" in setting:
@@ -621,6 +638,11 @@ if __name__ == "__main__":
         raise ValueError("TRANSLATED environment variable is not set")
     translated = int(translated)
 
+    generated = os.getenv("GENERTED")
+    if generated is None:
+        raise ValueError("GENERTED environment variable is not set")
+    generated = bool(generated)
+
     main(
         task_instance=task_instance,
         testbed_name=testbed_name,
@@ -628,6 +650,7 @@ if __name__ == "__main__":
         log_dir=log_dir,
         timeout=int_timeout,
         translated=translated,
+        generated=generated,
         setting=setting,
         image_type=os.getenv("IMAGE_TYPE", "conda"),
         only_baseline=os.getenv("ONLY_BASELINE") == "True",

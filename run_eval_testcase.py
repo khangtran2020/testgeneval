@@ -24,6 +24,7 @@ async def main(
     num_processes: int = -1,
     debug: bool = False,
     translated: int = -1,
+    generated: bool = False,
 ):
     """
     Runs evaluation on predictions for each model/repo/version combination.
@@ -76,7 +77,7 @@ async def main(
                             testcase,
                             timeout,
                             translated=translated,
-                            only_baseline=True,
+                            generated=generated,
                             verbose=True,
                             skip_mutation=True,
                         )
@@ -105,6 +106,10 @@ async def main(
                     if task_instance[f"translate_{translated}"][testcase] == "":
                         continue
 
+                if generated:
+                    if task_instance["gen_tests"][testcase] == "":
+                        continue
+
                 async def run_docker_throttled(task_instance, testcase):
                     async with sem:
                         return await run_docker_evaluation(
@@ -114,6 +119,7 @@ async def main(
                             testcase,
                             timeout,
                             translated=translated,
+                            generated=generated,
                             only_baseline=True,
                             verbose=True,
                             skip_mutation=True,
@@ -134,6 +140,9 @@ async def main(
         if translated == -1:
             branch_key = "branches"
             test_case_key = "test_cases"
+        elif generated:
+            branch_key = "gen_tests_branches"
+            test_case_key = "gen_tests"
         else:
             branch_key = f"branch_translate_{translated}"
             test_case_key = f"translate_{translated}"
@@ -192,5 +201,6 @@ if __name__ == "__main__":
     parser.add_argument("--num_processes", type=int, default=-1)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--translated", type=int, required=True)
+    parser.add_argument("--generated", action="store_true")
     args = parser.parse_args()
     asyncio.run(main(**vars(args)))

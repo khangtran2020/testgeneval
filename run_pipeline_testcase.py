@@ -211,7 +211,54 @@ def main(args):
             if args.debug:
                 eval_cmd.append("--debug")
             subprocess.run(eval_cmd)
+    if args.eval_generated:
 
+        eval_cmd = [
+            "python",
+            "run_eval_generated.py",
+            "--log_dir",
+            log_dir,
+            "--num_processes",
+            str(args.num_processes),
+            "--repo",
+            args.repo,
+            "--data_path",
+            os.path.join(args.data_path, f"{data_suf}_processed.jsonl"),
+            "--gen_path",
+            args.glmf_generated_path,
+            "--res_path",
+            os.path.join(args.data_path, f"{args.glmf_generated_output}"),
+        ]
+        if args.debug:
+            eval_cmd.append("--debug")
+        subprocess.run(eval_cmd)
+
+        eval_cmd = [
+            "python",
+            "run_eval_testcase.py",
+            "--log_dir",
+            log_dir,
+            "--num_processes",
+            str(args.num_processes),
+            "--namespace",
+            args.namespace,
+            "--repo",
+            args.repo,
+            "--data_path",
+            os.path.join(args.data_path, f"{args.glmf_generated_output}.jsonl"),
+            "--res_path",
+            os.path.join(
+                args.data_path, f"{args.glmf_generated_output}_processed.jsonl"
+            ),
+            "--translated",
+            str(-1),
+            "--generated",
+            "--timeout",
+            str(args.timeout),
+        ]
+        if args.debug:
+            eval_cmd.append("--debug")
+        subprocess.run(eval_cmd)
     if args.merge:
         merge_cmd = [
             "python",
@@ -342,6 +389,25 @@ if __name__ == "__main__":
         "--eval_translate",
         action="store_true",
         help="Extract ground truth branch from human testcases",
+    )
+    parser.add_argument(
+        "--eval_generated",
+        action="store_true",
+        help="Extract branch from glmf generated testcases",
+    )
+    parser.add_argument(
+        "--glmf_generated_path",
+        type=str,
+        help="Path to the glmf generated",
+        required=False,
+        default="./data",
+    )
+    parser.add_argument(
+        "--glmf_generated_output",
+        type=str,
+        help="name for the branch output glmf generated",
+        required=False,
+        default="./data",
     )
     parser.add_argument(
         "--merge",
