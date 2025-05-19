@@ -273,8 +273,8 @@ def main(args):
     # with open(args.res_path, "w") as f:
     #     for item in task_dict.values():
     #         f.write(json.dumps(item) + "\n")
-    logger.info(f"Translation complete")
-    logger.info(f"Processing task {i+1}/{len(task_dict_new.keys())}")
+    logger.info(f"Process complete")
+    # logger.info(f"Processing task {i+1}/{len(task_dict_new.keys())}")
 
 
 def is_pytest_test_case(code_snippet):
