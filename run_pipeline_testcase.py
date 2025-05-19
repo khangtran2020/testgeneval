@@ -235,7 +235,7 @@ def main(args):
 
         eval_cmd = [
             "python",
-            "run_eval_testcase.py",
+            "run_eval_generated.py",
             "--log_dir",
             log_dir,
             "--num_processes",
