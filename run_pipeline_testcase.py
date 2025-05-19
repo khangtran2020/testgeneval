@@ -250,9 +250,6 @@ def main(args):
             os.path.join(args.data_path, f"{args.glmf_generated_path}"),
             "--res_path",
             os.path.join(args.data_path, f"{args.glmf_generated_output}"),
-            "--translated",
-            str(-1),
-            "--generated",
             "--timeout",
             str(args.timeout),
         ]
