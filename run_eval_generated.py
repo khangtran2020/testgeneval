@@ -133,17 +133,17 @@ def main(args):
 
     gen_dict = {}
     for key in gen_tasks.keys():
-        uuid = key.split("_test_case_")[0]
-        gen_test_case = f"test_case_{key.split("_test_case_")[-1].strip()}"
-        gen_code = gen_tasks[key]
-        if "```" not in gen_code:
-            gen_code = ""
+        if "_test_case_" in key:
+            uuid = key.split("_test_case_")[0]
+            gen_test_case = f"test_case_{key.split("_test_case_")[-1].strip()}"
         else:
-            text_cleaned = gen_code.split("```")[1].split("```")[0]
-            if is_pytest_test_case(text_cleaned):
-                gen_code = text_cleaned
-            else:
-                gen_code = ""
+            test_case_id = key.split("_test_case_")[-1].strip()
+            uuid = key.replace(f"_{test_case_id}", "")
+            gen_test_case = f"test_case_{test_case_id}"
+        
+        gen_code = gen_tasks[key]
+        if not is_pytest_test_case(gen_code):
+            gen_code = ""
 
         if uuid not in gen_dict:
             gen_dict[uuid] = {
@@ -160,11 +160,6 @@ def main(args):
         tasks = [t for t in tasks if t[REPO_ID] == args.repo]
     print(f"Number of tasks after filtering by repo: {len(tasks)}")
 
-    num_test_case = 0
-    for task in tasks:
-        num_test_case += len(task["test_cases"].keys())
-    logger.info(f"# of task to translate: {len(tasks)}. # of test cases: {num_test_case}")
-
     task_dict = {task[KEY_ID]: task for task in tasks}
     for key in task_dict.keys():
         if key not in gen_dict.keys():
@@ -178,6 +173,11 @@ def main(args):
                 else:
                     task_dict[key]['gen_tests'][test_case_key] = gen_dict[key]["test_cases"][test_case_key]
                     task_dict[key]['gen_tests_branches'][test_case_key] = []
+
+    num_test_case = 0
+    for key in task_dict.keys():
+        num_test_case += len(task_dict[key]["test_cases"].keys())
+    logger.info(f"# of task to evaluate: {len(task_dict.keys())}. # of test cases: {num_test_case}")
 
     # openai_api_key = "EMPTY"
     # openai_api_base = f"http://{args.host}:{args.port}/v1"
@@ -203,7 +203,7 @@ def main(args):
             continue
 
         logger.info(f"Processing task {i+1}/{len(task_dict.keys())}")
-        combine_one_task(task_instance=task_dict[key])
+        # combine_one_task(task_instance=task_dict[key])
 
         with open(args.res_path, "a") as f:
             f.write(json.dumps(task_dict[key]) + "\n")
