@@ -153,6 +153,9 @@ def main(args):
             }
         gen_dict[uuid]["test_cases"][gen_test_case] = gen_code
 
+    print(f"Number of generated test cases: {len(gen_dict)}")
+    print(f"Number of tasks: {len(gen_dict.keys())}")
+
     print(f"Debug mode: {args.debug}")
     if args.debug:
         print(f"First task keys: {pretty_repr(tasks[0].keys())}")
