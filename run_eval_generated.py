@@ -163,26 +163,28 @@ def main(args):
     print(f"Number of tasks after filtering by repo: {len(tasks)}")
 
     task_dict = {task[KEY_ID]: task for task in tasks}
+    task_dict_new = {}
     for key in task_dict.keys():
         if key not in gen_dict.keys():
-            task_dict.pop(key, None)
+            continue
         else:
-            task_dict[key]["gen_tests"] = {}
-            task_dict[key]["gen_tests_branches"] = {}
+            task_dict_new[key] = task_dict[key]
+            task_dict_new[key]["gen_tests"] = {}
+            task_dict_new[key]["gen_tests_branches"] = {}
             for test_case_key in task_dict[key]["test_cases"].keys():
                 if (test_case_key not in gen_dict[key]["test_cases"].keys()) or (
                     gen_dict[key]["test_cases"][test_case_key] == ""
                 ):
-                    task_dict[key]["test_cases"].pop(test_case_key, None)
+                    continue
                 else:
-                    task_dict[key]["gen_tests"][test_case_key] = gen_dict[key][
+                    task_dict_new[key]["gen_tests"][test_case_key] = gen_dict[key][
                         "test_cases"
                     ][test_case_key]
-                    task_dict[key]["gen_tests_branches"][test_case_key] = []
+                    task_dict_new[key]["gen_tests_branches"][test_case_key] = []
 
     num_test_case = 0
-    for key in task_dict.keys():
-        num_test_case += len(task_dict[key]["test_cases"].keys())
+    for key in task_dict_new.keys():
+        num_test_case += len(task_dict_new[key]["test_cases"].keys())
     logger.info(
         f"# of task to evaluate: {len(task_dict.keys())}. # of test cases: {num_test_case}"
     )
@@ -205,16 +207,16 @@ def main(args):
 
     semaphore = asyncio.Semaphore(args.num_processes)
 
-    for i, key in enumerate(task_dict.keys()):
+    for i, key in enumerate(task_dict_new.keys()):
 
         if key in already_processed:
             continue
 
-        logger.info(f"Processing task {i+1}/{len(task_dict.keys())}")
+        logger.info(f"Processing task {i+1}/{len(task_dict_new.keys())}")
         # combine_one_task(task_instance=task_dict[key])
 
         with open(args.res_path, "a") as f:
-            f.write(json.dumps(task_dict[key]) + "\n")
+            f.write(json.dumps(task_dict_new[key]) + "\n")
 
     # with Progress() as progress:
     #     main_task = progress.add_task("# of Task", total=len(task_dict.keys()))
@@ -272,7 +274,7 @@ def main(args):
     #     for item in task_dict.values():
     #         f.write(json.dumps(item) + "\n")
     logger.info(f"Translation complete")
-    logger.info(f"Processing task {i+1}/{len(task_dict.keys())}")
+    logger.info(f"Processing task {i+1}/{len(task_dict_new.keys())}")
 
 
 def is_pytest_test_case(code_snippet):
