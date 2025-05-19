@@ -29,7 +29,6 @@ async def run_docker_evaluation(
     timeout: int = 60,
     verbose: bool = False,
     translated: int = -1,
-    generated: bool = False,
     base64_instance: bool = True,
     only_baseline: bool = False,
     skip_mutation: bool = False,
@@ -56,11 +55,6 @@ async def run_docker_evaluation(
 
     swebench_docker_fork_dir = os.environ.get("SWEBENCH_DOCKER_FORK_DIR")
     logger.info(f"SWEBENCH_DOCKER_FORK_DIR: {swebench_docker_fork_dir}")
-
-    if generated:
-        generated = 1
-    else:
-        generated = 0
 
     if swebench_docker_fork_dir:
         # Create a temporary file to store the task_instance JSON
@@ -103,8 +97,6 @@ async def run_docker_evaluation(
             f"SKIP_MUTATION={skip_mutation}",
             "-e",
             f"TRANSLATED={translated}",
-            "-e",
-            f"GENERATED={generated}",
             docker_image,
         ]
     else:
@@ -137,8 +129,6 @@ async def run_docker_evaluation(
             f"SKIP_MUTATION={skip_mutation}",
             "-e",
             f"TRANSLATED={translated}",
-            "-e",
-            f"GENERATED={generated}",
             docker_image,
         ]
 
@@ -181,8 +171,6 @@ async def run_docker_evaluation(
         # read task instance from tmpfile_path
         if translated == -1:
             branch_key = "branches"
-        elif generated:
-            branch_key = "gen_tests_branches"
         else:
             branch_key = f"branch_translate_{translated}"
         if os.path.exists(

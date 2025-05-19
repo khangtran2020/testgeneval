@@ -1,4 +1,3 @@
-import ast
 import argparse
 import asyncio
 import logging
@@ -8,328 +7,214 @@ from rich.pretty import pretty_repr
 from swebench_docker.constants import KEY_BASELINES, KEY_ID, REPO_ID
 from swebench_docker.run_docker import run_docker_evaluation
 from swebench_docker.utils import get_test_tasks
-from openai import AsyncOpenAI
-from transformers import AutoTokenizer
-from rich.progress import Progress
-from typing import Dict
-from utils.function_analyzer import combine_translate_and_preamble
-import nest_asyncio
-
-nest_asyncio.apply()
-
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("run_evaluation_baseline")
 
-SYSTEM_MESSAGE_FULL = "You are an expert Python automated testing assistant. Your job is to generate a test function in Pytest format given a human-written test script for a Python module."
 
-PROMPT_FULL = """Below is a human-written test script for the code file:
-```python
-{test_src}
-```
+async def main(
+    data_path: str,
+    res_path: str,
+    gen_path: str,
+    namespace: str,
+    log_dir: str,
+    repo: str = None,
+    timeout: int = 60,
+    num_processes: int = -1,
+    debug: bool = False,
+):
+    """
+    Runs evaluation on predictions for each model/repo/version combination.
+    """
+    if not os.path.exists(log_dir) or not os.path.isdir(log_dir):
+        raise ValueError("--log_dir must exist and point at a directory")
+    os.chmod(log_dir, 0o777)
 
-Here are some examples of how to import the code file, (you should use these as reference)
-```python
-{imports}
-```
-
-And here is the function names of the methods and classes under test: 
-```json
-{method}
-```
-
-Your job is to output a corresponding unit test function in Pytest format that obtains the same coverage as the human-written test script.
-The unit test must be a function starting with test_. Include all your test imports and setup before your first test. Do not 
-run the tests in the function, just output a test function. Do not include a main method to run the tests.
-
-Output the unit test Python function in this format:
-
-```python
-Unit test Python code (file level)
-```
-"""
-
-
-async def run_request(data, client, args, semaphore):
-    async with semaphore:
-        test_case_key, message_text = data
-        try:
-            completion = await client.chat.completions.create(
-                model=args.model,
-                messages=message_text,
-                temperature=args.temperature,
-                max_tokens=4096,
-                n=args.num_try,
-                timeout=180,
-            )
-            response = [
-                completion.choices[i].message.content for i in range(args.num_try)
-            ]
-            return test_case_key, response
-        except Exception as e:
-            logger.error(f"Error: {e}")
-            return None
-
-
-async def run_translate(prompt_list, client, args, semaphore):
-    tasks = []
-    for data in prompt_list:
-        task = asyncio.create_task(
-            run_request(data=data, client=client, args=args, semaphore=semaphore)
-        )
-        tasks.append(task)
-    results = await asyncio.gather(*tasks)
-    return results
-
-
-def combine_one_task(task_instance: dict) -> int:
-
-    preamble = task_instance["preds_context"]["preamble"]
-    num_fail = 0
-    for key in task_instance[f"gen_tests"].keys():
-        test_content = combine_translate_and_preamble(
-            preamble=preamble,
-            translated=task_instance[f"gen_tests"][key],
-            repo=task_instance["repo"],
-        )
-        task_instance[f"gen_tests"][key] = test_content
-        if test_content == "":
-            num_fail += 1
-    return num_fail
-
-
-def construct_prompt(
-    code_src: str, test_case: str, preamble: str, method: str, tokenizer
-) -> str:
-    message_text = [
-        {
-            "role": "system",
-            "content": SYSTEM_MESSAGE_FULL,
-        },
-        {
-            "role": "user",
-            "content": PROMPT_FULL.format(
-                code_src=code_src,
-                test_src=test_case,
-                imports=preamble,
-                method=method,
-            ),
-        },
-    ]
-    # prompt = tokenizer.apply_chat_template(message_text, tokenize=False)
-    # prompt += "\nLet's think step by step and execute the request"
-    return message_text
-
-
-def main(args):
-
-    # read data
-    tasks = get_test_tasks(args.data_path)
+    tasks = get_test_tasks(data_path)
     if not isinstance(tasks, list):
-        raise ValueError(f"Data from {args.data_path} must contain an array of tasks")
+        raise ValueError(f"Data from {data_path} must contain an array of tasks")
 
-    with open(args.gen_path, "r") as f:
-        gen_tasks = json.load(f)
-
-    gen_dict = {}
-    # key_list = []
-    for key in gen_tasks.keys():
-        if "_test_case_" in key:
-            uuid = key.split("_test_case_")[0]
-            gen_test_case = f"test_case_{key.split('_test_case_')[-1].strip()}"
-        else:
-            test_case_id = key.split("_")[-1].strip()
-            uuid = key.replace(f"_{test_case_id}", "")
-            gen_test_case = f"test_case_{test_case_id}"
-
-        # key_list.append(uuid)
-
-        gen_code = gen_tasks[key]
-        if not is_pytest_test_case(gen_code):
-            gen_code = ""
-
-        if uuid not in gen_dict:
-            gen_dict[uuid] = {
-                "test_cases": {},
-            }
-        gen_dict[uuid]["test_cases"][gen_test_case] = gen_code
-
-    print(f"Number of generated test cases: {len(gen_dict)}")
-    print(f"Number of tasks: {len(gen_dict.keys())}, gen_dict keys: {gen_dict.keys()}")
-
-    print(f"Debug mode: {args.debug}")
-    if args.debug:
+    print(f"Debug mode: {debug}")
+    if debug:
         print(f"First task keys: {pretty_repr(tasks[0].keys())}")
         print(f"Number of tasks: {len(tasks)}")
         # exit()
-    if args.repo != "all":
-        tasks = [t for t in tasks if t[REPO_ID] == args.repo]
+    if repo != "all":
+        tasks = [t for t in tasks if t[REPO_ID] == repo]
     print(f"Number of tasks after filtering by repo: {len(tasks)}")
 
-    task_dict = {task[KEY_ID]: task for task in tasks}
-    task_dict_new = {}
+    if gen_path.endswith(".jsonl"):
+        with open(gen_path, "r", encoding="utf-8") as jsonl_file:
+            gen_data = [json.loads(line) for line in jsonl_file]
+    elif gen_path.endswith(".json"):
+        with open(gen_path, "r", encoding="utf-8") as json_file:
+            gen_data = json.load(json_file)
 
-    for key in task_dict.keys():
-        if key not in gen_dict.keys():
-            continue
+    gen_dict = {}
+    for key, value in gen_data.items():
+
+        if "_test_case_" in key:
+            uuid = key.split("_test_case_")[0]
+            test_id = key.split("_test_case_")[-1]
         else:
-            task_dict_new[key] = task_dict[key]
-            task_dict_new[key]["gen_tests"] = {}
-            task_dict_new[key]["gen_tests_branches"] = {}
-            for test_case_key in task_dict[key]["test_cases"].keys():
-                if (test_case_key not in gen_dict[key]["test_cases"].keys()) or (
-                    gen_dict[key]["test_cases"][test_case_key] == ""
-                ):
-                    continue
-                else:
-                    task_dict_new[key]["gen_tests"][test_case_key] = gen_dict[key][
-                        "test_cases"
-                    ][test_case_key]
-                    task_dict_new[key]["gen_tests_branches"][test_case_key] = []
+            test_id = key.split("_")[-1].strip()
+            uuid = key.replace(f"_{test_id}", "")
+        if uuid not in gen_dict:
+            gen_dict[uuid] = {
+                "test_cases": {},
+                "branches": {},
+            }
+        gen_dict[uuid]["test_cases"][f"test_case_{test_id}"] = value
+        gen_dict[uuid]["branches"][f"test_case_{test_id}"] = []
+
+    new_tasks = []
+    for task in tasks:
+        if task[KEY_ID] in gen_dict:
+            task["test_cases"] = gen_dict[task[KEY_ID]]["test_cases"]
+            task["branches"] = gen_dict[task[KEY_ID]]["branches"]
+            new_tasks.append(task)
+        else:
+            logger.warning(f"Task {task[KEY_ID]} not found in generated data")
 
     num_test_case = 0
-    for key in task_dict_new.keys():
-        num_test_case += len(task_dict_new[key]["test_cases"].keys())
+    for task in new_tasks:
+        num_test_case += len(task["test_cases"].keys())
     logger.info(
-        f"# of task to evaluate: {len(task_dict.keys())}. # of test cases: {num_test_case}"
+        f"# of task to evaluate: {len(new_tasks)}. # of test cases: {num_test_case}"
     )
 
-    # openai_api_key = "EMPTY"
-    # openai_api_base = f"http://{args.host}:{args.port}/v1"
-    # client = AsyncOpenAI(
-    #     api_key=openai_api_key,
-    #     base_url=openai_api_base,
-    # )
+    sem = asyncio.Semaphore(num_processes if num_processes > 0 else len(new_tasks))
+    asyncio_tasks = []
+    if debug:
+        new_tasks = new_tasks[:1]
+        test_case_keys = ["test_case_0"]
+        print(f"Task: {new_tasks[0][KEY_ID]}, version {new_tasks[0]['version']}")
 
-    # check existed results
-    already_processed = []
-    if os.path.exists(args.res_path):
-        with open(args.res_path, "r") as f:
-            for line in f:
-                task = json.loads(line)
-                already_processed.append(task[KEY_ID])
-        logger.info(f"Already processed: {len(already_processed)}")
+    task_dict = {task[KEY_ID]: task for task in new_tasks}
 
-    semaphore = asyncio.Semaphore(args.num_processes)
+    for task_instance in new_tasks:
+        if debug:
+            print(f"An example of task_instance: {pretty_repr(task_instance.keys())}")
+            # exit()
+            for testcase in test_case_keys:
 
-    for i, key in enumerate(task_dict_new.keys()):
+                async def run_docker_throttled(task_instance, testcase):
+                    async with sem:
+                        # TODO: remove generated task
+                        return await run_docker_evaluation(
+                            task_instance,
+                            namespace,
+                            log_dir,
+                            testcase,
+                            timeout,
+                            translated=-1,
+                            verbose=True,
+                            skip_mutation=True,
+                        )
 
-        if key in already_processed:
+                task = asyncio.create_task(
+                    run_docker_throttled(task_instance, testcase)
+                )
+                asyncio_tasks.append(task)
+        else:
+            # if debug:
+            if len(task_instance["test_cases"].keys()) > 0:
+                max_id = max(
+                    [int(x.split("_")[-1]) for x in task_instance["test_cases"].keys()]
+                )
+                logger.info(
+                    f"# of test cases: {len(task_instance['test_cases'].keys())}, and max id: {max_id}, {max_id == len(task_instance['test_cases'].keys()) - 1}"
+                )
+            else:
+                logger.info(f"No test cases found for {task_instance[KEY_ID]}")
+                max_id = 0
+
+            for testcase in task_instance["test_cases"].keys():
+
+                async def run_docker_throttled(task_instance, testcase):
+                    async with sem:
+                        return await run_docker_evaluation(
+                            task_instance,
+                            namespace,
+                            log_dir,
+                            testcase,
+                            timeout,
+                            translated=-1,
+                            only_baseline=True,
+                            verbose=True,
+                            skip_mutation=True,
+                        )
+
+                task = asyncio.create_task(
+                    run_docker_throttled(task_instance, testcase)
+                )
+                asyncio_tasks.append(task)
+
+    results = await asyncio.gather(*asyncio_tasks)
+    # setting_res = []
+    for result in results:
+        # print(result)
+        if result is None:
             continue
-
+        res, setting = result
+        branch_key = "branches"
+        test_case_key = "test_cases"
+        logger.info(f"================== Task {res[KEY_ID]} ==================")
+        # logger.info(f"Task instance branches at setting {setting}: {res[branch_key]}")
         logger.info(
-            f"Processing task {i+1}/{len(task_dict_new.keys())} and save to {args.res_path}"
+            f"Task {res[KEY_ID]} orignally has {len(task_dict[res[KEY_ID]][branch_key])} branches and {len(task_dict[res[KEY_ID]][test_case_key])} test cases"
         )
-        # combine_one_task(task_instance=task_dict[key])
+        logger.info(
+            f"Results {res[KEY_ID]} orignally has {len(res[branch_key])} branches and {len(res[test_case_key])} test cases"
+        )
+        # for key in res[branch_key].keys():
+        # logger.info(f"Setting {setting} has {len(res[branch_key][setting])} branches")
+        for setting_ in res[branch_key].keys():
+            if res[branch_key][setting_] != []:
+                logger.info(
+                    f"Setting {setting_} at setting {setting} has {len(res[branch_key][setting_])} branches"
+                )
+                task_dict[res[KEY_ID]][branch_key][setting_] = res[branch_key][setting_]
+                break
 
-        with open(args.res_path, "a") as f:
-            f.write(json.dumps(task_dict_new[key]) + "\n")
+        # task_dict[res[KEY_ID]]["branches"][setting] = res["branches"][setting]
 
-    # with Progress() as progress:
-    #     main_task = progress.add_task("# of Task", total=len(task_dict.keys()))
-    #     for key in task_dict.keys():
+    with open(res_path, "w") as f:
+        for item in task_dict.values():
+            f.write(json.dumps(item) + "\n")
+    print(f"Evaluation complete")
 
-    #         inner_task_progress = progress.add_task(
-    #             f"# test case", total=len(task_dict[key]["test_cases"].keys())
-    #         )
-    #         for test_case_key in task_dict[key]["test_cases"].keys():
-
-    #             # if task_dict[key]["branches"][test_case_key] == []:
-    #             #     continue
-    #             src_code = task_dict[key]["code_src"]
-    #             test_case = task_dict[key]["test_cases"][test_case_key]
-    #             preamble = task_dict[key]["preds_context"]["preamble"]
-    #             method = task_dict[key]["func_info"][test_case_key]
-
-    #             message_text = construct_prompt(
-    #                 src_code, test_case, preamble, method, tokenizer
-    #             )
-    #             for time in range(args.num_try):
-    #                 response_ok = False
-    #                 try:
-    #                     completion = client.chat.completions.create(
-    #                         model=args.model,
-    #                         messages=message_text,
-    #                         temperature=args.temperature,
-    #                         max_tokens=8192,
-    #                     )
-    #                     response = completion.choices[0].message.content
-    #                     response_ok = True
-    #                 except Exception as e:
-    #                     logger.error(f"Error: {e}")
-
-    #                 if response_ok:
-    #                     response = response.replace("```python", "```")
-    #                     if "```" not in response:
-    #                         task_dict[key][f"translate_{time}"][test_case_key] = ""
-    #                     else:
-    #                         text_cleaned = response.split("```")[1].split("```")[0]
-    #                         if is_pytest_test_case(text_cleaned):
-    #                             task_dict[key][f"translate_{time}"][
-    #                                 test_case_key
-    #                             ] = text_cleaned
-    #                         else:
-    #                             task_dict[key][f"translate_{time}"][test_case_key] = ""
-    #                 else:
-    #                     task_dict[key][f"translate_{time}"][test_case_key] = ""
-    #             progress.advance(inner_task_progress)
-    #         progress.remove_task(inner_task_progress)
-    #         progress.advance(main_task)
-
-    # res_path = args.res_path.replace(".jsonl", f"num_try_{args.num_try}.jsonl")
-    # with open(args.res_path, "w") as f:
-    #     for item in task_dict.values():
-    #         f.write(json.dumps(item) + "\n")
-    logger.info(f"Process complete")
-    # logger.info(f"Processing task {i+1}/{len(task_dict_new.keys())}")
-
-
-def is_pytest_test_case(code_snippet):
-    """
-    Checks if the given code snippet is a pytest test case.
-
-    Args:
-        code_snippet (str): The Python code snippet to analyze.
-
-    Returns:
-        bool: True if it is a pytest test case, otherwise False.
-    """
     try:
-        tree = ast.parse(code_snippet)
+        # List all files in the directory
+        files = os.listdir(log_dir)
+        # Iterate through the files
+        for file in files:
+            # Construct full file path
+            file_path = os.path.join(log_dir, file)
 
-        for node in ast.walk(tree):
-            # Look for function definitions
-            if isinstance(node, ast.FunctionDef):
-                # Check if function name starts with "test_"
-                if node.name.startswith("test_"):
-                    return True
+            # Check if the file has a .json extension and is a file
+            if file.endswith(".json") and os.path.isfile(file_path):
+                os.remove(file_path)
+                print(f"Deleted: {file_path}")
+        print("All .json files have been deleted.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
-                # Check if the function has a pytest decorator (@pytest.mark.*)
-                for decorator in node.decorator_list:
-                    if isinstance(decorator, ast.Attribute) and isinstance(
-                        decorator.value, ast.Name
-                    ):
-                        if (
-                            decorator.value.id == "pytest"
-                            and decorator.attr.startswith("mark")
-                        ):
-                            return True
-
-        return False
-    except SyntaxError:
-        return False
+    return results
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--log_dir", type=str, required=True)
-    parser.add_argument("--num_processes", type=int, required=True)
     parser.add_argument("--data_path", type=str, required=True)
     parser.add_argument("--gen_path", type=str, required=True)
     parser.add_argument("--res_path", type=str, required=True)
     parser.add_argument("--repo", type=str, required=True)
+    parser.add_argument("--namespace", type=str, default="aorwall")
+    parser.add_argument("--timeout", type=int, default=60)
+    parser.add_argument("--num_processes", type=int, default=-1)
     parser.add_argument("--debug", action="store_true")
     args = parser.parse_args()
-    main(args)
+    asyncio.run(main(**vars(args)))
