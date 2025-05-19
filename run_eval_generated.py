@@ -83,6 +83,7 @@ async def run_translate(prompt_list, client, args, semaphore):
     results = await asyncio.gather(*tasks)
     return results
 
+
 def combine_one_task(task_instance: dict) -> int:
 
     preamble = task_instance["preds_context"]["preamble"]
@@ -97,6 +98,7 @@ def combine_one_task(task_instance: dict) -> int:
         if test_content == "":
             num_fail += 1
     return num_fail
+
 
 def construct_prompt(
     code_src: str, test_case: str, preamble: str, method: str, tokenizer
@@ -135,12 +137,12 @@ def main(args):
     for key in gen_tasks.keys():
         if "_test_case_" in key:
             uuid = key.split("_test_case_")[0]
-            gen_test_case = f"test_case_{key.split("_test_case_")[-1].strip()}"
+            gen_test_case = f"test_case_{key.split('_test_case_')[-1].strip()}"
         else:
             test_case_id = key.split("_test_case_")[-1].strip()
             uuid = key.replace(f"_{test_case_id}", "")
             gen_test_case = f"test_case_{test_case_id}"
-        
+
         gen_code = gen_tasks[key]
         if not is_pytest_test_case(gen_code):
             gen_code = ""
@@ -165,19 +167,25 @@ def main(args):
         if key not in gen_dict.keys():
             task_dict.pop(key, None)
         else:
-            task_dict[key]['gen_tests'] = {}
-            task_dict[key]['gen_tests_branches'] = {}
+            task_dict[key]["gen_tests"] = {}
+            task_dict[key]["gen_tests_branches"] = {}
             for test_case_key in task_dict[key]["test_cases"].keys():
-                if (test_case_key not in gen_dict[key]["test_cases"].keys()) or (gen_dict[key]["test_cases"][test_case_key] == ""):
+                if (test_case_key not in gen_dict[key]["test_cases"].keys()) or (
+                    gen_dict[key]["test_cases"][test_case_key] == ""
+                ):
                     task_dict[key]["test_cases"].pop(test_case_key, None)
                 else:
-                    task_dict[key]['gen_tests'][test_case_key] = gen_dict[key]["test_cases"][test_case_key]
-                    task_dict[key]['gen_tests_branches'][test_case_key] = []
+                    task_dict[key]["gen_tests"][test_case_key] = gen_dict[key][
+                        "test_cases"
+                    ][test_case_key]
+                    task_dict[key]["gen_tests_branches"][test_case_key] = []
 
     num_test_case = 0
     for key in task_dict.keys():
         num_test_case += len(task_dict[key]["test_cases"].keys())
-    logger.info(f"# of task to evaluate: {len(task_dict.keys())}. # of test cases: {num_test_case}")
+    logger.info(
+        f"# of task to evaluate: {len(task_dict.keys())}. # of test cases: {num_test_case}"
+    )
 
     # openai_api_key = "EMPTY"
     # openai_api_base = f"http://{args.host}:{args.port}/v1"
