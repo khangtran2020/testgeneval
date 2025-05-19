@@ -212,7 +212,9 @@ def main(args):
         if key in already_processed:
             continue
 
-        logger.info(f"Processing task {i+1}/{len(task_dict_new.keys())}")
+        logger.info(
+            f"Processing task {i+1}/{len(task_dict_new.keys())} and save to {args.res_path}"
+        )
         # combine_one_task(task_instance=task_dict[key])
 
         with open(args.res_path, "a") as f:

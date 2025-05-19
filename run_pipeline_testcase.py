@@ -245,7 +245,7 @@ def main(args):
             "--repo",
             args.repo,
             "--data_path",
-            os.path.join(args.data_path, f"{args.glmf_generated_output}.jsonl"),
+            os.path.join(args.data_path, f"{args.glmf_generated_output}"),
             "--res_path",
             os.path.join(
                 args.data_path, f"{args.glmf_generated_output}_processed.jsonl"
