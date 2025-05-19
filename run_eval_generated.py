@@ -134,17 +134,17 @@ def main(args):
         gen_tasks = json.load(f)
 
     gen_dict = {}
-    key_list = []
+    # key_list = []
     for key in gen_tasks.keys():
         if "_test_case_" in key:
             uuid = key.split("_test_case_")[0]
             gen_test_case = f"test_case_{key.split('_test_case_')[-1].strip()}"
         else:
-            test_case_id = key.split("_test_case_")[-1].strip()
+            test_case_id = key.split("_")[-1].strip()
             uuid = key.replace(f"_{test_case_id}", "")
             gen_test_case = f"test_case_{test_case_id}"
 
-        key_list.append(uuid)
+        # key_list.append(uuid)
 
         gen_code = gen_tasks[key]
         if not is_pytest_test_case(gen_code):
@@ -172,7 +172,7 @@ def main(args):
     task_dict_new = {}
 
     for key in task_dict.keys():
-        if key not in key_list:
+        if key not in gen_dict.keys():
             continue
         else:
             task_dict_new[key] = task_dict[key]
