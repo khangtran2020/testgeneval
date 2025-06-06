@@ -366,6 +366,9 @@ class DependencyCollector(ast.NodeVisitor):
         return targets
 
     def collect(self, source_code: str):
+        print("Here's the source code:")
+        print(source_code)
+        print("=" * 100)
         try:
             tree = ast.parse(source_code)
         except SyntaxError as e:
