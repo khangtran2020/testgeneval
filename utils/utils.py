@@ -375,11 +375,12 @@ class DependencyCollector(ast.NodeVisitor):
         # console.log("Here's the source code:")
         # console.log(source_code)
         # console.log("=" * 100)
-        try:
-            tree = ast.parse(source_code)
-        except SyntaxError as e:
-            console.log(f"Syntax error: {e}")
-            return None
+        # try:
+        #     tree = ast.parse(source_code)
+        # except SyntaxError as e:
+        #     console.log(f"Syntax error: {e}")
+        #     return None
+        tree = ast.parse(source_code)
         self.visit(tree)
         return tree
 
@@ -546,12 +547,12 @@ def trim_test_cases(source_code, target):
 
 
 def extract_function_names_from_code(code: str):
-    try:
-        tree = ast.parse(code)
-    except SyntaxError as e:
-        print(f"Syntax error: {e}")
-        return []
-
+    # try:
+    #     tree = ast.parse(code)
+    # except SyntaxError as e:
+    #     print(f"Syntax error: {e}")
+    #     return []
+    tree = ast.parse(code)
     function_names = []
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
