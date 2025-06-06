@@ -366,7 +366,11 @@ class DependencyCollector(ast.NodeVisitor):
         return targets
 
     def collect(self, source_code: str):
-        tree = ast.parse(source_code)
+        try:
+            tree = ast.parse(source_code)
+        except SyntaxError as e:
+            print(f"Syntax error: {e}")
+            return None
         self.visit(tree)
         return tree
 
@@ -504,7 +508,12 @@ class LineSliceTrimmer(ast.NodeVisitor):
 
 def trim_code_by_branch(source_code: str, line_groups: List[List[int]]):
 
-    tree = ast.parse(source_code)
+    try:
+        tree = ast.parse(source_code)
+    except SyntaxError as e:
+        print(f"Syntax error: {e}")
+        return ""
+
     trimmer = LineSliceTrimmer(line_groups)
     trimmer.visit(tree)
     trimmed_code = trimmer.reconstruct_code()
