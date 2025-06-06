@@ -1,5 +1,6 @@
 import re
 import ast
+from yapf.yapflib.yapf_api import FormatCode
 from typing import Set, Dict, List, Tuple
 
 
@@ -170,6 +171,9 @@ def postprocess_tests(
             trimmed_test_content = trim_test_cases(
                 source_code=test_content, target=f"{class_name}.{method_name}"
             )
+            trimmed_test_content = FormatCode(
+                trimmed_test_content, style_config="pep8"
+            )[0]
         except Exception as e:
             print(f"Error trimming test cases for {class_name}.{method_name}: {e}")
             continue
@@ -217,6 +221,9 @@ def postprocess_functions(
             trimmed_test_content = trim_test_cases(
                 source_code=test_content, target=test_function_name
             )
+            trimmed_test_content = FormatCode(
+                trimmed_test_content, style_config="pep8"
+            )[0]
         except Exception as e:
             print(f"Error trimming test cases for {test_function_name}: {e}")
             continue
