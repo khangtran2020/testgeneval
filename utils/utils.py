@@ -249,17 +249,23 @@ def postprocess_functions(
         else:
             test_content = preamble + "\n\n" + test_function
 
-        try:
-            fun_name = extract_function_names_from_code(code=test_function)
-            trimmed_test_content = trim_test_cases(
-                source_code=test_content, target=fun_name[0]
-            )
-            trimmed_test_content = FormatCode(
-                trimmed_test_content, style_config="pep8"
-            )[0]
-        except Exception as e:
-            console.log(f"Error trimming test cases for {test_function_name}: {e}")
-            continue
+        fun_name = extract_function_names_from_code(code=test_function)
+        trimmed_test_content = trim_test_cases(
+            source_code=test_content, target=fun_name[0]
+        )
+        trimmed_test_content = FormatCode(trimmed_test_content, style_config="pep8")[0]
+
+        # try:
+        #     fun_name = extract_function_names_from_code(code=test_function)
+        #     trimmed_test_content = trim_test_cases(
+        #         source_code=test_content, target=fun_name[0]
+        #     )
+        #     trimmed_test_content = FormatCode(
+        #         trimmed_test_content, style_config="pep8"
+        #     )[0]
+        # except Exception as e:
+        #     console.log(f"Error trimming test cases for {test_function_name}: {e}")
+        #     continue
 
         test_cases[f"test_case_{test_id}"] = trimmed_test_content
         test_id += 1
