@@ -250,8 +250,9 @@ def postprocess_functions(
             test_content = preamble + "\n\n" + test_function
 
         try:
+            fun_name = extract_function_names_from_code(code=test_function)
             trimmed_test_content = trim_test_cases(
-                source_code=test_content, target=test_function_name
+                source_code=test_content, target=fun_name[0]
             )
             trimmed_test_content = FormatCode(
                 trimmed_test_content, style_config="pep8"
@@ -524,3 +525,17 @@ def trim_test_cases(source_code, target):
 
     trimmed_code = collector.reconstruct_code()
     return trimmed_code
+
+
+def extract_function_names_from_code(code: str):
+    try:
+        tree = ast.parse(code)
+    except SyntaxError as e:
+        print(f"Syntax error: {e}")
+        return []
+
+    function_names = []
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            function_names.append(node.name)
+    return function_names
