@@ -263,7 +263,7 @@ def postprocess_functions(
             source_code=test_content, target=fun_name[0]
         )
         trimmed_test_content = FormatCode(trimmed_test_content, style_config="pep8")[0]
-
+        console.log(f"Trimmed test content for {fun_name[0]}:\n{trimmed_test_content}")
         # try:
         #     fun_name = extract_function_names_from_code(code=test_function)
         #     trimmed_test_content = trim_test_cases(
