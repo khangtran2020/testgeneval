@@ -366,13 +366,13 @@ class DependencyCollector(ast.NodeVisitor):
         return targets
 
     def collect(self, source_code: str):
-        print("Here's the source code:")
-        print(source_code)
-        print("=" * 100)
+        console.log("Here's the source code:")
+        console.log(source_code)
+        console.log("=" * 100)
         try:
             tree = ast.parse(source_code)
         except SyntaxError as e:
-            print(f"Syntax error: {e}")
+            console.log(f"Syntax error: {e}")
             return None
         self.visit(tree)
         return tree
