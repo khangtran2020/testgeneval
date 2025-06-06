@@ -4,7 +4,7 @@ import logging
 import os
 import json
 from rich.pretty import pretty_repr
-from swebench_docker.constants import KEY_BASELINES, KEY_ID, REPO_ID
+from swebench_docker.constants import KEY_BASELINES, KEY_INSTANCE_ID, REPO_ID
 from swebench_docker.run_docker import run_docker_evaluation
 from swebench_docker.utils import get_test_tasks
 
@@ -48,6 +48,8 @@ async def main(
     if gen_path.endswith(".jsonl"):
         with open(gen_path, "r", encoding="utf-8") as jsonl_file:
             gen_data = [json.loads(line) for line in jsonl_file]
+            gen_data = {gen_data["uuid"]: task for task in new_tasks}
+
     elif gen_path.endswith(".json"):
         with open(gen_path, "r", encoding="utf-8") as json_file:
             gen_data = json.load(json_file)
@@ -71,12 +73,12 @@ async def main(
 
     new_tasks = []
     for task in tasks:
-        if task[KEY_ID] in gen_dict:
-            task["test_cases"] = gen_dict[task[KEY_ID]]["test_cases"]
-            task["branches"] = gen_dict[task[KEY_ID]]["branches"]
+        if task[KEY_INSTANCE_ID] in gen_dict:
+            task["test_cases"] = gen_dict[task[KEY_INSTANCE_ID]]["test_cases"]
+            task["branches"] = gen_dict[task[KEY_INSTANCE_ID]]["branches"]
             new_tasks.append(task)
         else:
-            logger.warning(f"Task {task[KEY_ID]} not found in generated data")
+            logger.warning(f"Task {task[KEY_INSTANCE_ID]} not found in generated data")
 
     num_test_case = 0
     for task in new_tasks:
@@ -90,9 +92,11 @@ async def main(
     if debug:
         new_tasks = new_tasks[:1]
         test_case_keys = ["test_case_0"]
-        print(f"Task: {new_tasks[0][KEY_ID]}, version {new_tasks[0]['version']}")
+        print(
+            f"Task: {new_tasks[0][KEY_INSTANCE_ID]}, version {new_tasks[0]['version']}"
+        )
 
-    task_dict = {task[KEY_ID]: task for task in new_tasks}
+    task_dict = {task[KEY_INSTANCE_ID]: task for task in new_tasks}
 
     for task_instance in new_tasks:
         if debug:
@@ -128,7 +132,7 @@ async def main(
                     f"# of test cases: {len(task_instance['test_cases'].keys())}, and max id: {max_id}, {max_id == len(task_instance['test_cases'].keys()) - 1}"
                 )
             else:
-                logger.info(f"No test cases found for {task_instance[KEY_ID]}")
+                logger.info(f"No test cases found for {task_instance[KEY_INSTANCE_ID]}")
                 max_id = 0
 
             for testcase in task_instance["test_cases"].keys():
@@ -161,13 +165,15 @@ async def main(
         res, setting = result
         branch_key = "branches"
         test_case_key = "test_cases"
-        logger.info(f"================== Task {res[KEY_ID]} ==================")
+        logger.info(
+            f"================== Task {res[KEY_INSTANCE_ID]} =================="
+        )
         # logger.info(f"Task instance branches at setting {setting}: {res[branch_key]}")
         logger.info(
-            f"Task {res[KEY_ID]} orignally has {len(task_dict[res[KEY_ID]][branch_key])} branches and {len(task_dict[res[KEY_ID]][test_case_key])} test cases"
+            f"Task {res[KEY_INSTANCE_ID]} orignally has {len(task_dict[res[KEY_INSTANCE_ID]][branch_key])} branches and {len(task_dict[res[KEY_INSTANCE_ID]][test_case_key])} test cases"
         )
         logger.info(
-            f"Results {res[KEY_ID]} orignally has {len(res[branch_key])} branches and {len(res[test_case_key])} test cases"
+            f"Results {res[KEY_INSTANCE_ID]} orignally has {len(res[branch_key])} branches and {len(res[test_case_key])} test cases"
         )
         # for key in res[branch_key].keys():
         # logger.info(f"Setting {setting} has {len(res[branch_key][setting])} branches")
@@ -176,10 +182,12 @@ async def main(
                 logger.info(
                     f"Setting {setting_} at setting {setting} has {len(res[branch_key][setting_])} branches"
                 )
-                task_dict[res[KEY_ID]][branch_key][setting_] = res[branch_key][setting_]
+                task_dict[res[KEY_INSTANCE_ID]][branch_key][setting_] = res[branch_key][
+                    setting_
+                ]
                 break
 
-        # task_dict[res[KEY_ID]]["branches"][setting] = res["branches"][setting]
+        # task_dict[res[KEY_INSTANCE_ID]]["branches"][setting] = res["branches"][setting]
 
     with open(res_path, "w") as f:
         for item in task_dict.values():
