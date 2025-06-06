@@ -8,6 +8,7 @@ from utils.utils import (
     extract_preamble_classes_and_functions,
     postprocess_functions,
     postprocess_tests,
+    trim_test_cases,
 )
 from datasets import load_dataset, load_from_disk, concatenate_datasets
 
@@ -45,17 +46,6 @@ class Data(object):
 
     def load_raw_data(self) -> None:
         if self.data_path is None:
-            # if self.data_name == "kjain14/testgeneval":
-            #     # train_dataset = load_dataset(self.data_name, split="train")
-            #     # valid_dataset = load_dataset(self.data_name, split="dev")
-            #     dataset = load_dataset(self.data_name, split="test")
-            #     dataset = concatenate_datasets(
-            #         [train_dataset, valid_dataset, test_dataset]
-            #     )
-            # elif self.data_name == "kjain14/testgenevallite":
-            #     valid_dataset = load_dataset(self.data_name, split="dev")
-            #     test_dataset = load_dataset(self.data_name, split="test")
-            #     dataset = concatenate_datasets([valid_dataset, test_dataset])
             dataset = load_dataset(self.data_name, split="test")
         else:
             dataset = load_from_disk(self.data_path)

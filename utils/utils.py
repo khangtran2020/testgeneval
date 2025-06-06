@@ -1,5 +1,6 @@
 import re
-from typing import Tuple, List, Dict
+import ast
+from typing import Set, Dict, List, Tuple
 
 
 def extract_preamble_classes_and_functions(code: str) -> Tuple[str, list, list]:
@@ -109,19 +110,19 @@ def extract_preamble_classes_and_functions(code: str) -> Tuple[str, list, list]:
                 if next_function
                 else code[start_idx:]
             )
-            test_functions.append((function_body, start_idx))
+            test_functions.append((function_name, function_body, start_idx))
             current_position = method_match.end()
 
         else:
             break
 
     if classes and test_functions:
-        preamble = code[: min(classes[0][2], test_functions[0][1])]
+        preamble = code[: min(classes[0][2], test_functions[0][2])]
     else:
         preamble = (
             code[: classes[0][2]]
             if classes
-            else code[: test_functions[0][1]] if test_functions else code
+            else code[: test_functions[0][2]] if test_functions else code
         )
 
     return preamble.strip(), classes, test_functions
@@ -165,7 +166,15 @@ def postprocess_tests(
         class_content = f"{class_name}\n{test_case}\n"
         test_content = preamble + "\n\n" + class_content
 
-        test_cases[f"test_case_{test_id}"] = test_content
+        try:
+            trimmed_test_content = trim_test_cases(
+                source_code=test_content, target=f"{class_name}.{method_name}"
+            )
+        except Exception as e:
+            print(f"Error trimming test cases for {class_name}.{method_name}: {e}")
+            continue
+
+        test_cases[f"test_case_{test_id}"] = trimmed_test_content
         # print(f"Added test case {test_id}")
         test_id += 1
 
@@ -196,14 +205,283 @@ def postprocess_functions(
     test_id = len(test_cases.keys())
 
     class_content = ""
-    for test_function, start in test_functions:
+    for test_function_name, test_function, start in test_functions:
         if django_repo and added_class:
             if "(self):" not in test_function:
                 test_function = test_function.replace("():", "(self):", 1)
             test_content = preamble + "\n\n" + indent_text(test_function, 4)
         else:
             test_content = preamble + "\n\n" + test_function
-        test_cases[f"test_case_{test_id}"] = test_content
+
+        try:
+            trimmed_test_content = trim_test_cases(
+                source_code=test_content, target=test_function_name
+            )
+        except Exception as e:
+            print(f"Error trimming test cases for {test_function_name}: {e}")
+            continue
+
+        test_cases[f"test_case_{test_id}"] = trimmed_test_content
         test_id += 1
 
     return test_cases
+
+
+class DependencyCollector(ast.NodeVisitor):
+    def __init__(self):
+        self.required_names: Set[str] = set()
+        self.used_import_names: Set[str] = set()
+        self.visited: Set[str] = set()
+
+        self.function_defs: Dict[str, ast.FunctionDef] = {}
+        self.class_defs: Dict[str, ast.ClassDef] = {}
+        self.assignments: Dict[str, ast.stmt] = {}
+        self.imports: List[ast.stmt] = []
+
+        self.nodes_to_keep: List[ast.stmt] = []
+
+    def visit_Module(self, node: ast.Module):
+        for stmt in node.body:
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                self.function_defs[stmt.name] = stmt
+            elif isinstance(stmt, ast.ClassDef):
+                self.class_defs[stmt.name] = stmt
+            elif isinstance(stmt, (ast.Import, ast.ImportFrom)):
+                self.imports.append(stmt)
+            elif isinstance(stmt, (ast.Assign, ast.AnnAssign)):
+                target_names = self._get_assign_targets(stmt)
+                for name in target_names:
+                    self.assignments[name] = stmt
+
+    def resolve_dependencies(self, name: str):
+        if name in self.visited:
+            return
+        self.visited.add(name)
+
+        if name in self.function_defs:
+            func_node = self.function_defs[name]
+            self.nodes_to_keep.append(func_node)
+            self._handle_decorators(func_node.decorator_list)
+            self.generic_visit(func_node)
+
+        elif name in self.class_defs:
+            self._include_entire_class(name)
+
+        elif name in self.assignments:
+            assign_node = self.assignments[name]
+            self.nodes_to_keep.append(assign_node)
+            self.generic_visit(assign_node)
+
+    def resolve_class_method(self, class_name: str, method_name: str):
+        if class_name not in self.class_defs:
+            print(f"Class '{class_name}' not found.")
+            return
+
+        class_node = self.class_defs[class_name]
+        self.nodes_to_keep.append(class_node)
+
+        for item in class_node.body:
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if item.name == method_name:
+                    self._handle_decorators(item.decorator_list)
+                    self.generic_visit(item)
+
+    def _include_entire_class(self, class_name: str):
+        class_node = self.class_defs[class_name]
+        if class_node not in self.nodes_to_keep:
+            self.nodes_to_keep.append(class_node)
+            self.generic_visit(class_node)
+
+    def _handle_decorators(self, decorators):
+        for decorator in decorators:
+            if isinstance(decorator, ast.Name):
+                self.resolve_dependencies(decorator.id)
+            elif isinstance(decorator, ast.Attribute):
+                self.visit(decorator)
+
+    def visit_Name(self, node):
+        if isinstance(node.ctx, ast.Load):
+            self.required_names.add(node.id)
+            self.used_import_names.add(node.id)
+            self.resolve_dependencies(node.id)
+
+    def visit_Attribute(self, node):
+        self.visit(node.value)
+
+    def visit_Call(self, node):
+        self.visit(node.func)
+        for arg in node.args:
+            self.visit(arg)
+        for kw in node.keywords:
+            self.visit(kw.value)
+
+    def _get_assign_targets(self, node):
+        targets = []
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name):
+                    targets.append(t.id)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            targets.append(node.target.id)
+        return targets
+
+    def collect(self, source_code: str):
+        tree = ast.parse(source_code)
+        self.visit(tree)
+        return tree
+
+    def filter_imports(self):
+        kept = []
+        for imp in self.imports:
+            if isinstance(imp, ast.Import):
+                for alias in imp.names:
+                    if alias.asname:
+                        name = alias.asname
+                    else:
+                        name = alias.name.split(".")[0]
+                    if name in self.used_import_names:
+                        kept.append(imp)
+                        break
+            elif isinstance(imp, ast.ImportFrom):
+                if imp.module is None:
+                    continue
+                for alias in imp.names:
+                    name = alias.asname if alias.asname else alias.name
+                    if name in self.used_import_names:
+                        kept.append(imp)
+                        break
+        return kept
+
+    def reconstruct_code(self):
+        final_imports = self.filter_imports()
+        needed = final_imports + sorted(
+            self.nodes_to_keep, key=lambda n: getattr(n, "lineno", 0)
+        )
+        return "\n\n".join(ast.unparse(n) for n in needed)
+
+
+class LineSliceTrimmer(ast.NodeVisitor):
+    def __init__(self, target_lines: List[List[int]]):
+        self.target_lines = {line for group in target_lines for line in group}
+        self.keep_nodes: List[ast.stmt] = []
+        self.function_defs: Dict[str, ast.FunctionDef] = {}
+        self.class_defs: Dict[str, ast.ClassDef] = {}
+        self.assignments: Dict[str, ast.stmt] = {}
+        self.imports: List[ast.stmt] = []
+
+        self.required_names: Set[str] = set()
+        self.visited_names: Set[str] = set()
+
+    def visit_Module(self, node: ast.Module):
+        for stmt in node.body:
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                self.function_defs[stmt.name] = stmt
+            elif isinstance(stmt, ast.ClassDef):
+                self.class_defs[stmt.name] = stmt
+            elif isinstance(stmt, (ast.Import, ast.ImportFrom)):
+                self.imports.append(stmt)
+            elif isinstance(stmt, (ast.Assign, ast.AnnAssign)):
+                for name in self._get_assign_targets(stmt):
+                    self.assignments[name] = stmt
+
+        for stmt in node.body:
+            if self._stmt_in_target(stmt):
+                self.keep_nodes.append(stmt)
+                self.generic_visit(stmt)
+
+    def _stmt_in_target(self, stmt: ast.stmt) -> bool:
+        return any(getattr(stmt, "lineno", -1) in group for group in self.target_lines)
+
+    def _get_assign_targets(self, node):
+        targets = []
+        if isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name):
+                    targets.append(t.id)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            targets.append(node.target.id)
+        return targets
+
+    def visit_Name(self, node):
+        if isinstance(node.ctx, ast.Load):
+            name = node.id
+            self.required_names.add(name)
+            self._resolve_name(name)
+
+    def visit_Attribute(self, node):
+        self.visit(node.value)
+
+    def visit_Call(self, node):
+        self.visit(node.func)
+        for arg in node.args:
+            self.visit(arg)
+        for kw in node.keywords:
+            self.visit(kw.value)
+
+    def _resolve_name(self, name):
+        if name in self.visited_names:
+            return
+        self.visited_names.add(name)
+
+        if name in self.function_defs:
+            func_node = self.function_defs[name]
+            self.keep_nodes.append(func_node)
+            self.generic_visit(func_node)
+
+        elif name in self.class_defs:
+            class_node = self.class_defs[name]
+            self.keep_nodes.append(class_node)
+            self.generic_visit(class_node)
+
+        elif name in self.assignments:
+            assign_node = self.assignments[name]
+            self.keep_nodes.append(assign_node)
+            self.generic_visit(assign_node)
+
+    def filter_imports(self):
+        used = set(self.required_names)
+        filtered = []
+
+        for imp in self.imports:
+            if isinstance(imp, ast.Import):
+                if any(
+                    alias.asname or alias.name.split(".")[0] in used
+                    for alias in imp.names
+                ):
+                    filtered.append(imp)
+            elif isinstance(imp, ast.ImportFrom):
+                if any(alias.asname or alias.name in used for alias in imp.names):
+                    filtered.append(imp)
+
+        return filtered
+
+    def reconstruct_code(self):
+        all_nodes = self.filter_imports() + sorted(
+            self.keep_nodes, key=lambda n: getattr(n, "lineno", 0)
+        )
+        return "\n\n".join(ast.unparse(n) for n in all_nodes)
+
+
+def trim_code_by_branch(source_code: str, line_groups: List[List[int]]):
+
+    tree = ast.parse(source_code)
+    trimmer = LineSliceTrimmer(line_groups)
+    trimmer.visit(tree)
+    trimmed_code = trimmer.reconstruct_code()
+
+    return trimmed_code
+
+
+def trim_test_cases(source_code, target):
+
+    collector = DependencyCollector()
+    tree = collector.collect(source_code)
+
+    if "." in target:
+        class_name, method_name = target.split(".")
+        collector.resolve_class_method(class_name, method_name)
+    else:
+        collector.resolve_dependencies(target)
+
+    trimmed_code = collector.reconstruct_code()
+    return trimmed_code

@@ -3,6 +3,6 @@ python run_pipeline_testcase.py --dataset kjain14/testgenevallite \
     --num_processes 16 \
     --repo all \
     --data_path "./data" \
-    --glmf_generated_path "fake_generated_sample.json" \
-    --glmf_generated_output "fake_generated_branch.jsonl" \
+    --glmf_generated_path "testing_Qwen2.5_7B_graph_tr_accelerate_4096_baseline.json" \
+    --glmf_generated_output "7b-baseline-output.jsonl" \
     --eval_generated
