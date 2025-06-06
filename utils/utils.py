@@ -1,7 +1,37 @@
 import re
 import ast
+from rich import console
 from yapf.yapflib.yapf_api import FormatCode
 from typing import Set, Dict, List, Tuple
+
+from rich.console import Console
+from rich.theme import Theme
+from rich.table import Table
+from typing import Dict
+
+custom_theme = Theme(
+    {
+        "info": "dim cyan",
+        "warning": "bold yellow",
+        "error": "bold red",
+        "key": "bold yellow",
+        "value": "white",
+    }
+)
+
+console = Console(theme=custom_theme)
+
+
+def log_table(dct: Dict, name: str):
+
+    table = Table(title=name)
+
+    table.add_column("Property.", style="key")
+    table.add_column("Values", style="value")
+
+    for key in dct.keys():
+        table.add_row(key, dct[key])
+    console.log(table)
 
 
 def extract_preamble_classes_and_functions(code: str) -> Tuple[str, list, list]:
@@ -175,7 +205,9 @@ def postprocess_tests(
                 trimmed_test_content, style_config="pep8"
             )[0]
         except Exception as e:
-            print(f"Error trimming test cases for {class_name}.{method_name}: {e}")
+            console.log(
+                f"Error trimming test cases for {class_name}.{method_name}: {e}"
+            )
             continue
 
         test_cases[f"test_case_{test_id}"] = trimmed_test_content
@@ -225,7 +257,7 @@ def postprocess_functions(
                 trimmed_test_content, style_config="pep8"
             )[0]
         except Exception as e:
-            print(f"Error trimming test cases for {test_function_name}: {e}")
+            console.log(f"Error trimming test cases for {test_function_name}: {e}")
             continue
 
         test_cases[f"test_case_{test_id}"] = trimmed_test_content
