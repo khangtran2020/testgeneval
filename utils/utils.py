@@ -547,7 +547,7 @@ def trim_test_cases(source_code, target):
 
     if "." in target:
         class_name, method_name = target.split(".")
-        collector.resolve_class_method(class_name, method_name)
+        collector.resolve_class_method(class_name.strip(), method_name.strip())
     else:
         collector.resolve_dependencies(target)
 
