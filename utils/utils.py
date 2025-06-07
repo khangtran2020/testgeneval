@@ -197,28 +197,26 @@ def postprocess_tests(
         class_content = f"{class_name}\n{test_case}\n"
         test_content = preamble + "\n\n" + class_content
 
-        trimmed_test_content = trim_test_cases(
-            source_code=test_content,
-            target=f"{class_name}|class_method_split|{method_name}",
-        )
-        trimmed_test_content = FormatCode(trimmed_test_content, style_config="pep8")[0]
+        # trimmed_test_content = trim_test_cases(
+        #     source_code=test_content,
+        #     target=f"{class_name}|class_method_split|{method_name}",
+        # )
+        # trimmed_test_content = FormatCode(trimmed_test_content, style_config="pep8")[0]
 
         # console.log(
         #     f"Trimmed test content for {class_name}.{method_name}:\n{trimmed_test_content}"
         # )
 
-        # try:
-        #     trimmed_test_content = trim_test_cases(
-        #         source_code=test_content, target=f"{class_name}.{method_name}"
-        #     )
-        #     trimmed_test_content = FormatCode(
-        #         trimmed_test_content, style_config="pep8"
-        #     )[0]
-        # except Exception as e:
-        #     console.log(
-        #         f"Error trimming test cases for {class_name}.{method_name}: {e}"
-        #     )
-        #     continue
+        try:
+            trimmed_test_content = trim_test_cases(
+                source_code=test_content,
+                target=f"{class_name}|class_method_split|{method_name}",
+            )
+            trimmed_test_content = FormatCode(
+                trimmed_test_content, style_config="pep8"
+            )[0]
+        except Exception as e:
+            console.print_exception()
 
         test_cases[f"test_case_{test_id}"] = trimmed_test_content
         # print(f"Added test case {test_id}")
@@ -259,23 +257,18 @@ def postprocess_functions(
         else:
             test_content = preamble + "\n\n" + test_function
 
-        fun_name = extract_function_names_from_code(code=test_function)
-        trimmed_test_content = trim_test_cases(
-            source_code=test_content, target=fun_name[0]
-        )
-        trimmed_test_content = FormatCode(trimmed_test_content, style_config="pep8")[0]
-        console.log(f"Trimmed test content for {fun_name[0]}:\n{trimmed_test_content}")
-        # try:
-        #     fun_name = extract_function_names_from_code(code=test_function)
-        #     trimmed_test_content = trim_test_cases(
-        #         source_code=test_content, target=fun_name[0]
-        #     )
-        #     trimmed_test_content = FormatCode(
-        #         trimmed_test_content, style_config="pep8"
-        #     )[0]
-        # except Exception as e:
-        #     console.log(f"Error trimming test cases for {test_function_name}: {e}")
-        #     continue
+        # fun_name = extract_function_names_from_code(code=test_function)
+
+        # console.log(f"Trimmed test content for {fun_name[0]}:\n{trimmed_test_content}")
+        try:
+            trimmed_test_content = trim_test_cases(
+                source_code=test_content, target=test_function_name
+            )
+            trimmed_test_content = FormatCode(
+                trimmed_test_content, style_config="pep8"
+            )[0]
+        except Exception as e:
+            console.print_exception()
 
         test_cases[f"test_case_{test_id}"] = trimmed_test_content
         test_id += 1
