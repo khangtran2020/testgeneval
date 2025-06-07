@@ -568,6 +568,7 @@ def trim_test_cases(source_code, target):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 # Top-level function
                 if node.name in function_name:
+                    console.log("[green]Found function:[/green] " + node.name)
                     collector.resolve_dependencies(node.name)
 
     if (class_name is not None) and (method_name is not None):
@@ -578,9 +579,16 @@ def trim_test_cases(source_code, target):
                         if isinstance(
                             body_item, (ast.FunctionDef, ast.AsyncFunctionDef)
                         ):
-                            collector.resolve_class_method(
-                                node.name.strip(), body_item.name.strip()
-                            )
+                            if body_item.name in method_name:
+                                console.log(
+                                    "[green]Found function:[/green] "
+                                    + node.name
+                                    + "."
+                                    + body_item.name
+                                )
+                                collector.resolve_class_method(
+                                    node.name.strip(), body_item.name.strip()
+                                )
 
     trimmed_code = collector.reconstruct_code()
     return trimmed_code
