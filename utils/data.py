@@ -91,6 +91,8 @@ class Data(object):
             idx = data["id"]
             baseline_covs = data["baseline_covs"]
 
+            self.console.log(f"[green]Working on instance id: {instance_id}[/green]")
+
             preamble, classes, test_functions = extract_preamble_classes_and_functions(
                 code=test_src
             )
