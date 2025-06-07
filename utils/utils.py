@@ -581,7 +581,7 @@ def trim_test_cases(source_code, target):
                         ):
                             if body_item.name in method_name:
                                 console.log(
-                                    "[green]Found function:[/green] "
+                                    "[green]Found class and function:[/green] "
                                     + node.name
                                     + "."
                                     + body_item.name
