@@ -167,6 +167,7 @@ def indent_text(text, indent_level):
 
 def postprocess_tests(
     repo: str,
+    code: str,
     preamble: str,
     class_name: str,
     methods: List[Tuple[str, str]],
@@ -209,7 +210,7 @@ def postprocess_tests(
 
         try:
             trimmed_test_content = trim_test_cases(
-                source_code=test_content,
+                source_code=code,
                 target=f"{class_name}|class_method_split|{method_name}",
             )
             trimmed_test_content = FormatCode(
@@ -228,6 +229,7 @@ def postprocess_tests(
 
 def postprocess_functions(
     repo: str,
+    code: str,
     preamble: str,
     test_functions: List[Tuple[str, str]],
     test_cases: Dict[str, str],
@@ -263,7 +265,7 @@ def postprocess_functions(
         # console.log(f"Trimmed test content for {fun_name[0]}:\n{trimmed_test_content}")
         try:
             trimmed_test_content = trim_test_cases(
-                source_code=test_content, target=test_function_name
+                source_code=code, target=test_function_name
             )
             trimmed_test_content = FormatCode(
                 trimmed_test_content, style_config="pep8"
@@ -569,7 +571,7 @@ def trim_test_cases(source_code, target):
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 # Top-level function
-                if (node.name in function_name) and ("test" in node.name):
+                if (node.name in function_name) and (node.name.startswith("test")):
                     console.log("[green]Found function:[/green] " + node.name)
                     collector.resolve_dependencies(node.name)
 
@@ -582,7 +584,7 @@ def trim_test_cases(source_code, target):
                             body_item, (ast.FunctionDef, ast.AsyncFunctionDef)
                         ):
                             if (body_item.name in method_name) and (
-                                "test" in body_item.name
+                                body_item.name.startswith("test")
                             ):
                                 console.log(
                                     "[green]Found class and function:[/green] "

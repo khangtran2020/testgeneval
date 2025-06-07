@@ -101,6 +101,7 @@ class Data(object):
             for class_name, methods, start in classes:
                 test_cases = postprocess_tests(
                     repo=repo,
+                    code=test_src,
                     preamble=preamble,
                     class_name=class_name,
                     methods=methods,
@@ -109,6 +110,7 @@ class Data(object):
 
             test_cases = postprocess_functions(
                 repo=repo,
+                code=test_src,
                 preamble=preamble,
                 test_functions=test_functions,
                 test_cases=test_cases,
