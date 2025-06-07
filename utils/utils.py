@@ -217,6 +217,7 @@ def postprocess_tests(
             )[0]
         except Exception as e:
             console.print_exception()
+            continue
 
         test_cases[f"test_case_{test_id}"] = trimmed_test_content
         # print(f"Added test case {test_id}")
@@ -269,6 +270,7 @@ def postprocess_functions(
             )[0]
         except Exception as e:
             console.print_exception()
+            continue
 
         test_cases[f"test_case_{test_id}"] = trimmed_test_content
         test_id += 1
