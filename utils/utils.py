@@ -567,7 +567,7 @@ def trim_test_cases(source_code, target):
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 # Top-level function
-                if node.name in function_name:
+                if (node.name in function_name) and ("test" in node.name):
                     console.log("[green]Found function:[/green] " + node.name)
                     collector.resolve_dependencies(node.name)
 
@@ -579,7 +579,9 @@ def trim_test_cases(source_code, target):
                         if isinstance(
                             body_item, (ast.FunctionDef, ast.AsyncFunctionDef)
                         ):
-                            if body_item.name in method_name:
+                            if (body_item.name in method_name) and (
+                                "test" in body_item.name
+                            ):
                                 console.log(
                                     "[green]Found class and function:[/green] "
                                     + node.name
