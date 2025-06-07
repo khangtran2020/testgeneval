@@ -198,13 +198,14 @@ def postprocess_tests(
         test_content = preamble + "\n\n" + class_content
 
         trimmed_test_content = trim_test_cases(
-            source_code=test_content, target=f"{class_name}.{method_name}"
+            source_code=test_content,
+            target=f"{class_name}|class_method_split|{method_name}",
         )
         trimmed_test_content = FormatCode(trimmed_test_content, style_config="pep8")[0]
 
-        console.log(
-            f"Trimmed test content for {class_name}.{method_name}:\n{trimmed_test_content}"
-        )
+        # console.log(
+        #     f"Trimmed test content for {class_name}.{method_name}:\n{trimmed_test_content}"
+        # )
 
         # try:
         #     trimmed_test_content = trim_test_cases(
@@ -540,16 +541,53 @@ def trim_code_by_branch(source_code: str, line_groups: List[List[int]]):
     return trimmed_code
 
 
+# def trim_test_cases(source_code, target):
+
+#     collector = DependencyCollector()
+#     tree = collector.collect(source_code)
+
+#     if "." in target:
+#         class_name, method_name = target.split(".")
+#         collector.resolve_class_method(class_name.strip(), method_name.strip())
+#     else:
+#         collector.resolve_dependencies(target)
+
+#     trimmed_code = collector.reconstruct_code()
+#     return trimmed_code
+
+
 def trim_test_cases(source_code, target):
 
+    class_name = None
+    method_name = None
+    function_name = None
     collector = DependencyCollector()
     tree = collector.collect(source_code)
 
-    if "." in target:
-        class_name, method_name = target.split(".")
-        collector.resolve_class_method(class_name.strip(), method_name.strip())
+    if "|class_method_split|" in target:
+        class_name, method_name = target.split("|class_method_split|")
     else:
-        collector.resolve_dependencies(target)
+        function_name = target
+
+    if function_name is not None:
+
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                # Top-level function
+                if node.name in function_name:
+                    collector.resolve_dependencies(node.name)
+
+    if (class_name is not None) and (method_name is not None):
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                if node.name in class_name:
+                    for body_item in node.body:
+                        if isinstance(
+                            body_item, (ast.FunctionDef, ast.AsyncFunctionDef)
+                        ):
+                            collector.resolve_class_method(
+                                node.name.strip(), body_item.name.strip()
+                            )
 
     trimmed_code = collector.reconstruct_code()
     return trimmed_code

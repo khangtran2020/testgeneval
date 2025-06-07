@@ -1,3 +1,13 @@
+
+# get preprocesss
+python run_pipeline_testcase.py --dataset kjain14/testgeneval \
+    --results_dir ./results/ \
+    --num_processes 1024 \
+    --repo all \
+    --data_path "./data" \
+    --get_ground_truth_branch
+
+# get branch for glmf generated
 python run_pipeline_testcase.py --dataset kjain14/testgenevallite \
     --results_dir ./results/ \
     --num_processes 16 \
