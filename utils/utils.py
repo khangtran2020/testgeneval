@@ -628,7 +628,7 @@ def find_tests_in_script(
     test_functions = []
     test_classes = {}
 
-    # Keep track of imported base test classes (fully-qualified or aliased)
+    # Known base classes (for legacy use / optional enforcement)
     known_test_bases: Set[str] = {
         "unittest.TestCase",
         "django.test.TestCase",
@@ -642,15 +642,6 @@ def find_tests_in_script(
             node, (ast.FunctionDef, ast.AsyncFunctionDef)
         ) and node.name.startswith("test")
 
-    def is_test_method_in_class(node: ast.AST, parents: List[ast.AST]) -> bool:
-        return (
-            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and node.name.startswith("test")
-            and any(
-                p in test_class_nodes for p in parents if isinstance(p, ast.ClassDef)
-            )
-        )
-
     def walk_with_parents(node, parents=None):
         if parents is None:
             parents = []
@@ -658,35 +649,24 @@ def find_tests_in_script(
         for child in ast.iter_child_nodes(node):
             yield from walk_with_parents(child, parents + [node])
 
-    # Step 1: Identify test classes by inheritance
     test_class_nodes = set()
+
+    # Step 1: Collect all test classes and their test methods
     for node in tree.body:
         if isinstance(node, ast.ClassDef):
-            for base in node.bases:
-                # Check if the base class is directly named or imported
-                if isinstance(base, ast.Name) and base.id in known_test_bases:
-                    test_class_nodes.add(node)
-                    break
-                elif isinstance(base, ast.Attribute):
-                    full_base = f"{getattr(base.value, 'id', '')}.{base.attr}"
-                    if full_base in known_test_bases:
-                        test_class_nodes.add(node)
-                        break
+            method_names = [
+                item.name
+                for item in node.body
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and item.name.startswith("test")
+            ]
+            if method_names:
+                test_classes[node.name] = method_names
+                test_class_nodes.add(node)
 
-    # Step 2: Walk entire tree and match nodes
-    for node, parents in walk_with_parents(tree):
-        # Top-level test function
-        if is_test_function(node) and not any(
-            isinstance(p, ast.ClassDef) for p in parents
-        ):
+    # Step 2: Collect all top-level test functions
+    for node in tree.body:
+        if is_test_function(node):
             test_functions.append(node.name)
-
-        # Test method in identified test class
-        elif is_test_method_in_class(node, parents):
-            test_class = next(p for p in reversed(parents) if p in test_class_nodes)
-            class_name = test_class.name
-            if class_name not in test_classes:
-                test_classes[class_name] = []
-            test_classes[class_name].append(node.name)
 
     return {"test_functions": test_functions, "test_classes": test_classes}
