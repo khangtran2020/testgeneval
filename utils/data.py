@@ -107,7 +107,9 @@ class Data(object):
                 #     source_code=test_src,
                 #     target=tar_func,
                 # )
-                trimmed_code = extract_minimal_test(script=test_src, target=tar_func)
+                trimmed_code = extract_minimal_test(
+                    script=test_src, target=tar_func, id=instance_id
+                )
                 if trimmed_code is not None:
                     test_cases[f"test_case_{test_id}"] = {
                         "target": tar_func,
@@ -120,6 +122,7 @@ class Data(object):
                     trimmed_code = extract_minimal_test(
                         script=test_src,
                         target=f"{class_name}|class_method_split|{method}",
+                        id=instance_id,
                     )
                     if trimmed_code is not None:
                         test_cases[f"test_case_{test_id}"] = {

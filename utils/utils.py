@@ -302,7 +302,7 @@ class DependencyCollector(ast.NodeVisitor):
         return "\n\n".join(ast.unparse(n) for n in code_blocks)
 
 
-def extract_minimal_test(script: str, target: str):
+def extract_minimal_test(script: str, target: str, id: str):
     """
     target:
       - For a function: 'test_func_name'
@@ -329,7 +329,7 @@ def extract_minimal_test(script: str, target: str):
                 break
         if not method_node:
             raise ValueError(
-                f"Method '{method_name}' not found in class '{class_name}'."
+                f"Method '{method_name}' not found in class '{class_name}' at id {id}."
             )
         # Resolve method dependencies
         collector.resolve(method_name)
