@@ -169,7 +169,7 @@ def indent_text(text, indent_level):
 class DependencyCollector(ast.NodeVisitor):
     def __init__(self):
         # Store all top-level objects
-        self.class_defs: Dict[str, ast.ClassDef] = {}
+        self.class_defs: Dict[str, List[ast.ClassDef]] = {}
         self.func_defs: Dict[str, ast.FunctionDef] = {}
         self.async_func_defs: Dict[str, ast.AsyncFunctionDef] = {}
         self.assigns: Dict[str, ast.Assign] = {}
@@ -190,7 +190,7 @@ class DependencyCollector(ast.NodeVisitor):
             self.all_names.add(alias.asname or alias.name)
 
     def visit_ClassDef(self, node):
-        self.class_defs[node.name] = node
+        self.class_defs.setdefault(node.name, []).append(node)
         self.all_names.add(node.name)
         # Do not descend into body (methods) here
 
@@ -317,16 +317,18 @@ def extract_minimal_test(script: str, target: str, id: str):
         # Find the class
         if class_name not in collector.class_defs:
             raise ValueError(f"Class '{class_name}' not found in file.")
-        class_node = collector.class_defs[class_name]
+
+        class_nodes = collector.class_defs[class_name]
         # Find the method
         method_node = None
-        for item in class_node.body:
-            if (
-                isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
-                and item.name == method_name
-            ):
-                method_node = item
-                break
+        for class_node in class_nodes:
+            for item in class_node.body:
+                if (
+                    isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and item.name == method_name
+                ):
+                    method_node = item
+                    break
         if not method_node:
             raise ValueError(
                 f"Method '{method_name}' not found in class '{class_name}' at id {id}."
