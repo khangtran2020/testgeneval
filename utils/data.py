@@ -5,10 +5,10 @@ import aiofiles
 import datetime
 from tqdm.asyncio import tqdm
 from utils.utils import (
-    extract_preamble_classes_and_functions,
-    postprocess_functions,
-    postprocess_tests,
-    trim_test_cases,
+    # extract_preamble_classes_and_functions,
+    # postprocess_functions,
+    # postprocess_tests,
+    extract_minimal_test,
     find_tests_in_script,
 )
 from datasets import load_dataset, load_from_disk, concatenate_datasets
@@ -103,10 +103,11 @@ class Data(object):
             test_cases = {}
             test_id = 0
             for tar_func in test_dict["test_functions"]:
-                trimmed_code = trim_test_cases(
-                    source_code=test_src,
-                    target=tar_func,
-                )
+                # trimmed_code = trim_test_cases(
+                #     source_code=test_src,
+                #     target=tar_func,
+                # )
+                trimmed_code = extract_minimal_test(script=test_src, target=tar_func)
                 if trimmed_code is not None:
                     test_cases[f"test_case_{test_id}"] = {
                         "target": tar_func,
@@ -116,8 +117,8 @@ class Data(object):
 
             for class_name in test_dict["test_classes"]:
                 for method in test_dict["test_classes"][class_name]:
-                    trimmed_code = trim_test_cases(
-                        source_code=test_src,
+                    trimmed_code = extract_minimal_test(
+                        script=test_src,
                         target=f"{class_name}|class_method_split|{method}",
                     )
                     if trimmed_code is not None:

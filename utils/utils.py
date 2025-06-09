@@ -8,7 +8,7 @@ from typing import Set, Dict, List, Tuple, Union
 from rich.console import Console
 from rich.theme import Theme
 from rich.table import Table
-from typing import Dict
+from typing import Dict, Optional
 
 custom_theme = Theme(
     {
@@ -166,339 +166,352 @@ def indent_text(text, indent_level):
     )
 
 
-def postprocess_tests(
-    repo: str,
-    code: str,
-    preamble: str,
-    class_name: str,
-    methods: List[Tuple[str, str]],
-    test_cases: Dict[str, str],
-) -> Dict[str, str]:
-    django_repo = repo == "django/django"
+# def postprocess_tests(
+#     repo: str,
+#     code: str,
+#     preamble: str,
+#     class_name: str,
+#     methods: List[Tuple[str, str]],
+#     test_cases: Dict[str, str],
+# ) -> Dict[str, str]:
+#     django_repo = repo == "django/django"
 
-    def needs_django_harness(preamble):
-        no_django_test = "TestCase" not in preamble
-        no_unittest = "unittest" not in preamble
-        no_simple_test_case = "SimpleTestCase" not in preamble
-        return no_django_test and no_unittest and no_simple_test_case
+#     def needs_django_harness(preamble):
+#         no_django_test = "TestCase" not in preamble
+#         no_unittest = "unittest" not in preamble
+#         no_simple_test_case = "SimpleTestCase" not in preamble
+#         return no_django_test and no_unittest and no_simple_test_case
 
-    if django_repo and needs_django_harness(preamble):
-        preamble = "from django.test import SimpleTestCase\n" + preamble
-        preamble += "\n\nclass TestsHarness(SimpleTestCase):\n"
-        added_class = True
+#     if django_repo and needs_django_harness(preamble):
+#         preamble = "from django.test import SimpleTestCase\n" + preamble
+#         preamble += "\n\nclass TestsHarness(SimpleTestCase):\n"
+#         added_class = True
+#     else:
+#         added_class = False
+
+#     test_id = len(test_cases.keys())
+#     # print(f"Processing with {len(methods)} methods, id begins at {test_id}")
+#     for method_name, test_case in methods:
+#         if django_repo and added_class:
+#             if "(self):" not in test_case:
+#                 test_case = test_case.replace("():", "(self):", 1)
+
+#         class_content = f"{class_name}\n{test_case}\n"
+#         test_content = preamble + "\n\n" + class_content
+
+#         # trimmed_test_content = trim_test_cases(
+#         #     source_code=test_content,
+#         #     target=f"{class_name}|class_method_split|{method_name}",
+#         # )
+#         # trimmed_test_content = FormatCode(trimmed_test_content, style_config="pep8")[0]
+
+#         # console.log(
+#         #     f"Trimmed test content for {class_name}.{method_name}:\n{trimmed_test_content}"
+#         # )
+
+#         observed_dict = {}
+
+#         try:
+#             key = f"{class_name}|class_method_split|{method_name}"
+#             trimmed_test_content = trim_test_cases(
+#                 source_code=code,
+#                 target=key,
+#             )
+
+#             if key in observed_dict:
+#                 if trimmed_test_content == observed_dict[key]:
+#                     continue
+#             else:
+#                 observed_dict[key] = trimmed_test_content
+
+#             trimmed_test_content = FormatCode(
+#                 trimmed_test_content, style_config="pep8"
+#             )[0]
+#         except Exception as e:
+#             console.print_exception()
+#             continue
+
+#         test_cases[f"test_case_{test_id}"] = trimmed_test_content
+#         # print(f"Added test case {test_id}")
+#         test_id += 1
+
+#     return test_cases
+
+
+# def postprocess_functions(
+#     repo: str,
+#     code: str,
+#     preamble: str,
+#     test_functions: List[Tuple[str, str]],
+#     test_cases: Dict[str, str],
+# ) -> Dict[str, str]:
+#     django_repo = repo == "django/django"
+
+#     def needs_django_harness(preamble):
+#         no_django_test = "TestCase" not in preamble
+#         no_unittest = "unittest" not in preamble
+#         no_simple_test_case = "SimpleTestCase" not in preamble
+#         return no_django_test and no_unittest and no_simple_test_case
+
+#     added_class = False
+#     if django_repo and needs_django_harness(preamble):
+#         preamble = "from django.test import SimpleTestCase\n" + preamble
+#         class_wrapper_start = "\n\nclass TestsHarness(SimpleTestCase):\n"
+#         preamble += class_wrapper_start
+#         added_class = True
+
+#     test_id = len(test_cases.keys())
+
+#     class_content = ""
+#     for test_function_name, test_function, start in test_functions:
+#         if django_repo and added_class:
+#             if "(self):" not in test_function:
+#                 test_function = test_function.replace("():", "(self):", 1)
+#             test_content = preamble + "\n\n" + indent_text(test_function, 4)
+#         else:
+#             test_content = preamble + "\n\n" + test_function
+
+#         # fun_name = extract_function_names_from_code(code=test_function)
+
+#         # console.log(f"Trimmed test content for {fun_name[0]}:\n{trimmed_test_content}")
+#         try:
+#             trimmed_test_content = trim_test_cases(
+#                 source_code=code, target=test_function_name
+#             )
+#             trimmed_test_content = FormatCode(
+#                 trimmed_test_content, style_config="pep8"
+#             )[0]
+#         except Exception as e:
+#             console.print_exception()
+#             continue
+
+#         test_cases[f"test_case_{test_id}"] = trimmed_test_content
+#         test_id += 1
+
+#     return test_cases
+
+
+def get_function_globals(node: ast.FunctionDef) -> Set[str]:
+    """Find global (nonlocal) names referenced by a function/method."""
+    local_vars = set(arg.arg for arg in node.args.args)
+    assigned = set()
+    used = set()
+
+    class NameCollector(ast.NodeVisitor):
+        def visit_Name(self, n):
+            if isinstance(n.ctx, ast.Store):
+                assigned.add(n.id)
+            elif isinstance(n.ctx, ast.Load):
+                used.add(n.id)
+
+        def visit_FunctionDef(self, n):
+            pass
+
+        def visit_ClassDef(self, n):
+            pass
+
+        def visit_Lambda(self, n):
+            pass
+
+        def visit_AsyncFunctionDef(self, n):
+            pass
+
+    NameCollector().visit(node)
+    return used - local_vars - assigned - {"self", "cls"}
+
+
+def get_class_globals(node: ast.ClassDef) -> Set[str]:
+    """Find global (nonlocal) names referenced by a class (e.g. in decorators, base classes)."""
+    used = set()
+    for b in node.bases:
+        for n in ast.walk(b):
+            if isinstance(n, ast.Name):
+                used.add(n.id)
+    for d in node.decorator_list:
+        for n in ast.walk(d):
+            if isinstance(n, ast.Name):
+                used.add(n.id)
+    return used
+
+
+def get_assign_globals(node: ast.Assign) -> Set[str]:
+    used = set()
+
+    class NameCollector(ast.NodeVisitor):
+        def visit_Name(self, n):
+            used.add(n.id)
+
+    NameCollector().visit(node.value)
+    return used
+
+
+def parse_target(target: str) -> Tuple[Optional[str], Optional[str]]:
+    if "|class_method_split|" in target:
+        return tuple(target.split("|class_method_split|"))
     else:
-        added_class = False
-
-    test_id = len(test_cases.keys())
-    # print(f"Processing with {len(methods)} methods, id begins at {test_id}")
-    for method_name, test_case in methods:
-        if django_repo and added_class:
-            if "(self):" not in test_case:
-                test_case = test_case.replace("():", "(self):", 1)
-
-        class_content = f"{class_name}\n{test_case}\n"
-        test_content = preamble + "\n\n" + class_content
-
-        # trimmed_test_content = trim_test_cases(
-        #     source_code=test_content,
-        #     target=f"{class_name}|class_method_split|{method_name}",
-        # )
-        # trimmed_test_content = FormatCode(trimmed_test_content, style_config="pep8")[0]
-
-        # console.log(
-        #     f"Trimmed test content for {class_name}.{method_name}:\n{trimmed_test_content}"
-        # )
-
-        observed_dict = {}
-
-        try:
-            key = f"{class_name}|class_method_split|{method_name}"
-            trimmed_test_content = trim_test_cases(
-                source_code=code,
-                target=key,
-            )
-
-            if key in observed_dict:
-                if trimmed_test_content == observed_dict[key]:
-                    continue
-            else:
-                observed_dict[key] = trimmed_test_content
-
-            trimmed_test_content = FormatCode(
-                trimmed_test_content, style_config="pep8"
-            )[0]
-        except Exception as e:
-            console.print_exception()
-            continue
-
-        test_cases[f"test_case_{test_id}"] = trimmed_test_content
-        # print(f"Added test case {test_id}")
-        test_id += 1
-
-    return test_cases
+        return None, target
 
 
-def postprocess_functions(
-    repo: str,
-    code: str,
-    preamble: str,
-    test_functions: List[Tuple[str, str]],
-    test_cases: Dict[str, str],
-) -> Dict[str, str]:
-    django_repo = repo == "django/django"
+def extract_minimal_test(script: str, target: str) -> str:
+    tree = ast.parse(script)
+    # Pass 1: Build maps
+    imports = []
+    classes = {}
+    assigns = {}
+    funcs = {}
 
-    def needs_django_harness(preamble):
-        no_django_test = "TestCase" not in preamble
-        no_unittest = "unittest" not in preamble
-        no_simple_test_case = "SimpleTestCase" not in preamble
-        return no_django_test and no_unittest and no_simple_test_case
+    for node in tree.body:
+        if isinstance(node, ast.Import) or isinstance(node, ast.ImportFrom):
+            imports.append(node)
+        elif isinstance(node, ast.ClassDef):
+            classes[node.name] = node
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            funcs[node.name] = node
+        elif isinstance(node, ast.Assign):
+            for t in node.targets:
+                if isinstance(t, ast.Name):
+                    assigns[t.id] = node
 
-    added_class = False
-    if django_repo and needs_django_harness(preamble):
-        preamble = "from django.test import SimpleTestCase\n" + preamble
-        class_wrapper_start = "\n\nclass TestsHarness(SimpleTestCase):\n"
-        preamble += class_wrapper_start
-        added_class = True
+    class_name, func_name = parse_target(target)
+    needed_funcs = set()
+    needed_classes = set()
+    needed_assigns = set()
+    needed_imports = set()
+    queue = []
 
-    test_id = len(test_cases.keys())
-
-    class_content = ""
-    for test_function_name, test_function, start in test_functions:
-        if django_repo and added_class:
-            if "(self):" not in test_function:
-                test_function = test_function.replace("():", "(self):", 1)
-            test_content = preamble + "\n\n" + indent_text(test_function, 4)
-        else:
-            test_content = preamble + "\n\n" + test_function
-
-        # fun_name = extract_function_names_from_code(code=test_function)
-
-        # console.log(f"Trimmed test content for {fun_name[0]}:\n{trimmed_test_content}")
-        try:
-            trimmed_test_content = trim_test_cases(
-                source_code=code, target=test_function_name
-            )
-            trimmed_test_content = FormatCode(
-                trimmed_test_content, style_config="pep8"
-            )[0]
-        except Exception as e:
-            console.print_exception()
-            continue
-
-        test_cases[f"test_case_{test_id}"] = trimmed_test_content
-        test_id += 1
-
-    return test_cases
-
-
-import ast
-from typing import Set, Dict, List, Union
-
-
-class DependencyCollector(ast.NodeVisitor):
-    def __init__(self):
-        # --- same as before ---
-        self.required_names: Set[str] = set()
-        self.used_import_names: Set[str] = set()
-        self.visited: Set[str] = set()
-
-        self.function_defs: Dict[str, Union[ast.FunctionDef, ast.AsyncFunctionDef]] = {}
-        self.class_defs: Dict[str, ast.ClassDef] = {}
-        self.assignments: Dict[str, ast.stmt] = {}
-        self.imports: List[ast.stmt] = []
-        self.nodes_to_keep: List[ast.stmt] = []
-
-        # ← NEW: track whether we're in module / class / function
-        self._scope_stack: List[str] = []
-
-    # --- Scope management ---
-    def visit_Module(self, node: ast.Module):
-        self._scope_stack.append("module")
-        self.generic_visit(node)
-        self._scope_stack.pop()
-
-    def visit_ClassDef(self, node: ast.ClassDef):
-        # record the class def
-        self.class_defs[node.name] = node
-        # descend into class body, but mark scope as "class"
-        self._scope_stack.append("class")
-        self.generic_visit(node)
-        self._scope_stack.pop()
-
-    def visit_FunctionDef(self, node: ast.FunctionDef):
-        self.function_defs[node.name] = node
-        # descend into function body, mark scope "function"
-        self._scope_stack.append("function")
-        self.generic_visit(node)
-        self._scope_stack.pop()
-
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
-        self.function_defs[node.name] = node
-        self._scope_stack.append("function")
-        self.generic_visit(node)
-        self._scope_stack.pop()
-
-    # --- Imports (always record) ---
-    def visit_Import(self, node: ast.Import):
-        self.imports.append(node)
-
-    def visit_ImportFrom(self, node: ast.ImportFrom):
-        self.imports.append(node)
-
-    # --- Assignments: only record at module scope! ---
-    def visit_Assign(self, node: ast.Assign):
-        if self._scope_stack and self._scope_stack[-1] == "module":
-            for name in self._get_assign_targets(node):
-                self.assignments[name] = node
-        # but still recurse into child expressions
-        self.generic_visit(node)
-
-    def visit_AnnAssign(self, node: ast.AnnAssign):
-        if self._scope_stack and self._scope_stack[-1] == "module":
-            for name in self._get_assign_targets(node):
-                self.assignments[name] = node
-        self.generic_visit(node)
-
-    # --- Dependency resolution stays the same ---
-    def resolve_dependencies(self, name: str):
-        if name in self.visited:
-            return
-        self.visited.add(name)
-
-        if name in self.function_defs:
-            fn = self.function_defs[name]
-            if fn not in self.nodes_to_keep:
-                self.nodes_to_keep.append(fn)
-                self._handle_decorators(fn.decorator_list)
-                self.generic_visit(fn)
-
-        elif name in self.class_defs:
-            self._include_entire_class(name)
-
-        # ← now requires name ∈ required_names *and* module-level assignment
-        elif name in self.assignments and name in self.required_names:
-            stmt = self.assignments[name]
-            if stmt not in self.nodes_to_keep:
-                self.nodes_to_keep.append(stmt)
-                self.generic_visit(stmt)
-
-    def resolve_class_method(self, class_name: str, method_name: str):
-        if class_name not in self.class_defs:
-            raise KeyError(f"Class {class_name!r} not found")
-        orig = self.class_defs[class_name]
-        # find the single method
+    if class_name and func_name:
+        # Handle class method
+        class_node = classes.get(class_name)
+        if not class_node:
+            raise ValueError(f"Class '{class_name}' not found.")
         method_node = None
-        for item in orig.body:
+        for item in class_node.body:
             if (
                 isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
-                and item.name == method_name
+                and item.name == func_name
             ):
                 method_node = item
                 break
-        if method_node is None:
-            raise KeyError(f"Method {method_name!r} not found in {class_name!r}")
+        if not method_node:
+            raise ValueError(f"Method '{func_name}' not found in class '{class_name}'.")
+        needed_classes.add(class_name)
 
-        # collect any decorators & body deps
-        self._handle_decorators(method_node.decorator_list)
-        self.generic_visit(method_node)
+        # method dependencies
+        for ref in get_function_globals(method_node):
+            if ref in assigns:
+                queue.append(("assign", ref))
+            if ref in classes and ref != class_name:
+                queue.append(("class", ref))
+            needed_imports.add(ref)
+        # Also scan class decorators and bases
+        for deco in class_node.decorator_list:
+            for n in ast.walk(deco):
+                if isinstance(n, ast.Name):
+                    needed_imports.add(n.id)
+        for base in class_node.bases:
+            for n in ast.walk(base):
+                if isinstance(n, ast.Name):
+                    needed_imports.add(n.id)
 
-        # rebuild a trimmed class with just that one method
-        trimmed = ast.ClassDef(
-            name=orig.name,
-            bases=orig.bases,
-            keywords=orig.keywords,
-            decorator_list=orig.decorator_list,
-            body=[method_node],
-        )
-        self.nodes_to_keep.append(trimmed)
+    else:
+        # Handle top-level function
+        if not func_name or func_name not in funcs:
+            raise ValueError(f"Test function '{func_name}' not found!")
+        queue.append(("func", func_name))
 
-    def _include_entire_class(self, class_name: str):
-        cls = self.class_defs[class_name]
-        if cls not in self.nodes_to_keep:
-            self.nodes_to_keep.append(cls)
-            self.generic_visit(cls)
+    # Recursively resolve dependencies
+    while queue:
+        typ, name = queue.pop()
+        if typ == "func" and name not in needed_funcs:
+            needed_funcs.add(name)
+            fn = funcs[name]
+            for ref in get_function_globals(fn):
+                if ref in classes:
+                    queue.append(("class", ref))
+                elif ref in assigns:
+                    queue.append(("assign", ref))
+                needed_imports.add(ref)
+        elif typ == "class" and name not in needed_classes:
+            needed_classes.add(name)
+            cls = classes[name]
+            for ref in get_class_globals(cls):
+                if ref in classes:
+                    queue.append(("class", ref))
+                elif ref in assigns:
+                    queue.append(("assign", ref))
+                needed_imports.add(ref)
+        elif typ == "assign" and name not in needed_assigns:
+            needed_assigns.add(name)
+            ass = assigns[name]
+            for ref in get_assign_globals(ass):
+                if ref in classes:
+                    queue.append(("class", ref))
+                elif ref in assigns:
+                    queue.append(("assign", ref))
+                needed_imports.add(ref)
 
-    def _handle_decorators(self, decorators: List[ast.expr]):
-        for dec in decorators:
-            # now also descend into Call decorators so we pick up
-            # names like uncertainty_types_to_be_tested
-            self.visit(dec)
+    # Build output AST, in order
+    stmts = []
+    # Only keep those imports that define needed names
+    needed_imports = set(
+        n
+        for n in needed_imports
+        if n not in needed_classes and n not in needed_assigns and n not in needed_funcs
+    )
+    for node in imports:
+        # check if any imported name is needed
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                name = alias.asname or alias.name.split(".", 1)[0]
+                if name in needed_imports:
+                    stmts.append(node)
+                    break
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                name = alias.asname or alias.name
+                if name in needed_imports:
+                    stmts.append(node)
+                    break
 
-    # --- Name / Attribute / Call to drive dependency discovery ---
-    def visit_Name(self, node: ast.Name):
-        if isinstance(node.ctx, ast.Load):
-            self.required_names.add(node.id)
-            self.used_import_names.add(node.id)
-            self.resolve_dependencies(node.id)
-
-    def visit_Attribute(self, node: ast.Attribute):
-        self.visit(node.value)
-
-    def visit_Call(self, node: ast.Call):
-        self.visit(node.func)
-        for arg in node.args:
-            self.visit(arg)
-        for kw in node.keywords:
-            self.visit(kw.value)
-
-    # --- Helpers ---
-    def _get_assign_targets(self, node: ast.stmt) -> List[str]:
-        targets: List[str] = []
-
-        def collect(t):
-            if isinstance(t, ast.Name):
-                targets.append(t.id)
-            elif isinstance(t, (ast.Tuple, ast.List)):
-                for elt in t.elts:
-                    collect(elt)
-
-        if isinstance(node, ast.Assign):
-            for t in node.targets:
-                collect(t)
-        elif isinstance(node, ast.AnnAssign):
-            collect(node.target)
-        return targets
-
-    def collect(self, source_code: str) -> ast.Module:
-        tree = ast.parse(source_code)
-        self.visit(tree)
-        return tree
-
-    def filter_imports(self) -> List[ast.stmt]:
-        kept: List[ast.stmt] = []
-        for imp in self.imports:
-            if isinstance(imp, ast.Import):
-                for alias in imp.names:
-                    name = alias.asname or alias.name.split(".", 1)[0]
-                    if name in self.used_import_names:
-                        kept.append(imp)
-                        break
-            elif isinstance(imp, ast.ImportFrom) and imp.module:
-                for alias in imp.names:
-                    name = alias.asname or alias.name
-                    if name in self.used_import_names:
-                        kept.append(imp)
-                        break
-        return kept
-
-    def reconstruct_code(self) -> str:
-        final = self.filter_imports() + sorted(
-            self.nodes_to_keep, key=lambda n: getattr(n, "lineno", 0)
-        )
-        return "\n\n".join(ast.unparse(n) for n in final)
-
-
-# def trim_test_cases(source_code: str, target: str) -> str:
-#     collector = DependencyCollector()
-#     collector.collect(source_code)
-
-#     if "|class_method_split|" in target:
-#         cls, mtd = target.split("|class_method_split|", 1)
-#         collector.resolve_class_method(cls, mtd)
-#     else:
-#         collector.resolve_dependencies(target)
-
-#     return collector.reconstruct_code()
+    # Classes: If method extraction, trim to only that method
+    for name in needed_classes:
+        orig = classes[name]
+        if class_name and name == class_name:
+            # Only keep docstring and target method
+            new_body = []
+            if (
+                orig.body
+                and isinstance(orig.body[0], ast.Expr)
+                and isinstance(orig.body[0].value, ast.Constant)
+                and isinstance(orig.body[0].value.value, str)
+            ):
+                new_body.append(orig.body[0])  # docstring
+            # Add only the target method
+            for item in orig.body:
+                if (
+                    isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and item.name == func_name
+                ):
+                    new_body.append(item)
+            trimmed = ast.ClassDef(
+                name=orig.name,
+                bases=orig.bases,
+                keywords=getattr(orig, "keywords", []),
+                decorator_list=orig.decorator_list,
+                body=new_body,
+                lineno=orig.lineno,
+                col_offset=orig.col_offset,
+            )
+            stmts.append(trimmed)
+        else:
+            stmts.append(orig)
+    for name in needed_assigns:
+        stmts.append(assigns[name])
+    for name in needed_funcs:
+        stmts.append(funcs[name])
+    # preserve order as in original file (by lineno)
+    stmts = sorted(stmts, key=lambda n: getattr(n, "lineno", 0))
+    return "\n\n".join(ast.unparse(n) for n in stmts)
 
 
 class LineSliceTrimmer(ast.NodeVisitor):
@@ -633,27 +646,27 @@ def trim_code_by_branch(source_code: str, line_groups: List[List[int]]):
 #     return trimmed_code
 
 
-def trim_test_cases(source_code, target):
+# def trim_test_cases(source_code, target):
 
-    class_name = None
-    method_name = None
-    function_name = None
-    collector = DependencyCollector()
-    tree = collector.collect(source_code)
+#     class_name = None
+#     method_name = None
+#     function_name = None
+#     collector = DependencyCollector()
+#     tree = collector.collect(source_code)
 
-    if "|class_method_split|" in target:
-        class_name, method_name = target.split("|class_method_split|")
-    else:
-        function_name = target
+#     if "|class_method_split|" in target:
+#         class_name, method_name = target.split("|class_method_split|")
+#     else:
+#         function_name = target
 
-    if function_name is not None:
-        collector.resolve_dependencies(function_name)
+#     if function_name is not None:
+#         collector.resolve_dependencies(function_name)
 
-    if (class_name is not None) and (method_name is not None):
-        collector.resolve_class_method(class_name, method_name)
+#     if (class_name is not None) and (method_name is not None):
+#         collector.resolve_class_method(class_name, method_name)
 
-    trimmed_code = collector.reconstruct_code()
-    return trimmed_code
+#     trimmed_code = collector.reconstruct_code()
+#     return trimmed_code
 
 
 def extract_function_names_from_code(code: str):
