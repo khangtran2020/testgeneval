@@ -107,8 +107,9 @@ class Data(object):
                     source_code=test_src,
                     target=tar_func,
                 )
-                test_cases[f"test_case_{test_id}"] = trimmed_code
-                test_id += 1
+                if trimmed_code is not None:
+                    test_cases[f"test_case_{test_id}"] = trimmed_code
+                    test_id += 1
 
             for class_name in test_dict["test_classes"]:
                 for method in test_dict["test_classes"][class_name]:
@@ -116,8 +117,9 @@ class Data(object):
                         source_code=test_src,
                         target=f"{class_name}|class_method_split|{method}",
                     )
-                    test_cases[f"test_case_{test_id}"] = trimmed_code
-                    test_id += 1
+                    if trimmed_code is not None:
+                        test_cases[f"test_case_{test_id}"] = trimmed_code
+                        test_id += 1
 
             branches = {}
             for key in test_cases.keys():

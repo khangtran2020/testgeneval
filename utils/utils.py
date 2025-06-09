@@ -577,43 +577,10 @@ def trim_test_cases(source_code, target):
         function_name = target
 
     if function_name is not None:
-        found = False
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                # Top-level function
-                if (node.name in function_name) and (node.name.startswith("test")):
-                    console.log("[green]Found function:[/green] " + node.name)
-                    console.log("[green]Found function:[/green] " + node.name)
-                    collector.resolve_dependencies(node.name)
-                    found = True
-            if found:
-                break
+        collector.resolve_dependencies(function_name)
 
     if (class_name is not None) and (method_name is not None):
-        found = False
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef):
-                if node.name in class_name:
-                    for body_item in node.body:
-                        if isinstance(
-                            body_item, (ast.FunctionDef, ast.AsyncFunctionDef)
-                        ):
-                            if (body_item.name in method_name) and (
-                                body_item.name.startswith("test")
-                            ):
-                                console.log(
-                                    "[green]Found class and function:[/green] "
-                                    + node.name
-                                    + "."
-                                    + body_item.name
-                                )
-                                collector.resolve_class_method(
-                                    node.name.strip(), body_item.name.strip()
-                                )
-                                found = True
-                                break
-            if found:
-                break
+        collector.resolve_class_method(class_name, method_name)
 
     trimmed_code = collector.reconstruct_code()
     return trimmed_code
