@@ -1,4 +1,5 @@
 import re
+import sys
 import ast
 from rich import console
 from yapf.yapflib.yapf_api import FormatCode
@@ -603,7 +604,10 @@ def extract_function_names_from_code(code: str):
 def find_tests_in_script(
     script: str,
 ) -> Dict[str, Union[List[str], Dict[str, List[str]]]]:
-    tree = ast.parse(script)
+    try:
+        tree = ast.parse(script)
+    except SyntaxError as e:
+        sys.exit()
 
     test_functions = []
     test_classes = {}
