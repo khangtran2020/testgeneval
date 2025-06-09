@@ -304,18 +304,37 @@ class DependencyCollector(ast.NodeVisitor):
 
         self.nodes_to_keep: List[ast.stmt] = []
 
-    def visit_Module(self, node: ast.Module):
-        for stmt in node.body:
-            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                self.function_defs[stmt.name] = stmt
-            elif isinstance(stmt, ast.ClassDef):
-                self.class_defs[stmt.name] = stmt
-            elif isinstance(stmt, (ast.Import, ast.ImportFrom)):
-                self.imports.append(stmt)
-            elif isinstance(stmt, (ast.Assign, ast.AnnAssign)):
-                target_names = self._get_assign_targets(stmt)
-                for name in target_names:
-                    self.assignments[name] = stmt
+    # Collect all function definitions
+    def visit_FunctionDef(self, node: ast.FunctionDef):
+        self.function_defs[node.name] = node
+        self.generic_visit(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
+        self.function_defs[node.name] = node
+        self.generic_visit(node)
+
+    # Collect all class definitions
+    def visit_ClassDef(self, node: ast.ClassDef):
+        self.class_defs[node.name] = node
+        self.generic_visit(node)
+
+    # Collect all imports
+    def visit_Import(self, node: ast.Import):
+        self.imports.append(node)
+
+    def visit_ImportFrom(self, node: ast.ImportFrom):
+        self.imports.append(node)
+
+    # Collect assignments
+    def visit_Assign(self, node: ast.Assign):
+        for name in self._get_assign_targets(node):
+            self.assignments[name] = node
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign):
+        for name in self._get_assign_targets(node):
+            self.assignments[name] = node
+        self.generic_visit(node)
 
     def resolve_dependencies(self, name: str):
         if name in self.visited:
@@ -324,17 +343,19 @@ class DependencyCollector(ast.NodeVisitor):
 
         if name in self.function_defs:
             func_node = self.function_defs[name]
-            self.nodes_to_keep.append(func_node)
-            self._handle_decorators(func_node.decorator_list)
-            self.generic_visit(func_node)
+            if func_node not in self.nodes_to_keep:
+                self.nodes_to_keep.append(func_node)
+                self._handle_decorators(func_node.decorator_list)
+                self.generic_visit(func_node)
 
         elif name in self.class_defs:
             self._include_entire_class(name)
 
         elif name in self.assignments:
             assign_node = self.assignments[name]
-            self.nodes_to_keep.append(assign_node)
-            self.generic_visit(assign_node)
+            if assign_node not in self.nodes_to_keep:
+                self.nodes_to_keep.append(assign_node)
+                self.generic_visit(assign_node)
 
     def resolve_class_method(self, class_name: str, method_name: str):
         if class_name not in self.class_defs:
@@ -342,13 +363,16 @@ class DependencyCollector(ast.NodeVisitor):
             return
 
         class_node = self.class_defs[class_name]
-        self.nodes_to_keep.append(class_node)
+        if class_node not in self.nodes_to_keep:
+            self.nodes_to_keep.append(class_node)
 
         for item in class_node.body:
-            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if item.name == method_name:
-                    self._handle_decorators(item.decorator_list)
-                    self.generic_visit(item)
+            if (
+                isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and item.name == method_name
+            ):
+                self._handle_decorators(item.decorator_list)
+                self.generic_visit(item)
 
     def _include_entire_class(self, class_name: str):
         class_node = self.class_defs[class_name]
@@ -363,41 +387,41 @@ class DependencyCollector(ast.NodeVisitor):
             elif isinstance(decorator, ast.Attribute):
                 self.visit(decorator)
 
-    def visit_Name(self, node):
+    def visit_Name(self, node: ast.Name):
         if isinstance(node.ctx, ast.Load):
             self.required_names.add(node.id)
             self.used_import_names.add(node.id)
             self.resolve_dependencies(node.id)
 
-    def visit_Attribute(self, node):
+    def visit_Attribute(self, node: ast.Attribute):
         self.visit(node.value)
 
-    def visit_Call(self, node):
+    def visit_Call(self, node: ast.Call):
         self.visit(node.func)
         for arg in node.args:
             self.visit(arg)
         for kw in node.keywords:
             self.visit(kw.value)
 
-    def _get_assign_targets(self, node):
+    def _get_assign_targets(self, node: ast.stmt) -> List[str]:
         targets = []
+
+        def collect_names(t):
+            if isinstance(t, ast.Name):
+                targets.append(t.id)
+            elif isinstance(t, (ast.Tuple, ast.List)):
+                for elt in t.elts:
+                    collect_names(elt)
+
         if isinstance(node, ast.Assign):
             for t in node.targets:
-                if isinstance(t, ast.Name):
-                    targets.append(t.id)
-        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
-            targets.append(node.target.id)
+                collect_names(t)
+        elif isinstance(node, ast.AnnAssign):
+            collect_names(node.target)
+
         return targets
 
     def collect(self, source_code: str):
-        # console.log("Here's the source code:")
-        # console.log(source_code)
-        # console.log("=" * 100)
-        # try:
-        #     tree = ast.parse(source_code)
-        # except SyntaxError as e:
-        #     console.log(f"Syntax error: {e}")
-        #     return None
         tree = ast.parse(source_code)
         self.visit(tree)
         return tree
@@ -407,24 +431,19 @@ class DependencyCollector(ast.NodeVisitor):
         for imp in self.imports:
             if isinstance(imp, ast.Import):
                 for alias in imp.names:
-                    if alias.asname:
-                        name = alias.asname
-                    else:
-                        name = alias.name.split(".")[0]
+                    name = alias.asname or alias.name.split(".")[0]
                     if name in self.used_import_names:
                         kept.append(imp)
                         break
-            elif isinstance(imp, ast.ImportFrom):
-                if imp.module is None:
-                    continue
+            elif isinstance(imp, ast.ImportFrom) and imp.module:
                 for alias in imp.names:
-                    name = alias.asname if alias.asname else alias.name
+                    name = alias.asname or alias.name
                     if name in self.used_import_names:
                         kept.append(imp)
                         break
         return kept
 
-    def reconstruct_code(self):
+    def reconstruct_code(self) -> str:
         final_imports = self.filter_imports()
         needed = final_imports + sorted(
             self.nodes_to_keep, key=lambda n: getattr(n, "lineno", 0)
@@ -604,26 +623,31 @@ def extract_function_names_from_code(code: str):
 def find_tests_in_script(
     script: str,
 ) -> Dict[str, Union[List[str], Dict[str, List[str]]]]:
-    try:
-        tree = ast.parse(script)
-    except SyntaxError as e:
-        sys.exit()
+    tree = ast.parse(script)
 
     test_functions = []
     test_classes = {}
+
+    # Keep track of imported base test classes (fully-qualified or aliased)
+    known_test_bases: Set[str] = {
+        "unittest.TestCase",
+        "django.test.TestCase",
+        "django.test.SimpleTestCase",
+        "TestCase",
+        "SimpleTestCase",
+    }
 
     def is_test_function(node):
         return isinstance(
             node, (ast.FunctionDef, ast.AsyncFunctionDef)
         ) and node.name.startswith("test")
 
-    def is_test_method_in_test_class(node: ast.AST, parents: List[ast.AST]) -> bool:
+    def is_test_method_in_class(node: ast.AST, parents: List[ast.AST]) -> bool:
         return (
             isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
             and node.name.startswith("test")
             and any(
-                isinstance(p, ast.ClassDef) and p.name.startswith("Test")
-                for p in parents
+                p in test_class_nodes for p in parents if isinstance(p, ast.ClassDef)
             )
         )
 
@@ -634,21 +658,32 @@ def find_tests_in_script(
         for child in ast.iter_child_nodes(node):
             yield from walk_with_parents(child, parents + [node])
 
+    # Step 1: Identify test classes by inheritance
+    test_class_nodes = set()
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            for base in node.bases:
+                # Check if the base class is directly named or imported
+                if isinstance(base, ast.Name) and base.id in known_test_bases:
+                    test_class_nodes.add(node)
+                    break
+                elif isinstance(base, ast.Attribute):
+                    full_base = f"{getattr(base.value, 'id', '')}.{base.attr}"
+                    if full_base in known_test_bases:
+                        test_class_nodes.add(node)
+                        break
+
+    # Step 2: Walk entire tree and match nodes
     for node, parents in walk_with_parents(tree):
-        # Top-level test functions
+        # Top-level test function
         if is_test_function(node) and not any(
             isinstance(p, ast.ClassDef) for p in parents
         ):
             test_functions.append(node.name)
 
-        # Test methods in Test classes
-        elif is_test_method_in_test_class(node, parents):
-            # Find the nearest Test class ancestor
-            test_class = next(
-                p
-                for p in reversed(parents)
-                if isinstance(p, ast.ClassDef) and p.name.startswith("Test")
-            )
+        # Test method in identified test class
+        elif is_test_method_in_class(node, parents):
+            test_class = next(p for p in reversed(parents) if p in test_class_nodes)
             class_name = test_class.name
             if class_name not in test_classes:
                 test_classes[class_name] = []
