@@ -2,7 +2,7 @@ import re
 import ast
 from rich import console
 from yapf.yapflib.yapf_api import FormatCode
-from typing import Set, Dict, List, Tuple
+from typing import Set, Dict, List, Tuple, Union
 
 from rich.console import Console
 from rich.theme import Theme
@@ -208,11 +208,21 @@ def postprocess_tests(
         #     f"Trimmed test content for {class_name}.{method_name}:\n{trimmed_test_content}"
         # )
 
+        observed_dict = {}
+
         try:
+            key = f"{class_name}|class_method_split|{method_name}"
             trimmed_test_content = trim_test_cases(
                 source_code=code,
-                target=f"{class_name}|class_method_split|{method_name}",
+                target=key,
             )
+
+            if key in observed_dict:
+                if trimmed_test_content == observed_dict[key]:
+                    continue
+            else:
+                observed_dict[key] = trimmed_test_content
+
             trimmed_test_content = FormatCode(
                 trimmed_test_content, style_config="pep8"
             )[0]
@@ -567,15 +577,20 @@ def trim_test_cases(source_code, target):
         function_name = target
 
     if function_name is not None:
-
+        found = False
         for node in ast.walk(tree):
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 # Top-level function
                 if (node.name in function_name) and (node.name.startswith("test")):
                     console.log("[green]Found function:[/green] " + node.name)
+                    console.log("[green]Found function:[/green] " + node.name)
                     collector.resolve_dependencies(node.name)
+                    found = True
+            if found:
+                break
 
     if (class_name is not None) and (method_name is not None):
+        found = False
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 if node.name in class_name:
@@ -595,6 +610,10 @@ def trim_test_cases(source_code, target):
                                 collector.resolve_class_method(
                                     node.name.strip(), body_item.name.strip()
                                 )
+                                found = True
+                                break
+            if found:
+                break
 
     trimmed_code = collector.reconstruct_code()
     return trimmed_code
@@ -612,3 +631,56 @@ def extract_function_names_from_code(code: str):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             function_names.append(node.name)
     return function_names
+
+
+def find_tests_in_script(
+    script: str,
+) -> Dict[str, Union[List[str], Dict[str, List[str]]]]:
+    tree = ast.parse(script)
+
+    test_functions = []
+    test_classes = {}
+
+    def is_test_function(node):
+        return isinstance(
+            node, (ast.FunctionDef, ast.AsyncFunctionDef)
+        ) and node.name.startswith("test")
+
+    def is_test_method_in_test_class(node: ast.AST, parents: List[ast.AST]) -> bool:
+        return (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and node.name.startswith("test")
+            and any(
+                isinstance(p, ast.ClassDef) and p.name.startswith("Test")
+                for p in parents
+            )
+        )
+
+    def walk_with_parents(node, parents=None):
+        if parents is None:
+            parents = []
+        yield node, parents
+        for child in ast.iter_child_nodes(node):
+            yield from walk_with_parents(child, parents + [node])
+
+    for node, parents in walk_with_parents(tree):
+        # Top-level test functions
+        if is_test_function(node) and not any(
+            isinstance(p, ast.ClassDef) for p in parents
+        ):
+            test_functions.append(node.name)
+
+        # Test methods in Test classes
+        elif is_test_method_in_test_class(node, parents):
+            # Find the nearest Test class ancestor
+            test_class = next(
+                p
+                for p in reversed(parents)
+                if isinstance(p, ast.ClassDef) and p.name.startswith("Test")
+            )
+            class_name = test_class.name
+            if class_name not in test_classes:
+                test_classes[class_name] = []
+            test_classes[class_name].append(node.name)
+
+    return {"test_functions": test_functions, "test_classes": test_classes}
