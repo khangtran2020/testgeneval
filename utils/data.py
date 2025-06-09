@@ -108,7 +108,10 @@ class Data(object):
                     target=tar_func,
                 )
                 if trimmed_code is not None:
-                    test_cases[f"test_case_{test_id}"] = trimmed_code
+                    test_cases[f"test_case_{test_id}"] = {
+                        "target": tar_func,
+                        "code": trimmed_code,
+                    }
                     test_id += 1
 
             for class_name in test_dict["test_classes"]:
@@ -118,7 +121,10 @@ class Data(object):
                         target=f"{class_name}|class_method_split|{method}",
                     )
                     if trimmed_code is not None:
-                        test_cases[f"test_case_{test_id}"] = trimmed_code
+                        test_cases[f"test_case_{test_id}"] = {
+                            "target": f"{class_name}.{method}",
+                            "code": trimmed_code,
+                        }
                         test_id += 1
 
             branches = {}
