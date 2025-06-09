@@ -291,60 +291,80 @@ def postprocess_functions(
     return test_cases
 
 
+import ast
+from typing import Set, Dict, List, Union
+
+
 class DependencyCollector(ast.NodeVisitor):
     def __init__(self):
-        # names that were ever loaded in visited code
+        # --- same as before ---
         self.required_names: Set[str] = set()
-        # subset of required_names that came from imports
         self.used_import_names: Set[str] = set()
-        # to avoid infinite recursion
         self.visited: Set[str] = set()
 
-        # all defs/assigns/imports seen in module
         self.function_defs: Dict[str, Union[ast.FunctionDef, ast.AsyncFunctionDef]] = {}
         self.class_defs: Dict[str, ast.ClassDef] = {}
         self.assignments: Dict[str, ast.stmt] = {}
         self.imports: List[ast.stmt] = []
-
-        # the subset of AST nodes we actually want to keep
         self.nodes_to_keep: List[ast.stmt] = []
 
-    # --- Collect everything in the module ---
+        # ← NEW: track whether we're in module / class / function
+        self._scope_stack: List[str] = []
+
+    # --- Scope management ---
+    def visit_Module(self, node: ast.Module):
+        self._scope_stack.append("module")
+        self.generic_visit(node)
+        self._scope_stack.pop()
+
+    def visit_ClassDef(self, node: ast.ClassDef):
+        # record the class def
+        self.class_defs[node.name] = node
+        # descend into class body, but mark scope as "class"
+        self._scope_stack.append("class")
+        self.generic_visit(node)
+        self._scope_stack.pop()
+
     def visit_FunctionDef(self, node: ast.FunctionDef):
         self.function_defs[node.name] = node
+        # descend into function body, mark scope "function"
+        self._scope_stack.append("function")
         self.generic_visit(node)
+        self._scope_stack.pop()
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
         self.function_defs[node.name] = node
+        self._scope_stack.append("function")
         self.generic_visit(node)
+        self._scope_stack.pop()
 
-    def visit_ClassDef(self, node: ast.ClassDef):
-        self.class_defs[node.name] = node
-        self.generic_visit(node)
-
+    # --- Imports (always record) ---
     def visit_Import(self, node: ast.Import):
         self.imports.append(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom):
         self.imports.append(node)
 
+    # --- Assignments: only record at module scope! ---
     def visit_Assign(self, node: ast.Assign):
-        for name in self._get_assign_targets(node):
-            self.assignments[name] = node
+        if self._scope_stack and self._scope_stack[-1] == "module":
+            for name in self._get_assign_targets(node):
+                self.assignments[name] = node
+        # but still recurse into child expressions
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign):
-        for name in self._get_assign_targets(node):
-            self.assignments[name] = node
+        if self._scope_stack and self._scope_stack[-1] == "module":
+            for name in self._get_assign_targets(node):
+                self.assignments[name] = node
         self.generic_visit(node)
 
-    # --- Dependency resolution ---
+    # --- Dependency resolution stays the same ---
     def resolve_dependencies(self, name: str):
         if name in self.visited:
             return
         self.visited.add(name)
 
-        # 1) standalone functions
         if name in self.function_defs:
             fn = self.function_defs[name]
             if fn not in self.nodes_to_keep:
@@ -352,11 +372,10 @@ class DependencyCollector(ast.NodeVisitor):
                 self._handle_decorators(fn.decorator_list)
                 self.generic_visit(fn)
 
-        # 2) entire classes
         elif name in self.class_defs:
             self._include_entire_class(name)
 
-        # 3) only include an assignment if that name was really used
+        # ← now requires name ∈ required_names *and* module-level assignment
         elif name in self.assignments and name in self.required_names:
             stmt = self.assignments[name]
             if stmt not in self.nodes_to_keep:
@@ -364,12 +383,10 @@ class DependencyCollector(ast.NodeVisitor):
                 self.generic_visit(stmt)
 
     def resolve_class_method(self, class_name: str, method_name: str):
-        # find the original AST node for the class
         if class_name not in self.class_defs:
             raise KeyError(f"Class {class_name!r} not found")
         orig = self.class_defs[class_name]
-
-        # locate the method
+        # find the single method
         method_node = None
         for item in orig.body:
             if (
@@ -379,13 +396,13 @@ class DependencyCollector(ast.NodeVisitor):
                 method_node = item
                 break
         if method_node is None:
-            raise KeyError(f"Method {method_name!r} not found in class {class_name!r}")
+            raise KeyError(f"Method {method_name!r} not found in {class_name!r}")
 
-        # collect any decorators & body dependencies
+        # collect any decorators & body deps
         self._handle_decorators(method_node.decorator_list)
         self.generic_visit(method_node)
 
-        # build a new ClassDef that only contains this single method
+        # rebuild a trimmed class with just that one method
         trimmed = ast.ClassDef(
             name=orig.name,
             bases=orig.bases,
@@ -403,12 +420,11 @@ class DependencyCollector(ast.NodeVisitor):
 
     def _handle_decorators(self, decorators: List[ast.expr]):
         for dec in decorators:
-            if isinstance(dec, ast.Name):
-                self.resolve_dependencies(dec.id)
-            elif isinstance(dec, ast.Attribute):
-                self.visit(dec)
+            # now also descend into Call decorators so we pick up
+            # names like uncertainty_types_to_be_tested
+            self.visit(dec)
 
-    # --- Name/Attribute/Call visitors drive dependency collection ---
+    # --- Name / Attribute / Call to drive dependency discovery ---
     def visit_Name(self, node: ast.Name):
         if isinstance(node.ctx, ast.Load):
             self.required_names.add(node.id)
@@ -416,7 +432,6 @@ class DependencyCollector(ast.NodeVisitor):
             self.resolve_dependencies(node.id)
 
     def visit_Attribute(self, node: ast.Attribute):
-        # e.g. np.array  -> we need to visit the `np` part
         self.visit(node.value)
 
     def visit_Call(self, node: ast.Call):
@@ -428,21 +443,21 @@ class DependencyCollector(ast.NodeVisitor):
 
     # --- Helpers ---
     def _get_assign_targets(self, node: ast.stmt) -> List[str]:
-        names: List[str] = []
+        targets: List[str] = []
 
         def collect(t):
             if isinstance(t, ast.Name):
-                names.append(t.id)
+                targets.append(t.id)
             elif isinstance(t, (ast.Tuple, ast.List)):
                 for elt in t.elts:
                     collect(elt)
 
         if isinstance(node, ast.Assign):
-            for tgt in node.targets:
-                collect(tgt)
+            for t in node.targets:
+                collect(t)
         elif isinstance(node, ast.AnnAssign):
             collect(node.target)
-        return names
+        return targets
 
     def collect(self, source_code: str) -> ast.Module:
         tree = ast.parse(source_code)
@@ -472,81 +487,18 @@ class DependencyCollector(ast.NodeVisitor):
         )
         return "\n\n".join(ast.unparse(n) for n in final)
 
-    def _include_entire_class(self, class_name: str):
-        class_node = self.class_defs[class_name]
-        if class_node not in self.nodes_to_keep:
-            self.nodes_to_keep.append(class_node)
-            self.generic_visit(class_node)
 
-    def _handle_decorators(self, decorators):
-        for decorator in decorators:
-            if isinstance(decorator, ast.Name):
-                self.resolve_dependencies(decorator.id)
-            elif isinstance(decorator, ast.Attribute):
-                self.visit(decorator)
+# def trim_test_cases(source_code: str, target: str) -> str:
+#     collector = DependencyCollector()
+#     collector.collect(source_code)
 
-    def visit_Name(self, node: ast.Name):
-        if isinstance(node.ctx, ast.Load):
-            self.required_names.add(node.id)
-            self.used_import_names.add(node.id)
-            self.resolve_dependencies(node.id)
+#     if "|class_method_split|" in target:
+#         cls, mtd = target.split("|class_method_split|", 1)
+#         collector.resolve_class_method(cls, mtd)
+#     else:
+#         collector.resolve_dependencies(target)
 
-    def visit_Attribute(self, node: ast.Attribute):
-        self.visit(node.value)
-
-    def visit_Call(self, node: ast.Call):
-        self.visit(node.func)
-        for arg in node.args:
-            self.visit(arg)
-        for kw in node.keywords:
-            self.visit(kw.value)
-
-    def _get_assign_targets(self, node: ast.stmt) -> List[str]:
-        targets = []
-
-        def collect_names(t):
-            if isinstance(t, ast.Name):
-                targets.append(t.id)
-            elif isinstance(t, (ast.Tuple, ast.List)):
-                for elt in t.elts:
-                    collect_names(elt)
-
-        if isinstance(node, ast.Assign):
-            for t in node.targets:
-                collect_names(t)
-        elif isinstance(node, ast.AnnAssign):
-            collect_names(node.target)
-
-        return targets
-
-    def collect(self, source_code: str):
-        tree = ast.parse(source_code)
-        self.visit(tree)
-        return tree
-
-    def filter_imports(self):
-        kept = []
-        for imp in self.imports:
-            if isinstance(imp, ast.Import):
-                for alias in imp.names:
-                    name = alias.asname or alias.name.split(".")[0]
-                    if name in self.used_import_names:
-                        kept.append(imp)
-                        break
-            elif isinstance(imp, ast.ImportFrom) and imp.module:
-                for alias in imp.names:
-                    name = alias.asname or alias.name
-                    if name in self.used_import_names:
-                        kept.append(imp)
-                        break
-        return kept
-
-    def reconstruct_code(self) -> str:
-        final_imports = self.filter_imports()
-        needed = final_imports + sorted(
-            self.nodes_to_keep, key=lambda n: getattr(n, "lineno", 0)
-        )
-        return "\n\n".join(ast.unparse(n) for n in needed)
+#     return collector.reconstruct_code()
 
 
 class LineSliceTrimmer(ast.NodeVisitor):
