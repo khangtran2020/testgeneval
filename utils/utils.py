@@ -344,6 +344,7 @@ class DependencyCollector(ast.NodeVisitor):
             return
         self.visited.add(name)
 
+        # 1) standalone functions
         if name in self.function_defs:
             fn = self.function_defs[name]
             if fn not in self.nodes_to_keep:
@@ -351,10 +352,12 @@ class DependencyCollector(ast.NodeVisitor):
                 self._handle_decorators(fn.decorator_list)
                 self.generic_visit(fn)
 
+        # 2) entire classes
         elif name in self.class_defs:
             self._include_entire_class(name)
 
-        elif name in self.assignments:
+        # 3) only include an assignment if that name was really used
+        elif name in self.assignments and name in self.required_names:
             stmt = self.assignments[name]
             if stmt not in self.nodes_to_keep:
                 self.nodes_to_keep.append(stmt)
