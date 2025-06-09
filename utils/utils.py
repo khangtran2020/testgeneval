@@ -166,6 +166,259 @@ def indent_text(text, indent_level):
     )
 
 
+# class DependencyCollector(ast.NodeVisitor):
+#     def __init__(self):
+#         # Store all top-level objects
+#         self.class_defs: Dict[str, List[ast.ClassDef]] = {}
+#         self.func_defs: Dict[str, ast.FunctionDef] = {}
+#         self.async_func_defs: Dict[str, ast.AsyncFunctionDef] = {}
+#         self.assigns: Dict[str, ast.Assign] = {}
+#         self.imports: List[ast.stmt] = []
+#         self.used_names: Set[str] = set()
+#         self.all_names: Set[str] = set()
+#         self.nodes_to_keep: List[ast.stmt] = []
+#         self.visited: Set[str] = set()
+#         self.current_class: List[str] = []  # Stack for nested class support
+
+#     def visit_Import(self, node):
+#         self.imports.append(node)
+#         for alias in node.names:
+#             self.all_names.add(alias.asname or alias.name.split(".")[0])
+
+#     def visit_ImportFrom(self, node):
+#         self.imports.append(node)
+#         for alias in node.names:
+#             self.all_names.add(alias.asname or alias.name)
+
+#     def visit_ClassDef(self, node):
+#         self.class_defs.setdefault(node.name, []).append(node)
+#         self.all_names.add(node.name)
+#         self.current_class.append(node.name)
+#         self.generic_visit(node)  # Now descend into methods
+#         self.current_class.pop()
+
+#     def visit_FunctionDef(self, node):
+#         if self.current_class:
+#             key = f"{self.current_class[-1]}.{node.name}"
+#         else:
+#             key = f"global.{node.name}"
+#         self.func_defs[key] = node
+#         self.all_names.add(key)
+
+#     def visit_AsyncFunctionDef(self, node):
+#         if self.current_class:
+#             key = f"{self.current_class[-1]}.{node.name}"
+#         else:
+#             key = f"global.{node.name}"
+#         self.async_func_defs[key] = node
+#         self.all_names.add(key)
+
+#     def visit_Assign(self, node):
+#         for t in node.targets:
+#             if isinstance(t, ast.Name):
+#                 self.assigns[t.id] = node
+#                 self.all_names.add(t.id)
+
+#     def collect(self, tree: ast.Module):
+#         self.visit(tree)
+
+#     def find_names_in_node(self, node: ast.AST) -> Set[str]:
+#         """Recursively collect all variable names used in a node."""
+#         names = set()
+
+#         class NameVisitor(ast.NodeVisitor):
+#             def visit_Name(self, n):
+#                 names.add(n.id)
+
+#             def visit_Attribute(self, n):
+#                 if isinstance(n.value, ast.Name):
+#                     names.add(n.value.id)
+#                 self.generic_visit(n)
+
+#         NameVisitor().visit(node)
+#         return names
+
+#     def resolve(self, name: str, function: str, class_name: str):
+
+#         if (function is not None) and (class_name is None):
+#             self.resolve_function(function)
+#         elif (function is None) and (class_name is not None):
+#             self.resolve_class_method(class_name, name)
+#         elif (name is not None) and (name in self.assigns):
+#             node = self.assigns[name]
+#             self.nodes_to_keep.append(node)
+#             self._resolve_node(node)
+#         # (Imports handled separately)
+#         else:
+#             pass
+
+#     def resolve_function(self, function):
+#         key = f"global.{function}"
+#         if key in self.visited:
+#             return
+#         self.visited.add(f"global.{function}")
+#         # Functions
+#         if key in self.func_defs:
+#             node = self.func_defs[key]
+#             self.nodes_to_keep.append(node)
+#             self._resolve_node(node)
+#         elif key in self.async_func_defs:
+#             node = self.async_func_defs[key]
+#             self.nodes_to_keep.append(node)
+#             self._resolve_node(node)
+
+#     def resolve_class_method(self, class_name: str, method_name: str):
+#         # Get ALL class defs with this name
+#         class_nodes = self.class_defs.get(class_name, [])
+#         # Search each for the target method
+#         for class_node in class_nodes:
+#             for item in class_node.body:
+#                 if (
+#                     isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+#                     and item.name == method_name
+#                 ):
+#                     # Found the method in this class!
+#                     if class_node not in self.nodes_to_keep:
+#                         self.nodes_to_keep.append(class_node)
+#                         # Also resolve bases and decorators
+#                         for base in class_node.bases:
+#                             for n in ast.walk(base):
+#                                 if isinstance(n, ast.Name):
+#                                     self.resolve(n.id)
+#                         for deco in class_node.decorator_list:
+#                             for n in ast.walk(deco):
+#                                 if isinstance(n, ast.Name):
+#                                     self.resolve(n.id)
+#                                 self.generic_visit(item)
+#                     return
+
+#         if class_nodes:
+#             class_node = class_nodes[-1]
+#             if class_node not in self.nodes_to_keep:
+#                 self.nodes_to_keep.append(class_node)
+#                 # Also resolve bases and decorators
+#                 for base in class_node.bases:
+#                     for n in ast.walk(base):
+#                         if isinstance(n, ast.Name):
+#                             self.resolve(n.id)
+#                 for deco in class_node.decorator_list:
+#                     for n in ast.walk(deco):
+#                         if isinstance(n, ast.Name):
+#                             self.resolve(n.id)
+#                         self.generic_visit(item)
+
+#     def _resolve_node(self, node):
+#         """Given any node, resolve all referenced names recursively."""
+#         for n in ast.walk(node):
+#             if isinstance(n, ast.Name):
+#                 # Try both global and class-qualified keys
+#                 candidates = [f"global.{n.id}"] + [
+#                     k for k in self.all_names if k.endswith(f".{n.id}")
+#                 ]
+#                 for candidate in candidates:
+#                     if candidate in self.all_names:
+#                         self.resolve(candidate, None, None)
+
+#     def filter_imports(self):
+#         """Only keep needed imports."""
+#         needed_imports = []
+#         needed_names = set()
+#         for node in self.nodes_to_keep:
+#             for name in self.find_names_in_node(node):
+#                 needed_names.add(name)
+#         for imp in self.imports:
+#             if isinstance(imp, ast.Import):
+#                 for alias in imp.names:
+#                     if alias.asname and alias.asname in needed_names:
+#                         needed_imports.append(imp)
+#                         break
+#                     elif alias.name.split(".")[0] in needed_names:
+#                         needed_imports.append(imp)
+#                         break
+#             elif isinstance(imp, ast.ImportFrom):
+#                 for alias in imp.names:
+#                     if (alias.asname and alias.asname in needed_names) or (
+#                         alias.name in needed_names
+#                     ):
+#                         needed_imports.append(imp)
+#                         break
+#         return needed_imports
+
+#     def get_minimal_code(self):
+#         imports = self.filter_imports()
+#         code_blocks = sorted(
+#             imports + self.nodes_to_keep, key=lambda n: getattr(n, "lineno", 0)
+#         )
+#         return "\n\n".join(ast.unparse(n) for n in code_blocks)
+
+
+# def extract_minimal_test(script: str, target: str, id: str):
+#     """
+#     target:
+#       - For a function: 'test_func_name'
+#       - For a class method: 'ClassName|class_method_split|method_name'
+#     """
+#     tree = ast.parse(script)
+#     collector = DependencyCollector()
+#     collector.collect(tree)
+
+#     if "|class_method_split|" in target:
+#         class_name, method_name = target.split("|class_method_split|")
+#         # Find the class
+#         if class_name not in collector.class_defs:
+#             raise ValueError(f"Class '{class_name}' not found in file.")
+
+#         class_nodes = collector.class_defs[class_name]
+#         # Find the method
+#         method_node = None
+#         class_node = None
+#         for class_node in class_nodes:
+#             for item in class_node.body:
+#                 if (
+#                     isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+#                     and item.name == method_name
+#                 ):
+#                     method_node = item
+#                     class_name = class_node.name
+#                     break
+#         if not method_node:
+#             raise ValueError(
+#                 f"Method '{method_name}' not found in class '{class_name}' at id {id}."
+#             )
+#         # Resolve method dependencies
+#         collector.resolve(name=None, function=method_name, class_name=class_name)
+#         # Reconstruct a class with just the docstring (if present) and the test method
+#         new_body = []
+#         if (
+#             class_node.body
+#             and isinstance(class_node.body[0], ast.Expr)
+#             and isinstance(class_node.body[0].value, ast.Constant)
+#             and isinstance(class_node.body[0].value.value, str)
+#         ):
+#             new_body.append(class_node.body[0])
+#         new_body.append(method_node)
+#         new_class = ast.ClassDef(
+#             name=class_node.name,
+#             bases=class_node.bases,
+#             keywords=getattr(class_node, "keywords", []),
+#             decorator_list=class_node.decorator_list,
+#             body=new_body,
+#             lineno=class_node.lineno,
+#             col_offset=class_node.col_offset,
+#         )
+#         # Remove any previous full class in nodes_to_keep
+#         collector.nodes_to_keep = [
+#             n
+#             for n in collector.nodes_to_keep
+#             if not (isinstance(n, ast.ClassDef) and n.name == class_name)
+#         ]
+#         collector.nodes_to_keep.append(new_class)
+#     else:
+#         # It's a function, just resolve it
+#         collector.resolve(target)
+#     return collector.get_minimal_code()
+
+
 class DependencyCollector(ast.NodeVisitor):
     def __init__(self):
         # Store all top-level objects
@@ -178,6 +431,7 @@ class DependencyCollector(ast.NodeVisitor):
         self.all_names: Set[str] = set()
         self.nodes_to_keep: List[ast.stmt] = []
         self.visited: Set[str] = set()
+        self.current_class: List[str] = []  # Stack for nested class support
 
     def visit_Import(self, node):
         self.imports.append(node)
@@ -192,15 +446,30 @@ class DependencyCollector(ast.NodeVisitor):
     def visit_ClassDef(self, node):
         self.class_defs.setdefault(node.name, []).append(node)
         self.all_names.add(node.name)
-        # Do not descend into body (methods) here
+        self.current_class.append(node.name)
+        for item in node.body:
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                # Register class method with key
+                key = f"{node.name}.{item.name}"
+                if isinstance(item, ast.FunctionDef):
+                    self.func_defs[key] = item
+                else:
+                    self.async_func_defs[key] = item
+                self.all_names.add(key)
+        self.current_class.pop()
 
     def visit_FunctionDef(self, node):
-        self.func_defs[node.name] = node
-        self.all_names.add(node.name)
+        # Only for top-level functions (not methods)
+        if not self.current_class:
+            key = f"global.{node.name}"
+            self.func_defs[key] = node
+            self.all_names.add(key)
 
     def visit_AsyncFunctionDef(self, node):
-        self.async_func_defs[node.name] = node
-        self.all_names.add(node.name)
+        if not self.current_class:
+            key = f"global.{node.name}"
+            self.async_func_defs[key] = node
+            self.all_names.add(key)
 
     def visit_Assign(self, node):
         for t in node.targets:
@@ -219,54 +488,111 @@ class DependencyCollector(ast.NodeVisitor):
             def visit_Name(self, n):
                 names.add(n.id)
 
-            def visit_Attribute(self, n):
-                if isinstance(n.value, ast.Name):
-                    names.add(n.value.id)
-                self.generic_visit(n)
-
         NameVisitor().visit(node)
         return names
 
-    def resolve(self, name: str):
-        if name in self.visited:
+    def resolve(self, key: str, function: str = None, class_name: str = None):
+        # `key` is either a fully qualified function/method name, or assignment variable
+        if key is None:
+            # Should not happen, safety
             return
-        self.visited.add(name)
-        # Functions
-        if name in self.func_defs:
-            node = self.func_defs[name]
+        if key in self.visited:
+            return
+        self.visited.add(key)
+
+        # Function or method
+        if key in self.func_defs:
+            node = self.func_defs[key]
             self.nodes_to_keep.append(node)
             self._resolve_node(node)
-        elif name in self.async_func_defs:
-            node = self.async_func_defs[name]
+        elif key in self.async_func_defs:
+            node = self.async_func_defs[key]
             self.nodes_to_keep.append(node)
             self._resolve_node(node)
-        # Classes
-        elif name in self.class_defs:
-            node = self.class_defs[name]
-            self.nodes_to_keep.append(node)
-            # Also resolve bases and decorators
-            for base in node.bases:
-                for n in ast.walk(base):
-                    if isinstance(n, ast.Name):
-                        self.resolve(n.id)
-            for deco in node.decorator_list:
-                for n in ast.walk(deco):
-                    if isinstance(n, ast.Name):
-                        self.resolve(n.id)
-        # Assignments
-        elif name in self.assigns:
-            node = self.assigns[name]
+        elif key in self.assigns:
+            node = self.assigns[key]
             self.nodes_to_keep.append(node)
             self._resolve_node(node)
-        # (Imports handled separately)
+        elif "." in key:
+            # Might be a method that exists only in a class; try to keep the class minimally
+            class_name, method_name = key.split(".", 1)
+            self.resolve_class_method(class_name, method_name)
         else:
-            pass
+            # It could be a class definition
+            if key in self.class_defs:
+                for class_node in self.class_defs[key]:
+                    self.nodes_to_keep.append(class_node)
+
+    def resolve_class_method(self, class_name: str, method_name: str):
+        # For class methods, reconstruct a minimal class node with just that method (and optional docstring)
+        class_nodes = self.class_defs.get(class_name, [])
+        for class_node in class_nodes:
+            # Find docstring if present
+            docstring = None
+            new_body = []
+            if (
+                class_node.body
+                and isinstance(class_node.body[0], ast.Expr)
+                and isinstance(class_node.body[0].value, ast.Constant)
+                and isinstance(class_node.body[0].value.value, str)
+            ):
+                docstring = class_node.body[0]
+            # Find the method
+            method_node = None
+            for item in class_node.body:
+                if (
+                    isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and item.name == method_name
+                ):
+                    method_node = item
+                    break
+            if method_node is not None:
+                if docstring:
+                    new_body.append(docstring)
+                new_body.append(method_node)
+                # Reconstruct minimal class node
+                new_class = ast.ClassDef(
+                    name=class_node.name,
+                    bases=class_node.bases,
+                    keywords=getattr(class_node, "keywords", []),
+                    decorator_list=class_node.decorator_list,
+                    body=new_body,
+                    lineno=class_node.lineno,
+                    col_offset=class_node.col_offset,
+                )
+                # Remove any previous full class in nodes_to_keep
+                self.nodes_to_keep = [
+                    n
+                    for n in self.nodes_to_keep
+                    if not (isinstance(n, ast.ClassDef) and n.name == class_name)
+                ]
+                self.nodes_to_keep.append(new_class)
+                # Recursively resolve method's dependencies
+                self._resolve_node(method_node)
+                # Optionally, resolve base classes
+                for base in class_node.bases:
+                    if isinstance(base, ast.Name):
+                        self.resolve(base.id)
+                return
+        # Fallback: keep the full class definition if something failed
+        if class_nodes:
+            self.nodes_to_keep.append(class_nodes[-1])
 
     def _resolve_node(self, node):
         """Given any node, resolve all referenced names recursively."""
         for n in ast.walk(node):
             if isinstance(n, ast.Name):
-                if n.id in self.all_names:
+                # Try both global and class-qualified keys
+                candidates = [f"global.{n.id}"] + [
+                    k for k in self.all_names if k.endswith(f".{n.id}")
+                ]
+                found = False
+                for candidate in candidates:
+                    if candidate in self.all_names:
+                        self.resolve(candidate)
+                        found = True
+                # If it's an assignment/global/class, also try as-is
+                if not found and n.id in self.all_names:
                     self.resolve(n.id)
 
     def filter_imports(self):
@@ -314,56 +640,28 @@ def extract_minimal_test(script: str, target: str, id: str):
 
     if "|class_method_split|" in target:
         class_name, method_name = target.split("|class_method_split|")
-        # Find the class
+        method_key = f"{class_name}.{method_name}"
         if class_name not in collector.class_defs:
             raise ValueError(f"Class '{class_name}' not found in file.")
-
-        class_nodes = collector.class_defs[class_name]
-        # Find the method
-        method_node = None
-        for class_node in class_nodes:
+        # Check if method exists
+        found = False
+        for class_node in collector.class_defs[class_name]:
             for item in class_node.body:
                 if (
                     isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
                     and item.name == method_name
                 ):
-                    method_node = item
-                    break
-        if not method_node:
+                    found = True
+        if not found:
             raise ValueError(
                 f"Method '{method_name}' not found in class '{class_name}' at id {id}."
             )
-        # Resolve method dependencies
-        collector.resolve(method_name)
-        # Reconstruct a class with just the docstring (if present) and the test method
-        new_body = []
-        if (
-            class_node.body
-            and isinstance(class_node.body[0], ast.Expr)
-            and isinstance(class_node.body[0].value, ast.Constant)
-            and isinstance(class_node.body[0].value.value, str)
-        ):
-            new_body.append(class_node.body[0])
-        new_body.append(method_node)
-        new_class = ast.ClassDef(
-            name=class_node.name,
-            bases=class_node.bases,
-            keywords=getattr(class_node, "keywords", []),
-            decorator_list=class_node.decorator_list,
-            body=new_body,
-            lineno=class_node.lineno,
-            col_offset=class_node.col_offset,
-        )
-        # Remove any previous full class in nodes_to_keep
-        collector.nodes_to_keep = [
-            n
-            for n in collector.nodes_to_keep
-            if not (isinstance(n, ast.ClassDef) and n.name == class_name)
-        ]
-        collector.nodes_to_keep.append(new_class)
+        # Resolve by full key
+        collector.resolve(method_key)
     else:
-        # It's a function, just resolve it
-        collector.resolve(target)
+        # It's a function, resolve as global
+        key = f"global.{target}"
+        collector.resolve(key)
     return collector.get_minimal_code()
 
 
