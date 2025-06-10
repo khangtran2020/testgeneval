@@ -419,6 +419,252 @@ def indent_text(text, indent_level):
 #     return collector.get_minimal_code()
 
 
+# class DependencyCollector(ast.NodeVisitor):
+#     def __init__(self):
+#         # Store all top-level objects
+#         self.class_defs: Dict[str, List[ast.ClassDef]] = {}
+#         self.func_defs: Dict[str, ast.FunctionDef] = {}
+#         self.async_func_defs: Dict[str, ast.AsyncFunctionDef] = {}
+#         self.assigns: Dict[str, ast.Assign] = {}
+#         self.imports: List[ast.stmt] = []
+#         self.used_names: Set[str] = set()
+#         self.all_names: Set[str] = set()
+#         self.nodes_to_keep: List[ast.stmt] = []
+#         self.visited: Set[str] = set()
+#         self.current_class: List[str] = []  # Stack for nested class support
+
+#     def visit_Import(self, node):
+#         self.imports.append(node)
+#         for alias in node.names:
+#             self.all_names.add(alias.asname or alias.name.split(".")[0])
+
+#     def visit_ImportFrom(self, node):
+#         self.imports.append(node)
+#         for alias in node.names:
+#             self.all_names.add(alias.asname or alias.name)
+
+#     def visit_ClassDef(self, node):
+#         self.class_defs.setdefault(node.name, []).append(node)
+#         self.all_names.add(node.name)
+#         self.current_class.append(node.name)
+#         for item in node.body:
+#             if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+#                 # Register class method with key
+#                 key = f"{node.name}.{item.name}"
+#                 if isinstance(item, ast.FunctionDef):
+#                     self.func_defs[key] = item
+#                 else:
+#                     self.async_func_defs[key] = item
+#                 self.all_names.add(key)
+#         self.current_class.pop()
+
+#     def visit_FunctionDef(self, node):
+#         # Only for top-level functions (not methods)
+#         if not self.current_class:
+#             key = f"global.{node.name}"
+#             self.func_defs[key] = node
+#             self.all_names.add(key)
+
+#     def visit_AsyncFunctionDef(self, node):
+#         if not self.current_class:
+#             key = f"global.{node.name}"
+#             self.async_func_defs[key] = node
+#             self.all_names.add(key)
+
+#     def visit_Assign(self, node):
+#         for t in node.targets:
+#             if isinstance(t, ast.Name):
+#                 self.assigns[t.id] = node
+#                 self.all_names.add(t.id)
+
+#     def collect(self, tree: ast.Module):
+#         self.visit(tree)
+
+#     def find_names_in_node(self, node: ast.AST) -> Set[str]:
+#         """Recursively collect all variable names used in a node."""
+#         names = set()
+
+#         class NameVisitor(ast.NodeVisitor):
+#             def visit_Name(self, n):
+#                 names.add(n.id)
+
+#         NameVisitor().visit(node)
+#         return names
+
+#     def resolve(self, key: str, function: str = None, class_name: str = None):
+#         # `key` is either a fully qualified function/method name, or assignment variable
+#         if key is None:
+#             # Should not happen, safety
+#             return
+#         if key in self.visited:
+#             return
+#         self.visited.add(key)
+
+#         # Function or method
+#         if key in self.func_defs:
+#             node = self.func_defs[key]
+#             self.nodes_to_keep.append(node)
+#             self._resolve_node(node)
+#         elif key in self.async_func_defs:
+#             node = self.async_func_defs[key]
+#             self.nodes_to_keep.append(node)
+#             self._resolve_node(node)
+#         elif key in self.assigns:
+#             node = self.assigns[key]
+#             self.nodes_to_keep.append(node)
+#             self._resolve_node(node)
+#         elif "." in key:
+#             # Might be a method that exists only in a class; try to keep the class minimally
+#             class_name, method_name = key.split(".", 1)
+#             self.resolve_class_method(class_name, method_name)
+#         else:
+#             # It could be a class definition
+#             if key in self.class_defs:
+#                 for class_node in self.class_defs[key]:
+#                     self.nodes_to_keep.append(class_node)
+
+#     def resolve_class_method(self, class_name: str, method_name: str):
+#         # For class methods, reconstruct a minimal class node with just that method (and optional docstring)
+#         class_nodes = self.class_defs.get(class_name, [])
+#         for class_node in class_nodes:
+#             # Find docstring if present
+#             docstring = None
+#             new_body = []
+#             if (
+#                 class_node.body
+#                 and isinstance(class_node.body[0], ast.Expr)
+#                 and isinstance(class_node.body[0].value, ast.Constant)
+#                 and isinstance(class_node.body[0].value.value, str)
+#             ):
+#                 docstring = class_node.body[0]
+#             # Find the method
+#             method_node = None
+#             for item in class_node.body:
+#                 if (
+#                     isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+#                     and item.name == method_name
+#                 ):
+#                     method_node = item
+#                     break
+#             if method_node is not None:
+#                 if docstring:
+#                     new_body.append(docstring)
+#                 new_body.append(method_node)
+#                 # Reconstruct minimal class node
+#                 new_class = ast.ClassDef(
+#                     name=class_node.name,
+#                     bases=class_node.bases,
+#                     keywords=getattr(class_node, "keywords", []),
+#                     decorator_list=class_node.decorator_list,
+#                     body=new_body,
+#                     lineno=class_node.lineno,
+#                     col_offset=class_node.col_offset,
+#                 )
+#                 # Remove any previous full class in nodes_to_keep
+#                 self.nodes_to_keep = [
+#                     n
+#                     for n in self.nodes_to_keep
+#                     if not (isinstance(n, ast.ClassDef) and n.name == class_name)
+#                 ]
+#                 self.nodes_to_keep.append(new_class)
+#                 # Recursively resolve method's dependencies
+#                 self._resolve_node(method_node)
+#                 # Optionally, resolve base classes
+#                 for base in class_node.bases:
+#                     if isinstance(base, ast.Name):
+#                         self.resolve(base.id)
+#                 return
+#         # Fallback: keep the full class definition if something failed
+#         if class_nodes:
+#             self.nodes_to_keep.append(class_nodes[-1])
+
+#     def _resolve_node(self, node):
+#         """Given any node, resolve all referenced names recursively."""
+#         for n in ast.walk(node):
+#             if isinstance(n, ast.Name):
+#                 # Try both global and class-qualified keys
+#                 candidates = [f"global.{n.id}"] + [
+#                     k for k in self.all_names if k.endswith(f".{n.id}")
+#                 ]
+#                 found = False
+#                 for candidate in candidates:
+#                     if candidate in self.all_names:
+#                         self.resolve(candidate)
+#                         found = True
+#                 # If it's an assignment/global/class, also try as-is
+#                 if not found and n.id in self.all_names:
+#                     self.resolve(n.id)
+
+#     def filter_imports(self):
+#         """Only keep needed imports."""
+#         needed_imports = []
+#         needed_names = set()
+#         for node in self.nodes_to_keep:
+#             for name in self.find_names_in_node(node):
+#                 needed_names.add(name)
+#         for imp in self.imports:
+#             if isinstance(imp, ast.Import):
+#                 for alias in imp.names:
+#                     if alias.asname and alias.asname in needed_names:
+#                         needed_imports.append(imp)
+#                         break
+#                     elif alias.name.split(".")[0] in needed_names:
+#                         needed_imports.append(imp)
+#                         break
+#             elif isinstance(imp, ast.ImportFrom):
+#                 for alias in imp.names:
+#                     if (alias.asname and alias.asname in needed_names) or (
+#                         alias.name in needed_names
+#                     ):
+#                         needed_imports.append(imp)
+#                         break
+#         return needed_imports
+
+#     def get_minimal_code(self):
+#         imports = self.filter_imports()
+#         code_blocks = sorted(
+#             imports + self.nodes_to_keep, key=lambda n: getattr(n, "lineno", 0)
+#         )
+#         return "\n\n".join(ast.unparse(n) for n in code_blocks)
+
+
+# def extract_minimal_test(script: str, target: str, id: str):
+#     """
+#     target:
+#       - For a function: 'test_func_name'
+#       - For a class method: 'ClassName|class_method_split|method_name'
+#     """
+#     tree = ast.parse(script)
+#     collector = DependencyCollector()
+#     collector.collect(tree)
+
+#     if "|class_method_split|" in target:
+#         class_name, method_name = target.split("|class_method_split|")
+#         method_key = f"{class_name}.{method_name}"
+#         if class_name not in collector.class_defs:
+#             raise ValueError(f"Class '{class_name}' not found in file.")
+#         # Check if method exists
+#         found = False
+#         for class_node in collector.class_defs[class_name]:
+#             for item in class_node.body:
+#                 if (
+#                     isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+#                     and item.name == method_name
+#                 ):
+#                     found = True
+#         if not found:
+#             raise ValueError(
+#                 f"Method '{method_name}' not found in class '{class_name}' at id {id}."
+#             )
+#         # Resolve by full key
+#         collector.resolve(method_key)
+#     else:
+#         # It's a function, resolve as global
+#         key = f"global.{target}"
+#         collector.resolve(key)
+#     return collector.get_minimal_code()
+
+
 class DependencyCollector(ast.NodeVisitor):
     def __init__(self):
         # Store all top-level objects
@@ -491,6 +737,29 @@ class DependencyCollector(ast.NodeVisitor):
         NameVisitor().visit(node)
         return names
 
+    def is_test_class(self, class_node: ast.ClassDef) -> bool:
+        """Check if a class is a Django test case class."""
+        # Check if it inherits from TestCase, SimpleTestCase, etc.
+        for base in class_node.bases:
+            if isinstance(base, ast.Name):
+                if base.id in (
+                    "TestCase",
+                    "SimpleTestCase",
+                    "TransactionTestCase",
+                    "LiveServerTestCase",
+                ):
+                    return True
+            elif isinstance(base, ast.Attribute):
+                # Handle cases like django.test.TestCase
+                if base.attr in (
+                    "TestCase",
+                    "SimpleTestCase",
+                    "TransactionTestCase",
+                    "LiveServerTestCase",
+                ):
+                    return True
+        return False
+
     def resolve(self, key: str, function: str = None, class_name: str = None):
         # `key` is either a fully qualified function/method name, or assignment variable
         if key is None:
@@ -523,9 +792,116 @@ class DependencyCollector(ast.NodeVisitor):
                 for class_node in self.class_defs[key]:
                     self.nodes_to_keep.append(class_node)
 
-    def resolve_class_method(self, class_name: str, method_name: str):
-        # For class methods, reconstruct a minimal class node with just that method (and optional docstring)
+    def resolve_test_class(self, class_name: str, test_method_name: str = None):
+        """
+        For Django test classes, keep the entire class with all its methods,
+        or optionally just a specific test method if specified.
+        """
         class_nodes = self.class_defs.get(class_name, [])
+        for class_node in class_nodes:
+            if not self.is_test_class(class_node):
+                # Not a test class, fall back to regular method resolution
+                if test_method_name:
+                    self.resolve_class_method(class_name, test_method_name)
+                else:
+                    self.nodes_to_keep.append(class_node)
+                    self._resolve_node(class_node)
+                return
+
+            # For test classes, we have two strategies:
+            if test_method_name:
+                # Strategy 1: Extract just the specific test method with setUp/tearDown
+                self._resolve_test_class_with_method(class_node, test_method_name)
+            else:
+                # Strategy 2: Keep the entire test class
+                self.nodes_to_keep.append(class_node)
+                self._resolve_node(class_node)
+
+            # Resolve base classes (TestCase, etc.)
+            for base in class_node.bases:
+                if isinstance(base, ast.Name):
+                    self.resolve(base.id)
+
+    def _resolve_test_class_with_method(
+        self, class_node: ast.ClassDef, test_method_name: str
+    ):
+        """
+        Create a minimal test class with just the specified test method,
+        plus any setUp/tearDown methods and class docstring.
+        """
+        new_body = []
+
+        # Always include class docstring if present
+        if (
+            class_node.body
+            and isinstance(class_node.body[0], ast.Expr)
+            and isinstance(class_node.body[0].value, ast.Constant)
+            and isinstance(class_node.body[0].value.value, str)
+        ):
+            new_body.append(class_node.body[0])
+
+        # Find and include setUp, tearDown, setUpClass, tearDownClass methods
+        essential_methods = {
+            "setUp",
+            "tearDown",
+            "setUpClass",
+            "tearDownClass",
+            "setUpTestData",
+            "setUpModule",
+            "tearDownModule",
+        }
+
+        target_method = None
+        for item in class_node.body:
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if item.name == test_method_name:
+                    target_method = item
+                elif item.name in essential_methods:
+                    new_body.append(item)
+                    self._resolve_node(item)
+
+        if target_method is None:
+            raise ValueError(
+                f"Test method '{test_method_name}' not found in class '{class_node.name}'"
+            )
+
+        new_body.append(target_method)
+        self._resolve_node(target_method)
+
+        # Include any class variables/attributes that might be needed
+        for item in class_node.body:
+            if isinstance(item, ast.Assign):
+                new_body.append(item)
+                self._resolve_node(item)
+
+        # Create minimal class
+        new_class = ast.ClassDef(
+            name=class_node.name,
+            bases=class_node.bases,
+            keywords=getattr(class_node, "keywords", []),
+            decorator_list=class_node.decorator_list,
+            body=new_body,
+            lineno=class_node.lineno,
+            col_offset=class_node.col_offset,
+        )
+
+        # Remove any previous class definition with same name
+        self.nodes_to_keep = [
+            n
+            for n in self.nodes_to_keep
+            if not (isinstance(n, ast.ClassDef) and n.name == class_node.name)
+        ]
+        self.nodes_to_keep.append(new_class)
+
+    def resolve_class_method(self, class_name: str, method_name: str):
+        # Check if this is a test class first
+        class_nodes = self.class_defs.get(class_name, [])
+        for class_node in class_nodes:
+            if self.is_test_class(class_node):
+                self.resolve_test_class(class_name, method_name)
+                return
+
+        # For non-test classes, use the original logic
         for class_node in class_nodes:
             # Find docstring if present
             docstring = None
@@ -602,6 +978,17 @@ class DependencyCollector(ast.NodeVisitor):
         for node in self.nodes_to_keep:
             for name in self.find_names_in_node(node):
                 needed_names.add(name)
+
+        # Always include common Django test imports
+        django_test_names = {
+            "TestCase",
+            "SimpleTestCase",
+            "TransactionTestCase",
+            "LiveServerTestCase",
+            "Client",
+        }
+        needed_names.update(django_test_names)
+
         for imp in self.imports:
             if isinstance(imp, ast.Import):
                 for alias in imp.names:
@@ -633,6 +1020,8 @@ def extract_minimal_test(script: str, target: str, id: str):
     target:
       - For a function: 'test_func_name'
       - For a class method: 'ClassName|class_method_split|method_name'
+      - For a test class: 'TestClassName' (extracts entire test class)
+      - For a specific test method: 'TestClassName|class_method_split|test_method_name'
     """
     tree = ast.parse(script)
     collector = DependencyCollector()
@@ -640,28 +1029,50 @@ def extract_minimal_test(script: str, target: str, id: str):
 
     if "|class_method_split|" in target:
         class_name, method_name = target.split("|class_method_split|")
-        method_key = f"{class_name}.{method_name}"
+
+        # Check if the class exists
         if class_name not in collector.class_defs:
             raise ValueError(f"Class '{class_name}' not found in file.")
-        # Check if method exists
-        found = False
-        for class_node in collector.class_defs[class_name]:
-            for item in class_node.body:
-                if (
-                    isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
-                    and item.name == method_name
-                ):
-                    found = True
-        if not found:
-            raise ValueError(
-                f"Method '{method_name}' not found in class '{class_name}' at id {id}."
-            )
-        # Resolve by full key
-        collector.resolve(method_key)
+
+        # Check if it's a test class
+        class_nodes = collector.class_defs[class_name]
+        is_test_class = any(collector.is_test_class(node) for node in class_nodes)
+
+        if is_test_class:
+            # For test classes, use the enhanced test class resolution
+            collector.resolve_test_class(class_name, method_name)
+        else:
+            # For regular classes, use the original method resolution
+            method_key = f"{class_name}.{method_name}"
+            # Check if method exists
+            found = False
+            for class_node in class_nodes:
+                for item in class_node.body:
+                    if (
+                        isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                        and item.name == method_name
+                    ):
+                        found = True
+            if not found:
+                raise ValueError(
+                    f"Method '{method_name}' not found in class '{class_name}' at id {id}."
+                )
+            # Resolve by full key
+            collector.resolve(method_key)
     else:
-        # It's a function, resolve as global
-        key = f"global.{target}"
-        collector.resolve(key)
+        # Check if it's a test class (entire class)
+        if target in collector.class_defs:
+            class_nodes = collector.class_defs[target]
+            is_test_class = any(collector.is_test_class(node) for node in class_nodes)
+            if is_test_class:
+                collector.resolve_test_class(target)
+            else:
+                collector.resolve(target)
+        else:
+            # It's a function, resolve as global
+            key = f"global.{target}"
+            collector.resolve(key)
+
     return collector.get_minimal_code()
 
 
