@@ -802,7 +802,9 @@ class DependencyCollector(ast.NodeVisitor):
             if not self.is_test_class(class_node):
                 # Not a test class, fall back to regular method resolution
                 if test_method_name:
-                    self.resolve_class_method(class_name, test_method_name)
+                    self._resolve_regular_class_method(
+                        class_node, class_name, test_method_name
+                    )
                 else:
                     self.nodes_to_keep.append(class_node)
                     self._resolve_node(class_node)
@@ -893,6 +895,65 @@ class DependencyCollector(ast.NodeVisitor):
         ]
         self.nodes_to_keep.append(new_class)
 
+    def _resolve_regular_class_method(
+        self, class_node: ast.ClassDef, class_name: str, method_name: str
+    ):
+        """
+        Handle regular (non-test) class method resolution.
+        """
+        # Find docstring if present
+        docstring = None
+        new_body = []
+        if (
+            class_node.body
+            and isinstance(class_node.body[0], ast.Expr)
+            and isinstance(class_node.body[0].value, ast.Constant)
+            and isinstance(class_node.body[0].value.value, str)
+        ):
+            docstring = class_node.body[0]
+
+        # Find the method
+        method_node = None
+        for item in class_node.body:
+            if (
+                isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and item.name == method_name
+            ):
+                method_node = item
+                break
+
+        if method_node is not None:
+            if docstring:
+                new_body.append(docstring)
+            new_body.append(method_node)
+
+            # Reconstruct minimal class node
+            new_class = ast.ClassDef(
+                name=class_node.name,
+                bases=class_node.bases,
+                keywords=getattr(class_node, "keywords", []),
+                decorator_list=class_node.decorator_list,
+                body=new_body,
+                lineno=class_node.lineno,
+                col_offset=class_node.col_offset,
+            )
+
+            # Remove any previous full class in nodes_to_keep
+            self.nodes_to_keep = [
+                n
+                for n in self.nodes_to_keep
+                if not (isinstance(n, ast.ClassDef) and n.name == class_name)
+            ]
+            self.nodes_to_keep.append(new_class)
+
+            # Recursively resolve method's dependencies
+            self._resolve_node(method_node)
+
+            # Resolve base classes
+            for base in class_node.bases:
+                if isinstance(base, ast.Name):
+                    self.resolve(base.id)
+
     def resolve_class_method(self, class_name: str, method_name: str):
         # Check if this is a test class first
         class_nodes = self.class_defs.get(class_name, [])
@@ -901,55 +962,11 @@ class DependencyCollector(ast.NodeVisitor):
                 self.resolve_test_class(class_name, method_name)
                 return
 
-        # For non-test classes, use the original logic
+        # For non-test classes, use the regular resolution logic
         for class_node in class_nodes:
-            # Find docstring if present
-            docstring = None
-            new_body = []
-            if (
-                class_node.body
-                and isinstance(class_node.body[0], ast.Expr)
-                and isinstance(class_node.body[0].value, ast.Constant)
-                and isinstance(class_node.body[0].value.value, str)
-            ):
-                docstring = class_node.body[0]
-            # Find the method
-            method_node = None
-            for item in class_node.body:
-                if (
-                    isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
-                    and item.name == method_name
-                ):
-                    method_node = item
-                    break
-            if method_node is not None:
-                if docstring:
-                    new_body.append(docstring)
-                new_body.append(method_node)
-                # Reconstruct minimal class node
-                new_class = ast.ClassDef(
-                    name=class_node.name,
-                    bases=class_node.bases,
-                    keywords=getattr(class_node, "keywords", []),
-                    decorator_list=class_node.decorator_list,
-                    body=new_body,
-                    lineno=class_node.lineno,
-                    col_offset=class_node.col_offset,
-                )
-                # Remove any previous full class in nodes_to_keep
-                self.nodes_to_keep = [
-                    n
-                    for n in self.nodes_to_keep
-                    if not (isinstance(n, ast.ClassDef) and n.name == class_name)
-                ]
-                self.nodes_to_keep.append(new_class)
-                # Recursively resolve method's dependencies
-                self._resolve_node(method_node)
-                # Optionally, resolve base classes
-                for base in class_node.bases:
-                    if isinstance(base, ast.Name):
-                        self.resolve(base.id)
-                return
+            self._resolve_regular_class_method(class_node, class_name, method_name)
+            return
+
         # Fallback: keep the full class definition if something failed
         if class_nodes:
             self.nodes_to_keep.append(class_nodes[-1])
