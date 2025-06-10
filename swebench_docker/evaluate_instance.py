@@ -655,7 +655,7 @@ def main(
             if translated != -1:
                 prompt_list = [task_instance[f"translate_{translated}"][setting]]
             else:
-                prompt_list = [task_instance["test_cases"][setting]]
+                prompt_list = [task_instance["test_cases"][setting]["code"]]
         if setting == "full":
             full_processing(
                 prompt_list,
