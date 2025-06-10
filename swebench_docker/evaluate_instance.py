@@ -498,6 +498,98 @@ def completion_processing(
             tcm.log.write(TESTS_FAILED)
 
 
+def test_case_processing(
+    prompt_list, tcm, task_instance, translated, skip_mutation, setting: str
+):
+    successful_tests = []
+    for prompt in prompt_list:
+        with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
+            test_content = prompt
+            f.write(test_content)
+
+        _, success = tcm.run_tests_task(
+            task_instance, log_data=False, skip_mutation=True
+        )
+
+        # check if .corverage exist
+        if os.path.exists(".coverage") == False:
+            raise Exception("Coverage file not found")
+
+        data = CoverageData(
+            basename=".coverage",
+            suffix=None,
+            warn=None,
+            debug=None,
+        )
+        data.read()
+        prefix = os.getcwd()
+        code_file_name = os.path.join(prefix, task_instance["code_file"])
+        logger.info(f"Testing for code file: {code_file_name}")
+        logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
+        logger.info(f"Coverage data: {data._file_map}")
+
+        arcs = data.arcs(filename=code_file_name)
+        if arcs is None:
+            logger.info(f"Arcs not found")
+        else:
+            branches = []
+            visited = []
+            for e in arcs:
+                if e[0] < 0:
+                    continue
+                if e[1] < 0:
+                    continue
+                if e[0] in visited:
+                    for i, branch in enumerate(branches):
+                        if e[0] in branch:
+                            branches[i].append(e[1])
+                            visited.append(e[1])
+                else:
+                    branches.append([e[0], e[1]])
+                    visited.append(e[0])
+                    visited.append(e[1])
+            if translated == -1:
+                task_instance["branches"][setting] = branches
+            else:
+                task_instance[f"branch_translate_{translated}"][setting] = branches
+
+            if os.path.exists(".coverage"):
+                logger.info("Removing coverage")
+                os.remove(".coverage")
+        if success:
+            successful_tests.append(prompt)
+
+    with open(
+        os.path.join(tcm.log_dir, f"{task_instance[KEY_ID]}_setting_{setting}.json"),
+        "w",
+    ) as f:
+        json.dump(task_instance, f)
+
+    tcm.log.write(f"{TESTS_CONFIG}full pred\n")
+    if len(successful_tests) > 0:
+        success_tests = []
+        class_definitions = {}
+        for item in successful_tests:
+            success_tests.append(item)
+
+        success_tests_str = "\n\n===========================\n\n".join(success_tests)
+
+        with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
+            f.write(success_tests_str)
+
+        _, success = tcm.run_tests_task(task_instance, skip_mutation=skip_mutation)
+
+        total_tests = len(successful_tests)
+        if success and len(successful_tests) == total_tests:
+            tcm.log.write(UNFILTERED_TESTS_PASSED)
+        else:
+            tcm.log.write(UNFILTERED_TESTS_FAILED)
+    else:
+        tcm.log.write("TestsTime: 0.0")
+        tcm.log.write(TESTS_FAILED)
+        tcm.log.write(UNFILTERED_TESTS_FAILED)
+
+
 def main(
     task_instance: dict,
     testbed_name: str,
@@ -564,7 +656,7 @@ def main(
                 prompt_list = [task_instance[f"translate_{translated}"][setting]]
             else:
                 prompt_list = [task_instance["test_cases"][setting]]
-        if setting == "full" or "test_case" in setting:
+        if setting == "full":
             full_processing(
                 prompt_list,
                 tcm,
@@ -572,6 +664,15 @@ def main(
                 tranlsated=translated,
                 skip_mutation=skip_mutation,
                 setting=setting,
+            )
+        elif "test_case" in setting:
+            test_case_processing(
+                prompt_list=prompt_list,
+                tcm=tcm,
+                task_instance=task_instance,
+                skip_mutation=skip_mutation,
+                setting=setting,
+                translated=translated,
             )
         else:
             completion_processing(
