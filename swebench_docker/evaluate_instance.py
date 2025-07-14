@@ -598,6 +598,7 @@ def main(
     log_dir: str,
     timeout: Optional[int],
     translated: int = -1,
+    raw: int = 0,
     image_type: str = "conda",
     only_baseline: bool = False,
     skip_mutation: bool = False,
@@ -655,7 +656,10 @@ def main(
             if translated != -1:
                 prompt_list = [task_instance[f"translate_{translated}"][setting]]
             else:
-                prompt_list = [task_instance["test_cases"][setting]["code"]]
+                if raw == 1:
+                    prompt_list = [task_instance["test_cases"][setting]["code"]]
+                else:
+                    prompt_list = [task_instance["test_cases"][setting]]
         if setting == "full":
             full_processing(
                 prompt_list,
@@ -722,6 +726,11 @@ if __name__ == "__main__":
         raise ValueError("TRANSLATED environment variable is not set")
     translated = int(translated)
 
+    raw = os.getenv("RAW")
+    if raw is None:
+        raise ValueError("RAW environment variable is not set")
+    raw = int(raw)
+
     main(
         task_instance=task_instance,
         testbed_name=testbed_name,
@@ -729,6 +738,7 @@ if __name__ == "__main__":
         log_dir=log_dir,
         timeout=int_timeout,
         translated=translated,
+        raw=raw,
         setting=setting,
         image_type=os.getenv("IMAGE_TYPE", "conda"),
         only_baseline=os.getenv("ONLY_BASELINE") == "True",

@@ -20,6 +20,7 @@ async def main(
     gen_path: str,
     namespace: str,
     log_dir: str,
+    raw: int,
     repo: str = None,
     timeout: int = 60,
     num_processes: int = -1,
@@ -110,6 +111,7 @@ async def main(
                             testcase,
                             timeout,
                             translated=-1,
+                            raw=raw,
                             verbose=True,
                             skip_mutation=True,
                         )
@@ -141,6 +143,7 @@ async def main(
                             log_dir,
                             testcase,
                             timeout,
+                            raw=raw,
                             translated=-1,
                             only_baseline=True,
                             verbose=True,
@@ -212,6 +215,7 @@ if __name__ == "__main__":
     parser.add_argument("--gen_path", type=str, required=True)
     parser.add_argument("--res_path", type=str, required=True)
     parser.add_argument("--repo", type=str, required=True)
+    parser.add_argument("--raw", type=int, required=True)
     parser.add_argument("--namespace", type=str, default="aorwall")
     parser.add_argument("--timeout", type=int, default=60)
     parser.add_argument("--num_processes", type=int, default=-1)

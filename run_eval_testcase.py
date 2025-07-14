@@ -23,6 +23,7 @@ async def main(
     timeout: int = 60,
     num_processes: int = -1,
     debug: bool = False,
+    raw: int = 1,
     translated: int = -1,
 ):
     """
@@ -75,6 +76,7 @@ async def main(
                             log_dir,
                             testcase,
                             timeout,
+                            raw=raw,
                             translated=translated,
                             verbose=True,
                             skip_mutation=True,
@@ -116,6 +118,7 @@ async def main(
                             log_dir,
                             testcase,
                             timeout,
+                            raw=raw,
                             translated=translated,
                             # generated=generated,
                             only_baseline=True,
@@ -196,6 +199,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_processes", type=int, default=-1)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--translated", type=int, required=True)
+    parser.add_argument("--raw", type=int, required=True)
     # parser.add_argument("--generated", action="store_true")
     args = parser.parse_args()
     asyncio.run(main(**vars(args)))

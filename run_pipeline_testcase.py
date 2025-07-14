@@ -77,6 +77,8 @@ def main(args):
             str(-1),
             "--timeout",
             str(args.timeout),
+            "--raw",
+            str(1),
         ]
         if args.debug:
             eval_cmd.append("--debug")
@@ -213,26 +215,6 @@ def main(args):
             subprocess.run(eval_cmd)
     if args.eval_generated:
 
-        # eval_cmd = [
-        #     "python",
-        #     "run_eval_generated.py",
-        #     "--log_dir",
-        #     log_dir,
-        #     "--num_processes",
-        #     str(args.num_processes),
-        #     "--repo",
-        #     args.repo,
-        #     "--data_path",
-        #     os.path.join(args.data_path, f"{data_suf}_processed.jsonl"),
-        #     "--gen_path",
-        #     args.glmf_generated_path,
-        #     "--res_path",
-        #     os.path.join(args.data_path, f"{args.glmf_generated_output}"),
-        # ]
-        # if args.debug:
-        #     eval_cmd.append("--debug")
-        # subprocess.run(eval_cmd)
-
         eval_cmd = [
             "python",
             "run_eval_generated.py",
@@ -252,6 +234,8 @@ def main(args):
             os.path.join(args.data_path, f"{args.glmf_generated_output}"),
             "--timeout",
             str(args.timeout),
+            "--raw",
+            str(0),
         ]
         if args.debug:
             eval_cmd.append("--debug")
