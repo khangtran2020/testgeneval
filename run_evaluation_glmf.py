@@ -138,7 +138,7 @@ async def main(
                 KEY_ID: task[KEY_ID],
                 KEY_INSTANCE_ID: task[KEY_INSTANCE_ID],
                 KEY_MODEL: "glmf",
-                KEY_PREDICTIONS: [{"full": prediction_files[task[KEY_ID]]}],
+                KEY_PREDICTIONS: {"full": prediction_files[task[KEY_ID]]},
             }
             predictions.append(prediction)
             new_tasks.append(task)
