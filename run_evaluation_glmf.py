@@ -248,10 +248,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--log_dir", type=str, help="Path to log directory", required=True
     )
-    parser.add_argument(
-        "--save_dir", type=str, help="Path to save results", required=True
-    )
-    parser.add_argument("--repo", type=str, help="Path to save results", required=True)
+    # parser.add_argument(
+    #     "--save_dir", type=str, help="Path to save results", required=True
+    # )
+    # parser.add_argument("--repo", type=str, help="Path to save results", required=True)
     parser.add_argument(
         "--swe_bench_tasks",
         type=str,
