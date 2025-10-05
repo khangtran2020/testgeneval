@@ -122,6 +122,8 @@ async def main(
     with open(predictions_path, "r", encoding="utf-8") as json_file:
         prediction_files = json.load(json_file)
 
+    print("Tyope of prediction_files:", type(prediction_files), len(prediction_files))
+
     predictions = []
     new_tasks = []
     for task in tasks:
