@@ -238,50 +238,51 @@ def postprocess_tests(
         )
 
         # check if .corverage exist
-        if os.path.exists(".coverage") == False:
-            raise Exception("Coverage file not found")
+        if "test_case" in setting:
+            if os.path.exists(".coverage") == False:
+                raise Exception("Coverage file not found")
 
-        data = CoverageData(
-            basename=".coverage",
-            suffix=None,
-            warn=None,
-            debug=None,
-        )
-        data.read()
-        prefix = os.getcwd()
-        code_file_name = os.path.join(prefix, task_instance["code_file"])
-        logger.info(f"Testing for code file: {code_file_name}")
-        logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
-        logger.info(f"Coverage data: {data._file_map}")
+            data = CoverageData(
+                basename=".coverage",
+                suffix=None,
+                warn=None,
+                debug=None,
+            )
+            data.read()
+            prefix = os.getcwd()
+            code_file_name = os.path.join(prefix, task_instance["code_file"])
+            logger.info(f"Testing for code file: {code_file_name}")
+            logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
+            logger.info(f"Coverage data: {data._file_map}")
 
-        arcs = data.arcs(filename=code_file_name)
-        if arcs is None:
-            logger.info(f"Arcs not found")
-        else:
-            branches = []
-            visited = []
-            for e in arcs:
-                if e[0] < 0:
-                    continue
-                if e[1] < 0:
-                    continue
-                if e[0] in visited:
-                    for i, branch in enumerate(branches):
-                        if e[0] in branch:
-                            branches[i].append(e[1])
-                            visited.append(e[1])
-                else:
-                    branches.append([e[0], e[1]])
-                    visited.append(e[0])
-                    visited.append(e[1])
-            if translated == -1:
-                task_instance["branches"][setting] = branches
+            arcs = data.arcs(filename=code_file_name)
+            if arcs is None:
+                logger.info(f"Arcs not found")
             else:
-                task_instance[f"branch_translate_{translated}"][setting] = branches
+                branches = []
+                visited = []
+                for e in arcs:
+                    if e[0] < 0:
+                        continue
+                    if e[1] < 0:
+                        continue
+                    if e[0] in visited:
+                        for i, branch in enumerate(branches):
+                            if e[0] in branch:
+                                branches[i].append(e[1])
+                                visited.append(e[1])
+                    else:
+                        branches.append([e[0], e[1]])
+                        visited.append(e[0])
+                        visited.append(e[1])
+                if translated == -1:
+                    task_instance["branches"][setting] = branches
+                else:
+                    task_instance[f"branch_translate_{translated}"][setting] = branches
 
-            if os.path.exists(".coverage"):
-                logger.info("Removing coverage")
-                os.remove(".coverage")
+        if os.path.exists(".coverage"):
+            logger.info("Removing coverage")
+            os.remove(".coverage")
 
         if success:
             successful_tests.append((class_name, method_name, test_case))
@@ -326,51 +327,54 @@ def postprocess_functions(
         _, success = tcm.run_tests_task(
             task_instance, log_data=False, skip_mutation=True
         )
-        if os.path.exists(".coverage") == False:
-            raise Exception("Coverage file not found")
 
-        data = CoverageData(
-            basename=".coverage",
-            suffix=None,
-            warn=None,
-            debug=None,
-        )
-        data.read()
-        prefix = os.getcwd()
-        code_file_name = os.path.join(prefix, task_instance["code_file"])
-        logger.info(f"Testing for code file: {code_file_name}")
-        logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
-        logger.info(f"Coverage data: {data._file_map}")
+        if "test_case" in setting:
+            if os.path.exists(".coverage") == False:
+                raise Exception("Coverage file not found")
 
-        arcs = data.arcs(filename=code_file_name)
-        if arcs is None:
-            logger.info(f"\n\nArcs not found\n\n")
-        else:
-            branches = []
-            visited = []
-            for e in arcs:
-                if e[0] < 0:
-                    continue
-                if e[1] < 0:
-                    continue
-                if e[0] in visited:
-                    for i, branch in enumerate(branches):
-                        if e[0] in branch:
-                            branches[i].append(e[1])
-                            visited.append(e[1])
-                else:
-                    branches.append([e[0], e[1]])
-                    visited.append(e[0])
-                    visited.append(e[1])
-            if translated == -1:
-                task_instance["branches"][setting] = branches
+            data = CoverageData(
+                basename=".coverage",
+                suffix=None,
+                warn=None,
+                debug=None,
+            )
+            data.read()
+            prefix = os.getcwd()
+            code_file_name = os.path.join(prefix, task_instance["code_file"])
+            logger.info(f"Testing for code file: {code_file_name}")
+            logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
+            logger.info(f"Coverage data: {data._file_map}")
+
+            arcs = data.arcs(filename=code_file_name)
+            if arcs is None:
+                logger.info(f"\n\nArcs not found\n\n")
             else:
-                task_instance[f"branch_translate_{translated}"][setting] = branches
-            logger.info(f"====================== Branches: {branches}")
+                branches = []
+                visited = []
+                for e in arcs:
+                    if e[0] < 0:
+                        continue
+                    if e[1] < 0:
+                        continue
+                    if e[0] in visited:
+                        for i, branch in enumerate(branches):
+                            if e[0] in branch:
+                                branches[i].append(e[1])
+                                visited.append(e[1])
+                    else:
+                        branches.append([e[0], e[1]])
+                        visited.append(e[0])
+                        visited.append(e[1])
+                if translated == -1:
+                    task_instance["branches"][setting] = branches
+                else:
+                    task_instance[f"branch_translate_{translated}"][setting] = branches
+                logger.info(f"====================== Branches: {branches}")
 
-            if os.path.exists(".coverage"):
-                logger.info("Removing coverage")
-                os.remove(".coverage")
+        if os.path.exists(".coverage"):
+            logger.info("Removing coverage")
+            os.remove(".coverage")
+
         if success:
             if django_repo and added_class:
                 class_content += indent_text(test_function, 4) + "\n"
