@@ -105,8 +105,8 @@ async def main(
         print(f"Number of tasks: {len(tasks)}")
         # exit()
 
-    if repo is not None:
-        tasks = [t for t in tasks if t[REPO_ID] == repo]
+    # if repo is not None:
+    #     tasks = [t for t in tasks if t[REPO_ID] == repo]
 
     if debug:
         print(f"Number of tasks after filtering by repo: {len(tasks)}")
