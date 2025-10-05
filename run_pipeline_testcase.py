@@ -247,6 +247,12 @@ def main(args):
             if args.skip_mutation and args.model != "baseline"
             else []
         )
+
+        # make output directory
+        os.makedirs(
+            os.path.join(args.data_path, f"{args.glmf_generated_output}"), exist_ok=True
+        )
+
         eval_cmd = [
             "python",
             "run_evaluation_glmf.py",
@@ -264,7 +270,7 @@ def main(args):
             str(args.num_processes),
             "--namespace",
             args.namespace,
-        ] + extra_cmd
+        ]  # + extra_cmd
 
         report_cmd = [
             "python",
