@@ -151,12 +151,12 @@ async def main(
         for pred in predictions:
             f.write(json.dumps(pred) + "\n")
 
-    num_test_case = 0
-    for task in new_tasks:
-        num_test_case += len(task["test_cases"].keys())
-    logger.info(
-        f"# of task to evaluate: {len(new_tasks)}. # of test cases: {num_test_case}"
-    )
+    # num_test_case = 0
+    # for task in new_tasks:
+    #     num_test_case += len(task["test_cases"].keys())
+    # logger.info(
+    #     f"# of task to evaluate: {len(new_tasks)}. # of test cases: {num_test_case}"
+    # )
 
     if len(predictions) == 0:
         logger.info("No predictions to evaluate")
