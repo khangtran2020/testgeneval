@@ -126,13 +126,13 @@ async def main(
 
     predictions = []
     new_tasks = []
-    for task in tasks[:5]:
-        print(
-            "task_id:",
-            task[KEY_ID],
-            "prediction_files.keys:",
-            list(prediction_files.keys())[:5],
-        )
+    for task in tasks:
+        # print(
+        #     "task_id:",
+        #     task[KEY_ID],
+        #     "prediction_files.keys:",
+        #     list(prediction_files.keys())[:5],
+        # )
         if task[KEY_ID] in prediction_files.keys():
             prediction = {
                 KEY_ID: task[KEY_ID],
