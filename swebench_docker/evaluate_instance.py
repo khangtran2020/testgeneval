@@ -390,6 +390,7 @@ def postprocess_functions(
 def full_processing(
     prompt_list, tcm, task_instance, tranlsated, skip_mutation, setting: str
 ):
+
     for prompt in prompt_list:
         preamble, classes, test_functions = extract_preamble_classes_and_functions(
             prompt, tcm
@@ -665,6 +666,9 @@ def main(
                 else:
                     prompt_list = [task_instance["test_cases"][setting]]
         if setting == "full":
+            print(
+                "Running full processing - with prompt list length:", len(prompt_list)
+            )
             full_processing(
                 prompt_list,
                 tcm,
