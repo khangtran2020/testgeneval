@@ -127,7 +127,7 @@ async def main(
     predictions = []
     new_tasks = []
     for task in tasks:
-        if task[KEY_INSTANCE_ID] in prediction_files.keys():
+        if task[KEY_ID] in prediction_files.keys():
             prediction = {
                 KEY_ID: task[KEY_ID],
                 KEY_INSTANCE_ID: task[KEY_INSTANCE_ID],
