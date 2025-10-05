@@ -270,7 +270,7 @@ def main(args):
             str(args.num_processes),
             "--namespace",
             args.namespace,
-            "--debug" if args.debug else "",
+            # "--debug" if args.debug else "",
         ]  # + extra_cmd
 
         report_cmd = [
