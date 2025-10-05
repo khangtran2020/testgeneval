@@ -87,11 +87,11 @@ async def main(
         ValueError: If log_dir is not a directory, testbed is not a directory, or swe_bench_tasks does not exist.
     """
     # Validate arguments
-    if not os.path.exists(log_dir) or not os.path.isdir(log_dir):
-        raise ValueError("--log_dir must exist and point at a directory")
+    # if not os.path.exists(log_dir) or not os.path.isdir(log_dir):
+    #     raise ValueError("--log_dir must exist and point at a directory")
 
-    if not os.path.exists(save_dir) or not os.path.isdir(save_dir):
-        raise ValueError("--log_dir must exist and point at a directory")
+    # if not os.path.exists(save_dir) or not os.path.isdir(save_dir):
+    #     raise ValueError("--log_dir must exist and point at a directory")
 
     # Make sure that the log directory is world-writable so that we can write to it from
     # within the container, even if we're not the root user.
