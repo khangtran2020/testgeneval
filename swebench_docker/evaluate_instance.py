@@ -657,6 +657,7 @@ def main(
                 if only_baseline
                 else [task_instance[KEY_PREDICTIONS][setting]]
             )
+            print(f"Running {setting} with prompt list length:", len(prompt_list))
         else:
             if translated != -1:
                 prompt_list = [task_instance[f"translate_{translated}"][setting]]
