@@ -28,7 +28,7 @@ def main(args):
     os.makedirs(base_dir, exist_ok=True)
 
     log_dir = os.path.join(base_dir, "data_logs", model_suf)
-    print(log_dir)
+    print("Log dirs:", log_dir)
     os.makedirs(log_dir, exist_ok=True)
 
     pred_dir = os.path.join(base_dir, "preds")
