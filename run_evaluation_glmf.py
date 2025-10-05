@@ -235,7 +235,7 @@ async def main(
                         skip_mutation=skip_mutation,
                     )
 
-            for setting in task_instance[KEY_PREDICTIONS]:
+            for setting in task_instance[KEY_PREDICTIONS].keys():
                 task = asyncio.create_task(
                     run_docker_throttled(
                         task_instance, namespace, log_dir, setting, timeout

@@ -652,6 +652,8 @@ def main(
                 if only_baseline
                 else task_instance["test_cases"][setting]
             )
+        elif "full" in setting:
+            prompt_list = [task_instance[KEY_PREDICTIONS][setting]]
         else:
             if translated != -1:
                 prompt_list = [task_instance[f"translate_{translated}"][setting]]
