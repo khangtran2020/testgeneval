@@ -240,6 +240,46 @@ def main(args):
         if args.debug:
             eval_cmd.append("--debug")
         subprocess.run(eval_cmd)
+
+    if args.eval_branch:
+        extra_cmd = ["--skip_existing"] if not args.rerun_eval else []
+        extra_cmd += (
+            ["--skip_mutation"]
+            if args.skip_mutation and args.model != "baseline"
+            else []
+        )
+        eval_cmd = [
+            "python",
+            "run_evaluation_glmf.py",
+            "--predictions_path",
+            os.path.join(args.data_path, args.glmf_generated_path),
+            "--log_dir",
+            log_dir,
+            "--swe_bench_tasks",
+            args.dataset,
+            "--num_processes",
+            str(args.num_processes),
+            "--namespace",
+            args.namespace,
+        ] + extra_cmd
+
+        report_cmd = [
+            "python",
+            "generate_report.py",
+            "--predictions_path",
+            os.path.join(
+                args.data_path, args.glmf_generated_path.replace(".json", ".jsonl")
+            ),
+            "--log_dir",
+            log_dir,
+            "--output_dir",
+            base_dir,
+            "--swe_bench_tasks",
+            args.dataset,
+        ]
+        subprocess.run(eval_cmd)
+        subprocess.run(report_cmd)
+
     if args.merge:
         merge_cmd = [
             "python",
@@ -375,6 +415,11 @@ if __name__ == "__main__":
         "--eval_generated",
         action="store_true",
         help="Extract branch from glmf generated testcases",
+    )
+    parser.add_argument(
+        "--eval_branch",
+        action="store_true",
+        help="Compute branch coverage for the testcases",
     )
     parser.add_argument(
         "--glmf_generated_path",

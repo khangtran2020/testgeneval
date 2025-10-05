@@ -137,6 +137,12 @@ async def main(
         else:
             logger.warning(f"Task {task[KEY_ID]} not found in generated data")
 
+    # save prediction to a jsonl file
+    preds_path = predictions_path.replace(".json", ".jsonl")
+    with open(preds_path, "w") as f:
+        for pred in predictions:
+            f.write(json.dumps(pred) + "\n")
+
     num_test_case = 0
     for task in new_tasks:
         num_test_case += len(task["test_cases"].keys())
