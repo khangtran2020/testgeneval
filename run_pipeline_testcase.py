@@ -250,7 +250,7 @@ def main(args):
 
         # make output directory
         os.makedirs(
-            os.path.join(args.data_path, f"{args.glmf_generated_output}"), exist_ok=True
+            os.path.join(args.data_path, args.glmf_generated_output), exist_ok=True
         )
 
         eval_cmd = [
@@ -261,7 +261,7 @@ def main(args):
             "--log_dir",
             log_dir,
             "--save_dir",
-            os.path.join(args.data_path, f"{args.glmf_generated_output}"),
+            os.path.join(args.data_path, args.glmf_generated_output),
             "--repo",
             args.repo,
             "--swe_bench_tasks",
