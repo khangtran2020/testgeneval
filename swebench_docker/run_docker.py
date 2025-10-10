@@ -178,6 +178,7 @@ async def run_docker_evaluation(
             # read task instance from tmpfile_path
             if translated == -1:
                 branch_key = "branches"
+                arcs_key = "arcs"
             else:
                 branch_key = f"branch_translate_{translated}"
             if os.path.exists(

@@ -132,8 +132,10 @@ class Data(object):
                         test_id += 1
 
             branches = {}
+            arcs = {}
             for key in test_cases.keys():
                 branches[key] = []
+                arcs[key] = []
             processed_data = {
                 "repo": repo,
                 "base_commit": commit_id,
@@ -151,6 +153,7 @@ class Data(object):
                 "baseline_covs": baseline_covs,
                 "test_cases": test_cases,
                 "branches": branches,
+                "arcs": arcs,
             }
 
             if len(processed_data["test_cases"].keys()) == 0:

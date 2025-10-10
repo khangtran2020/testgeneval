@@ -139,9 +139,11 @@ async def main(
             continue
         res, setting = result
         if translated == -1:
+            arcs_key = "arcs"
             branch_key = "branches"
             test_case_key = "test_cases"
         else:
+            arcs_key = None
             branch_key = f"branch_translate_{translated}"
             test_case_key = f"translate_{translated}"
         logger.info(f"================== Task {res[KEY_ID]} ==================")
@@ -160,7 +162,15 @@ async def main(
                     f"Setting {setting_} at setting {setting} has {len(res[branch_key][setting_])} branches"
                 )
                 task_dict[res[KEY_ID]][branch_key][setting_] = res[branch_key][setting_]
-                break
+                # break
+
+            if arcs_key is not None:
+                if res[arcs_key][setting_] != []:
+                    logger.info(
+                        f"Setting {setting_} at setting {setting} has {len(res[arcs_key][setting_])} arcs"
+                    )
+                    task_dict[res[KEY_ID]][arcs_key][setting_] = res[arcs_key][setting_]
+                    # break
 
         # task_dict[res[KEY_ID]]["branches"][setting] = res["branches"][setting]
 

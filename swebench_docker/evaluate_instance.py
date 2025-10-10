@@ -555,6 +555,7 @@ def test_case_processing(
                     visited.append(e[1])
             if translated == -1:
                 task_instance["branches"][setting] = branches
+                task_instance["arcs"][setting] = arcs
             else:
                 task_instance[f"branch_translate_{translated}"][setting] = branches
 
