@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import sys
+import pickle
 
 # install coverage
 try:
@@ -395,6 +396,23 @@ def full_processing(
         preamble, classes, test_functions = extract_preamble_classes_and_functions(
             prompt, tcm
         )
+
+        # store the extracted preamble, classes, and functions
+        extracted_preamble = {
+            "preamble": preamble,
+            "classes": classes,
+            "test_functions": test_functions,
+        }
+
+        with open(
+            os.path.join(
+                tcm.log_dir,
+                f"{task_instance[KEY_ID]}_setting_{setting}_extracted.pkl",
+            ),
+            "wb",
+        ) as f:
+            pickle.dump(extracted_preamble, f)
+
         successful_tests = []
 
         if classes:
