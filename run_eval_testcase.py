@@ -113,7 +113,6 @@ async def main(
                 ) as temp:
                     temp.write(task_instance["test_cases"][testcase]["code"])
                     temp_name = temp.name
-                    print(f"Temporary file created: {temp_name}")
                     try:
                         result = subprocess.run(
                             [
@@ -131,6 +130,7 @@ async def main(
                         continue
                     with open(temp_name, "r") as f:
                         cleaned_code = f.read()
+                    print(f"Cleaned code:\n{cleaned_code}")
                     task_instance["test_cases"][testcase]["code"] = cleaned_code
 
                 async def run_docker_throttled(task_instance, testcase):
