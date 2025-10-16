@@ -116,7 +116,9 @@ async def main(
                     os.chmod(temp_name, 0o666)
 
                     # --- Do your processing here ---
-                    temp.write(task_instance["test_cases"][testcase]["code"])
+                    temp.write(
+                        task_instance["test_cases"][testcase]["code"].encode("utf-8")
+                    )
                     temp.flush()
 
                     try:
