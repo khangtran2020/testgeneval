@@ -113,13 +113,13 @@ async def main(
                 ) as temp:
                     temp.write(task_instance["test_cases"][testcase]["code"])
                     temp_name = temp.name
-                    print(f"Temporary file created: {temp_name}, {os.listdir()}")
+                    print(f"Temporary file created: {temp_name}")
                     try:
                         result = subprocess.run(
                             [
                                 "ruff",
                                 "check",
-                                f"./{temp_name}",
+                                temp_name,
                                 "--select",
                                 "F401",
                                 "--fix",
