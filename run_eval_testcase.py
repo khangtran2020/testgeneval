@@ -107,12 +107,18 @@ async def main(
                     if task_instance[f"translate_{translated}"][testcase] == "":
                         continue
 
-                # remove unused imports from test cases
-                with tempfile.NamedTemporaryFile(
-                    mode="w+", suffix=".py", delete=False
-                ) as temp:
-                    temp.write(task_instance["test_cases"][testcase]["code"])
+                try:
+                    # Create a temporary file (not auto-deleted)
+                    temp = tempfile.NamedTemporaryFile(delete=False)
                     temp_name = temp.name
+
+                    # Give full read/write permissions
+                    os.chmod(temp_name, 0o666)
+
+                    # --- Do your processing here ---
+                    temp.write(task_instance["test_cases"][testcase]["code"])
+                    temp.flush()
+
                     try:
                         result = subprocess.run(
                             [
@@ -128,10 +134,23 @@ async def main(
                     except subprocess.CalledProcessError as e:
                         print(f"Error occurred while running ruff: {e}")
                         continue
+
+                    temp.seek(0)
+                    # print(temp.read())
+
                     with open(temp_name, "r") as f:
                         cleaned_code = f.read()
                     print(f"Cleaned code:\n{cleaned_code}")
                     task_instance["test_cases"][testcase]["code"] = cleaned_code
+
+                finally:
+                    # Always remove the temp file after processing
+                    try:
+                        temp.close()
+                        os.remove(temp_name)
+                        print(f"Temporary file {temp_name} removed.")
+                    except Exception as e:
+                        print(f"Error removing temp file: {e}")
 
                 async def run_docker_throttled(task_instance, testcase):
                     async with sem:
