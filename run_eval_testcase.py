@@ -3,6 +3,8 @@ import asyncio
 import logging
 import os
 import json
+import subprocess
+import tempfile
 from rich.pretty import pretty_repr
 from swebench_docker.constants import KEY_BASELINES, KEY_ID, REPO_ID
 from swebench_docker.run_docker import run_docker_evaluation
@@ -102,13 +104,34 @@ async def main(
             for testcase in task_instance["test_cases"].keys():
 
                 if translated != -1:
-
                     if task_instance[f"translate_{translated}"][testcase] == "":
                         continue
 
-                # if generated:
-                #     if task_instance["gen_tests"][testcase] == "":
-                #         continue
+                # remove unused imports from test cases
+                with tempfile.NamedTemporaryFile(
+                    mode="w+", suffix=".py", delete=True
+                ) as temp:
+                    temp.write(task_instance["test_cases"][testcase]["code"])
+                    temp_name = temp.name
+                    print(f"Temporary file created: {temp_name}")
+                    try:
+                        result = subprocess.run(
+                            [
+                                "ruff",
+                                "check",
+                                f"./{temp_name}",
+                                "--select",
+                                "F401",
+                                "--fix",
+                            ],
+                            check=True,
+                        )
+                    except subprocess.CalledProcessError as e:
+                        print(f"Error occurred while running ruff: {e}")
+                        continue
+                    with open(temp_name, "r") as f:
+                        cleaned_code = f.read()
+                    task_instance["test_cases"][testcase]["code"] = cleaned_code
 
                 async def run_docker_throttled(task_instance, testcase):
                     async with sem:
