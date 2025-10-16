@@ -109,11 +109,11 @@ async def main(
 
                 # remove unused imports from test cases
                 with tempfile.NamedTemporaryFile(
-                    mode="w+", suffix=".py", delete=True
+                    mode="w+", suffix=".py", delete=False
                 ) as temp:
                     temp.write(task_instance["test_cases"][testcase]["code"])
                     temp_name = temp.name
-                    print(f"Temporary file created: {temp_name}")
+                    print(f"Temporary file created: {temp_name}, {os.listdir()}")
                     try:
                         result = subprocess.run(
                             [
