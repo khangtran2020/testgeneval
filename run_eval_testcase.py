@@ -1,8 +1,9 @@
+import os
+import ast
+import json
 import argparse
 import asyncio
 import logging
-import os
-import json
 import subprocess
 import tempfile
 from rich.pretty import pretty_repr
@@ -14,6 +15,48 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger("run_evaluation_baseline")
+
+
+def get_importables(code):
+    try:
+        tree = ast.parse(code)
+        importables = []
+
+        for node in tree.body:  # Only iterates through top-level statements
+            if isinstance(node, ast.FunctionDef):
+                if not node.name.startswith("_"):
+                    importables.append(node.name)
+
+            elif isinstance(node, ast.ClassDef):
+                if not node.name.startswith("_"):
+                    importables.append(node.name)
+
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        if not target.id.startswith("_"):
+                            importables.append(target.id)
+
+        return importables
+    except:
+        return []
+
+
+def extract_imports(code):
+    try:
+        tree = ast.parse(code)
+        imports = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    imports.append(alias.name)
+            elif isinstance(node, ast.ImportFrom):
+                module = node.module if node.module else ""
+                names = ", ".join(alias.name for alias in node.names)
+                imports.append((module, names))
+        return imports
+    except:
+        return []
 
 
 async def main(
@@ -39,7 +82,6 @@ async def main(
     if not isinstance(tasks, list):
         raise ValueError(f"Data from {data_path} must contain an array of tasks")
 
-    print(f"Debug mode: {debug}")
     if debug:
         print(f"First task keys: {pretty_repr(tasks[0].keys())}")
         print(f"Number of tasks: {len(tasks)}")
@@ -66,8 +108,6 @@ async def main(
 
     for task_instance in tasks:
         if debug:
-            print(f"An example of task_instance: {pretty_repr(task_instance.keys())}")
-            # exit()
             for testcase in test_case_keys:
 
                 async def run_docker_throttled(task_instance, testcase):
@@ -112,15 +152,11 @@ async def main(
                     temp = tempfile.NamedTemporaryFile(delete=False)
                     temp_name = temp.name
 
-                    # Give full read/write permissions
                     os.chmod(temp_name, 0o666)
-
-                    # --- Do your processing here ---
                     temp.write(
                         task_instance["test_cases"][testcase]["code"].encode("utf-8")
                     )
                     temp.flush()
-
                     try:
                         result = subprocess.run(
                             [
@@ -138,13 +174,9 @@ async def main(
                         continue
 
                     temp.seek(0)
-                    # print(temp.read())
-
                     with open(temp_name, "r") as f:
                         cleaned_code = f.read()
-                    print(f"Cleaned code:\n{cleaned_code}")
                     task_instance["test_cases"][testcase]["code"] = cleaned_code
-
                 finally:
                     # Always remove the temp file after processing
                     try:
@@ -153,6 +185,32 @@ async def main(
                         print(f"Temporary file {temp_name} removed.")
                     except Exception as e:
                         print(f"Error removing temp file: {e}")
+
+                imports = extract_imports(
+                    code=task_instance["test_cases"][testcase]["code"]
+                )
+                module_path = (
+                    task_instance["code_file"].replace("/", ".").split(".py")[0]
+                )
+                module_code = task_instance["code_src"]
+
+                is_directly_imported = False
+                for imp in imports:
+                    if isinstance(imp, tuple):
+                        module = imp[0]
+                        if module == module_path:
+                            is_directly_imported = True
+                            break
+                    else:
+                        if module_path in imp:
+                            is_directly_imported = True
+                            break
+
+                if not is_directly_imported:
+                    logger.info(
+                        f"Skipping test case {testcase} in task {task_instance[KEY_ID]} as module {module_path} is not directly imported."
+                    )
+                    continue
 
                 async def run_docker_throttled(task_instance, testcase):
                     async with sem:

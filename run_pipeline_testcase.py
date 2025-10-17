@@ -19,10 +19,6 @@ def main(args):
     if model_suf == "Meta-Llama-3.1-405B-Instruct":
         args.model = model_suf
 
-    # print(
-    #     f"Running pipeline for {args.model} with pass@{args.num_samples_full} (full) and pass@{args.num_samples_completion} (completion) on {data_suf}"
-    # )
-
     base_dir = os.path.join(os.path.abspath(args.results_dir), data_suf)
     print(base_dir)
     os.makedirs(base_dir, exist_ok=True)
