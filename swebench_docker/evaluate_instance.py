@@ -38,7 +38,7 @@ try:
 except subprocess.CalledProcessError as e:
     print(f"Failed to install 'coverage': {e.stderr.decode().strip()}")
 
-from typing import Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from coverage import CoverageData
 
 from swebench_docker.constants import (
@@ -64,6 +64,274 @@ logging.basicConfig(
 )
 logging.getLogger().setLevel(logging.INFO)
 logger = logging.getLogger("evaluate_instance")
+
+import ast
+
+
+def _end_lineno_fallback(node: ast.AST) -> int:
+    """
+    Best-effort fallback to compute an end line number if the node lacks
+    the 'end_lineno' attribute (older Python or unusual nodes).
+    We take the maximum end/line number of all descendants, or the node's
+    own line number if nothing else is present.
+    """
+    best = getattr(node, "end_lineno", None)
+    if isinstance(best, int):
+        return best
+
+    best = getattr(node, "lineno", 0)
+    for child in ast.walk(node):
+        end_ln = getattr(child, "end_lineno", None)
+        ln = getattr(child, "lineno", None)
+        if isinstance(end_ln, int):
+            best = max(best, end_ln)
+        elif isinstance(ln, int):
+            best = max(best, ln)
+    return best or 0
+
+
+def _node_span(node: ast.AST) -> Tuple[int, int]:
+    start = getattr(node, "lineno", None) or 0
+    end = getattr(node, "end_lineno", None)
+    if not isinstance(end, int):
+        end = _end_lineno_fallback(node)
+    return start, end
+
+
+def _docstring_of(node: ast.AST) -> Optional[Tuple[int, int, str]]:
+    """
+    If 'node' (Module, ClassDef, FunctionDef/AsyncFunctionDef) has a docstring,
+    return (start_line, end_line, text). Otherwise None.
+    """
+    body = getattr(node, "body", None)
+    if not body or not isinstance(body, list) or not body:
+        return None
+
+    first = body[0]
+    # In Python 3.8+, docstring appears as ast.Expr(value=ast.Constant(str))
+    if isinstance(first, ast.Expr):
+        val = first.value
+        if isinstance(val, ast.Constant) and isinstance(val.value, str):
+            s, e = _node_span(first)
+            return s, e, val.value
+        # Older forms (rare today): ast.Str
+        if hasattr(ast, "Str") and isinstance(val, ast.Str):  # type: ignore[attr-defined]
+            s, e = _node_span(first)
+            return s, e, val.s  # type: ignore[attr-defined]
+    return None
+
+
+def _extract_decorators(node: ast.AST, source: str) -> List[str]:
+    """
+    Extract decorator names/expressions from a function or class definition.
+    Returns a list of decorator strings as they appear in the source.
+    """
+    decorators = []
+    decorator_list = getattr(node, "decorator_list", [])
+
+    for dec in decorator_list:
+        # Try to extract a meaningful representation
+        if isinstance(dec, ast.Name):
+            decorators.append(dec.id)
+        elif isinstance(dec, ast.Attribute):
+            # Handle chained attributes like @obj.method
+            parts = []
+            current = dec
+            while isinstance(current, ast.Attribute):
+                parts.append(current.attr)
+                current = current.value
+            if isinstance(current, ast.Name):
+                parts.append(current.id)
+            decorators.append(".".join(reversed(parts)))
+        elif isinstance(dec, ast.Call):
+            # Decorator with arguments like @decorator(arg)
+            func = dec.func
+            if isinstance(func, ast.Name):
+                decorators.append(f"{func.id}(...)")
+            elif isinstance(func, ast.Attribute):
+                parts = []
+                current = func
+                while isinstance(current, ast.Attribute):
+                    parts.append(current.attr)
+                    current = current.value
+                if isinstance(current, ast.Name):
+                    parts.append(current.id)
+                decorators.append(".".join(reversed(parts)) + "(...)")
+            else:
+                decorators.append("(...)")
+        else:
+            # Fallback for complex expressions
+            decorators.append("<complex>")
+
+    return decorators
+
+
+def _qualname(name_stack: List[str], leaf: Optional[str]) -> Optional[str]:
+    if leaf is None:
+        return None
+    parts = [*name_stack, leaf] if name_stack else [leaf]
+    return ".".join(parts)
+
+
+class SpanCollector(ast.NodeVisitor):
+    def __init__(self, source: str):
+        self.source = source
+        self.items: List[Dict[str, Any]] = []
+        self.stack: List[str] = []  # for qualified names
+
+    def record_entity(self, kind: str, name: Optional[str], node: ast.AST):
+        start, end = _node_span(node)
+        decorators = _extract_decorators(node, self.source)
+
+        entity = {
+            "kind": kind,  # "class" | "function" | "async_function"
+            "name": _qualname(self.stack, name) if name else None,
+            "start_line": start,
+            "end_line": end,
+        }
+
+        # Only add decorators field if there are decorators
+        if decorators:
+            entity["decorators"] = decorators
+
+        self.items.append(entity)
+
+    def record_docstring(
+        self, owner_kind: str, owner_name: Optional[str], s: int, e: int, text: str
+    ):
+        self.items.append(
+            {
+                "kind": "docstring",
+                "of": owner_kind,  # "module" | "class" | "function"
+                "name": _qualname(self.stack, owner_name) if owner_name else None,
+                "start_line": s,
+                "end_line": e,
+                "text": text,
+            }
+        )
+
+    # Module
+    def visit_Module(self, node: ast.Module):
+        ds = _docstring_of(node)
+        if ds:
+            s, e, text = ds
+            self.record_docstring("module", None, s, e, text)
+        self.generic_visit(node)
+
+    # Class
+    def visit_ClassDef(self, node: ast.ClassDef):
+        self.record_entity("class", node.name, node)
+        # push for qualname of nested members
+        self.stack.append(node.name)
+        # class docstring
+        ds = _docstring_of(node)
+        if ds:
+            s, e, text = ds
+            self.record_docstring("class", node.name, s, e, text)
+        self.generic_visit(node)
+        self.stack.pop()
+
+    # Function (sync)
+    def visit_FunctionDef(self, node: ast.FunctionDef):
+        self.record_entity("function", node.name, node)
+        # push for nested defs
+        self.stack.append(node.name)
+        ds = _docstring_of(node)
+        if ds:
+            s, e, text = ds
+            self.record_docstring("function", node.name, s, e, text)
+        self.generic_visit(node)
+        self.stack.pop()
+
+    # Function (async)
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef):
+        self.record_entity("async_function", node.name, node)
+        self.stack.append(node.name)
+        ds = _docstring_of(node)
+        if ds:
+            s, e, text = ds
+            self.record_docstring("function", node.name, s, e, text)
+        self.generic_visit(node)
+        self.stack.pop()
+
+
+def analyze_file(code: str) -> List[Dict[str, Any]]:
+    tree = ast.parse(code, filename="<string>")
+    collector = SpanCollector(code)
+    collector.visit(tree)
+    # Sort by start_line for a stable, readable output
+    collector.items.sort(
+        key=lambda x: (x["start_line"], x["end_line"], x.get("kind", ""))
+    )
+    return collector.items
+
+
+def is_name_main_check(node):
+    """Check if node is: if __name__ == "__main__": or similar"""
+    if not isinstance(node, ast.If):
+        return False
+
+    test = node.test
+
+    # Check for: __name__ == "__main__"
+    if isinstance(test, ast.Compare):
+        if (
+            isinstance(test.left, ast.Name)
+            and test.left.id == "__name__"
+            and len(test.ops) == 1
+            and isinstance(test.ops[0], ast.Eq)
+            and len(test.comparators) == 1
+            and isinstance(test.comparators[0], ast.Constant)
+            and test.comparators[0].value == "__main__"
+        ):
+            return True
+
+        # Check for: "__main__" == __name__
+        if (
+            isinstance(test.left, ast.Constant)
+            and test.left.value == "__main__"
+            and len(test.ops) == 1
+            and isinstance(test.ops[0], ast.Eq)
+            and len(test.comparators) == 1
+            and isinstance(test.comparators[0], ast.Name)
+            and test.comparators[0].id == "__name__"
+        ):
+            return True
+
+    return False
+
+
+def get_executed_lines(source_code: str):
+    try:
+        tree = ast.parse(source_code)
+    except SyntaxError as e:
+        print(f"Syntax error: {e}")
+        return []
+
+    num_lines = len(source_code.split("\n"))
+    executed_line_numbers = set()
+
+    for node in tree.body:
+        # Skip if __name__ == "__main__" blocks
+        if is_name_main_check(node):
+            continue
+
+        # Skip function and class definitions entirely (including decorators)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+
+        # Everything else at top level executes
+        if node.lineno and node.end_lineno:
+            for line_num in range(node.lineno, node.end_lineno + 1):
+                executed_line_numbers.add(line_num)
+
+    # Return sorted list of (line_number, line_content)
+    result = []
+    for line_num in sorted(executed_line_numbers):
+        if line_num <= num_lines:
+            result.append(line_num)
+
+    return result
 
 
 def indent_text(text, indent_level):
@@ -553,24 +821,82 @@ def test_case_processing(
 
         arcs = data.arcs(filename=code_file_name)
         if arcs is None:
-            logger.info(f"Arcs not found")
+            logger.info(f"\n\nArcs not found\n\n")
         else:
-            branches = []
-            visited = []
-            for e in arcs:
-                if e[0] < 0:
+            init_lines = get_executed_lines(source_code=task_instance["code_src"])
+            res = analyze_file(code=task_instance["code_src"])
+            line_exclude = []
+            for l in res:
+                if l["kind"] == "docstring":
+                    line_exclude.append(l["start_line"])
+                    line_exclude.append(l["end_line"])
+                elif l["kind"] == "class":
+                    line_exclude.append(l["start_line"])
+                elif (l["kind"] == "function") or (l["kind"] == "async_function"):
+                    if "decorators" in l.keys():
+                        line_exclude.append(l["start_line"] - 1)
+                    line_exclude.append(l["start_line"])
+
+            clean_arcs = []
+            start_arcs = []
+
+            for arc in arcs:
+                if arc[1] in line_exclude:
                     continue
-                if e[1] < 0:
-                    continue
-                if e[0] in visited:
-                    for i, branch in enumerate(branches):
-                        if e[0] in branch:
-                            branches[i].append(e[1])
-                            visited.append(e[1])
+                if arc[0] < 0:
+                    if arc[1] == -1 * arc[0]:
+                        continue
+                    else:
+                        start_arcs.append((-1 * arc[0], arc[1]))
+                elif arc[0] in line_exclude:
+                    if arc[1] in line_exclude:
+                        continue
+                    elif arc[1] < 0:
+                        continue
+                    else:
+                        clean_arcs.append(arc)
+
                 else:
-                    branches.append([e[0], e[1]])
-                    visited.append(e[0])
-                    visited.append(e[1])
+                    clean_arcs.append(arc)
+
+            clean_arcs = sorted(clean_arcs)
+            init_arcs = []
+            remain_arcs = []
+            for i, arc in enumerate(clean_arcs):
+                if arc[0] in init_lines and arc[1] in init_lines:
+                    init_arcs.append(arc)
+                else:
+                    remain_arcs.append(arc)
+
+            init_arcs = sorted(init_arcs)
+
+            branches = []
+            remain_arcs = sorted(remain_arcs)
+            branch = []
+
+            for arc in remain_arcs:
+                if arc[1] < 0:
+                    branch = [-1 * arc[1]] + branch
+                    branches.append(branch)
+                    branch = []
+                else:
+                    if arc[0] in branch:
+                        branch.append(arc[1])
+                    else:
+                        branch.append(arc[0])
+                        branch.append(arc[1])
+
+            if len(branches) > 0:
+                branch = []
+                for arc in init_arcs:
+                    if arc[0] in branch:
+                        branch.append(arc[1])
+                    else:
+                        branch.append(arc[0])
+                        branch.append(arc[1])
+
+                branches = [branch] + branches
+
             if translated == -1:
                 task_instance["branches"][setting] = branches
                 task_instance["arcs"][setting] = arcs
@@ -580,6 +906,36 @@ def test_case_processing(
             if os.path.exists(".coverage"):
                 logger.info("Removing coverage")
                 os.remove(".coverage")
+        # print(init_arcs)
+
+        # if arcs is None:
+        #     logger.info(f"Arcs not found")
+        # else:
+        #     branches = []
+        #     visited = []
+        #     for e in arcs:
+        #         if e[0] < 0:
+        #             continue
+        #         if e[1] < 0:
+        #             continue
+        #         if e[0] in visited:
+        #             for i, branch in enumerate(branches):
+        #                 if e[0] in branch:
+        #                     branches[i].append(e[1])
+        #                     visited.append(e[1])
+        #         else:
+        #             branches.append([e[0], e[1]])
+        #             visited.append(e[0])
+        #             visited.append(e[1])
+        #     if translated == -1:
+        #         task_instance["branches"][setting] = branches
+        #         task_instance["arcs"][setting] = arcs
+        #     else:
+        #         task_instance[f"branch_translate_{translated}"][setting] = branches
+
+        #     if os.path.exists(".coverage"):
+        #         logger.info("Removing coverage")
+        #         os.remove(".coverage")
         if success:
             successful_tests.append(prompt)
 
