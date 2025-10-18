@@ -876,7 +876,11 @@ def test_case_processing(
 
             for arc in remain_arcs:
                 if arc[1] < 0:
-                    branch = [-1 * arc[1]] + branch
+                    if arc[0] in branch:
+                        branch = [-1 * arc[1]] + branch
+                    else:
+                        branch.append(arc[0])
+                        branch = [-1 * arc[1]] + branch
                     branches.append(branch)
                     branch = []
                 else:
