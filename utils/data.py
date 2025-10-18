@@ -21,6 +21,45 @@ from rich.console import Console
 from typing import Dict
 
 
+class RemoveImportOfName(ast.NodeTransformer):
+    def __init__(self, target_name: str):
+        self.target = target_name
+
+    def visit_ImportFrom(self, node: ast.ImportFrom):
+        # Keep only aliases that aren't the target object
+        kept = [a for a in node.names if a.name != self.target]
+        if not kept:
+            return None  # drop entire statement
+        if len(kept) != len(node.names):
+            node = ast.ImportFrom(module=node.module, names=kept, level=node.level)
+        return node
+
+    def visit_Import(self, node: ast.Import):
+        # Remove plain "import <object_name>" if present
+        kept = [a for a in node.names if a.name != self.target]
+        if not kept:
+            return None
+        if len(kept) != len(node.names):
+            node = ast.Import(names=kept)
+        return node
+
+
+def remove_import(src: str, object_name: str):
+    tree = ast.parse(src)
+
+    new_tree = RemoveImportOfName(object_name).visit(tree)
+    ast.fix_missing_locations(new_tree)
+
+    try:
+        new_src = ast.unparse(new_tree)  # Python 3.9+
+    except AttributeError:
+        raise SystemExit("Python 3.9+ required (ast.unparse not available).")
+
+    if not new_src.endswith("\n"):
+        new_src += "\n"
+    return new_src
+
+
 def get_importables(code):
     try:
         tree = ast.parse(code)
@@ -201,10 +240,16 @@ class Data(object):
                             if module == module_path:
                                 is_directly_imported = True
                                 break
-                            # else:
-                            #     if imp[1] in importables:
-                            #         is_directly_imported = True
-                            #         break
+                            else:
+                                if imp[1] in importables:
+                                    removed_code = remove_import(
+                                        src=trimmed_code,
+                                        object_name=imp[1],
+                                    )
+                                    trimmed_code = (
+                                        f"from {module_path} import {imp[1]}\n"
+                                        + removed_code
+                                    )
                         else:
                             if module_path in imp:
                                 is_directly_imported = True
