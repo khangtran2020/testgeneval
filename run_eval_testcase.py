@@ -57,10 +57,10 @@ async def main(
 
     sem = asyncio.Semaphore(num_processes if num_processes > 0 else len(tasks))
     asyncio_tasks = []
-    if debug:
-        tasks = tasks[:1]
-        test_case_keys = ["test_case_0"]
-        print(f"Task: {tasks[0][KEY_ID]}, version {tasks[0]['version']}")
+    # if debug:
+    #     tasks = tasks[:1]
+    #     test_case_keys = ["test_case_0"]
+    #     print(f"Task: {tasks[0][KEY_ID]}, version {tasks[0]['version']}")
 
     task_dict = {task[KEY_ID]: task for task in tasks}
 
