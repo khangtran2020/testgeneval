@@ -66,7 +66,7 @@ async def main(
 
     for task_instance in tasks:
         if debug:
-            for testcase in test_case_keys:
+            for testcase in ["test_case_0"]:
 
                 async def run_docker_throttled(task_instance, testcase):
                     async with sem:
@@ -88,16 +88,16 @@ async def main(
                 asyncio_tasks.append(task)
         else:
             # if debug:
-            if len(task_instance["test_cases"].keys()) > 0:
-                max_id = max(
-                    [int(x.split("_")[-1]) for x in task_instance["test_cases"].keys()]
-                )
-                logger.info(
-                    f"# of test cases: {len(task_instance['test_cases'].keys())}, and max id: {max_id}, {max_id == len(task_instance['test_cases'].keys()) - 1}"
-                )
-            else:
-                logger.info(f"No test cases found for {task_instance[KEY_ID]}")
-                max_id = 0
+            # if len(task_instance["test_cases"].keys()) > 0:
+            #     max_id = max(
+            #         [int(x.split("_")[-1]) for x in task_instance["test_cases"].keys()]
+            #     )
+            #     # logger.info(
+            #     #     f"# of test cases: {len(task_instance['test_cases'].keys())}, and max id: {max_id}, {max_id == len(task_instance['test_cases'].keys()) - 1}"
+            #     # )
+            # else:
+            #     # logger.info(f"No test cases found for {task_instance[KEY_ID]}")
+            #     max_id = 0
 
             for testcase in task_instance["test_cases"].keys():
 
