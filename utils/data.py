@@ -1,8 +1,11 @@
 import os
+import ast
 import json
 import asyncio
 import aiofiles
 import datetime
+import tempfile
+import subprocess
 from tqdm.asyncio import tqdm
 from utils.utils import (
     # extract_preamble_classes_and_functions,
@@ -16,6 +19,48 @@ from datasets import load_dataset, load_from_disk, concatenate_datasets
 # typing
 from rich.console import Console
 from typing import Dict
+
+
+def get_importables(code):
+    try:
+        tree = ast.parse(code)
+        importables = []
+
+        for node in tree.body:  # Only iterates through top-level statements
+            if isinstance(node, ast.FunctionDef):
+                if not node.name.startswith("_"):
+                    importables.append(node.name)
+
+            elif isinstance(node, ast.ClassDef):
+                if not node.name.startswith("_"):
+                    importables.append(node.name)
+
+            elif isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        if not target.id.startswith("_"):
+                            importables.append(target.id)
+
+        return importables
+    except:
+        return []
+
+
+def extract_imports(code):
+    try:
+        tree = ast.parse(code)
+        imports = []
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    imports.append(alias.name)
+            elif isinstance(node, ast.ImportFrom):
+                module = node.module if node.module else ""
+                names = ", ".join(alias.name for alias in node.names)
+                imports.append((module, names))
+        return imports
+    except:
+        return []
 
 
 class Data(object):
@@ -103,14 +148,70 @@ class Data(object):
             test_cases = {}
             test_id = 0
             for tar_func in test_dict["test_functions"]:
-                # trimmed_code = trim_test_cases(
-                #     source_code=test_src,
-                #     target=tar_func,
-                # )
                 trimmed_code = extract_minimal_test(
                     script=test_src, target=tar_func, id=instance_id
                 )
                 if trimmed_code is not None:
+                    try:
+                        # Create a temporary file (not auto-deleted)
+                        temp = tempfile.NamedTemporaryFile(delete=False)
+                        temp_name = temp.name
+
+                        os.chmod(temp_name, 0o666)
+                        temp.write(trimmed_code.encode("utf-8"))
+                        temp.flush()
+                        try:
+                            result = subprocess.run(
+                                [
+                                    "ruff",
+                                    "check",
+                                    temp_name,
+                                    "--select",
+                                    "F401",
+                                    "--fix",
+                                ],
+                                check=True,
+                            )
+                        except subprocess.CalledProcessError as e:
+                            print(f"Error occurred while running ruff: {e}")
+                            continue
+
+                        temp.seek(0)
+                        with open(temp_name, "r") as f:
+                            cleaned_code = f.read()
+                        trimmed_code = cleaned_code
+                    finally:
+                        # Always remove the temp file after processing
+                        try:
+                            temp.close()
+                            os.remove(temp_name)
+                            print(f"Temporary file {temp_name} removed.")
+                        except Exception as e:
+                            print(f"Error removing temp file: {e}")
+
+                    imports = extract_imports(code=trimmed_code)
+                    module_path = code_file.replace("/", ".").split(".py")[0]
+                    module_code = code_src
+                    importables = get_importables(code=module_code)
+
+                    is_directly_imported = False
+                    for imp in imports:
+                        if isinstance(imp, tuple):
+                            module = imp[0]
+                            if module == module_path:
+                                is_directly_imported = True
+                                break
+                            # else:
+                            #     if imp[1] in importables:
+                            #         is_directly_imported = True
+                            #         break
+                        else:
+                            if module_path in imp:
+                                is_directly_imported = True
+                                break
+
+                    if not is_directly_imported:
+                        continue
                     test_cases[f"test_case_{test_id}"] = {
                         "target": tar_func,
                         "code": trimmed_code,
@@ -125,6 +226,66 @@ class Data(object):
                         id=instance_id,
                     )
                     if trimmed_code is not None:
+                        try:
+                            # Create a temporary file (not auto-deleted)
+                            temp = tempfile.NamedTemporaryFile(delete=False)
+                            temp_name = temp.name
+
+                            os.chmod(temp_name, 0o666)
+                            temp.write(trimmed_code.encode("utf-8"))
+                            temp.flush()
+                            try:
+                                result = subprocess.run(
+                                    [
+                                        "ruff",
+                                        "check",
+                                        temp_name,
+                                        "--select",
+                                        "F401",
+                                        "--fix",
+                                    ],
+                                    check=True,
+                                )
+                            except subprocess.CalledProcessError as e:
+                                print(f"Error occurred while running ruff: {e}")
+                                continue
+
+                            temp.seek(0)
+                            with open(temp_name, "r") as f:
+                                cleaned_code = f.read()
+                            trimmed_code = cleaned_code
+                        finally:
+                            # Always remove the temp file after processing
+                            try:
+                                temp.close()
+                                os.remove(temp_name)
+                                print(f"Temporary file {temp_name} removed.")
+                            except Exception as e:
+                                print(f"Error removing temp file: {e}")
+
+                        imports = extract_imports(code=trimmed_code)
+                        module_path = code_file.replace("/", ".").split(".py")[0]
+                        module_code = code_src
+                        importables = get_importables(code=module_code)
+
+                        is_directly_imported = False
+                        for imp in imports:
+                            if isinstance(imp, tuple):
+                                module = imp[0]
+                                if module == module_path:
+                                    is_directly_imported = True
+                                    break
+                                # else:
+                                #     if imp[1] in importables:
+                                #         is_directly_imported = True
+                                #         break
+                            else:
+                                if module_path in imp:
+                                    is_directly_imported = True
+                                    break
+
+                        if not is_directly_imported:
+                            continue
                         test_cases[f"test_case_{test_id}"] = {
                             "target": f"{class_name}.{method}",
                             "code": trimmed_code,
@@ -136,6 +297,7 @@ class Data(object):
             for key in test_cases.keys():
                 branches[key] = []
                 arcs[key] = []
+
             processed_data = {
                 "repo": repo,
                 "base_commit": commit_id,

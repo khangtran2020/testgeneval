@@ -48,6 +48,8 @@ def main(args):
     dataset.load_raw_data()
     dataset.process_data()
 
+    # for task in dataset.tasks:
+
     if args.debug:
         console.log("Debug mode on")
 
