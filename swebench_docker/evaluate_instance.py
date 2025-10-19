@@ -66,6 +66,238 @@ logging.getLogger().setLevel(logging.INFO)
 logger = logging.getLogger("evaluate_instance")
 
 import ast
+from __future__ import annotations
+import ast
+import json
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Tuple
+
+
+@dataclass
+class BlockSpan:
+    kind: str  # "class" | "function" | "async_function"
+    qualname: str  # e.g., "MyClass.method(x, y=?)", "helper(a)", "Outer.Inner"
+    start: int  # inclusive (1-based)
+    end: int  # inclusive (1-based)
+    depth: int  # number of name components
+
+
+def _node_span(node: ast.AST) -> Tuple[int, int]:
+    """Compute [start, end] lines (1-based, inclusive) for class/def/async def nodes.
+    Includes decorator lines if present. Requires Python 3.8+ for end_lineno.
+    """
+    start = getattr(node, "lineno", None)
+    end = getattr(node, "end_lineno", None)
+
+    # Include decorators (if any)
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        for dec in getattr(node, "decorator_list", []):
+            dln = getattr(dec, "lineno", None)
+            if isinstance(dln, int):
+                start = min(start, dln) if isinstance(start, int) else dln
+
+    # Fallback if end_lineno missing
+    if not isinstance(end, int):
+        end = int(start) if isinstance(start, int) else 1
+        for child in ast.walk(node):
+            e = getattr(child, "end_lineno", None)
+            if isinstance(e, int):
+                end = max(end, e)
+
+    return int(start), int(end)
+
+
+def _arg_name(a: ast.arg) -> str:
+    # Just the identifier; we ignore annotations in the signature key
+    return a.arg
+
+
+def _normalize_signature(args: ast.arguments) -> str:
+    """Return a normalized signature string that distinguishes argument shapes.
+
+    - Shows positional-only params and "/" if any (PEP 570)
+    - Shows var-positional as "*name" if present, else lone "*" before kw-only (PEP 3102)
+    - Shows kw-only params (after "*" marker or *var)
+    - Shows var-keyword as "**name"
+    - Marks presence of a default with '=?' (without revealing default value)
+    """
+    parts: List[str] = []
+
+    # Positional-only
+    posonly = getattr(args, "posonlyargs", [])
+    for a in posonly:
+        parts.append(_arg_name(a))
+    if posonly:
+        parts.append("/")  # marker after the last pos-only
+
+    # Positional-or-keyword (args.args) with defaults
+    # Defaults align to the last N of args.args
+    defaults = list(args.defaults or [])
+    n_args = len(args.args)
+    n_def = len(defaults)
+    def_start = n_args - n_def
+    for i, a in enumerate(args.args):
+        name = _arg_name(a)
+        if i >= def_start:
+            parts.append(f"{name}=?")
+        else:
+            parts.append(name)
+
+    # Var-positional
+    if args.vararg is not None:
+        parts.append(f"*{_arg_name(args.vararg)}")
+        star_already = True
+    else:
+        star_already = False
+
+    # Kw-only (with defaults in kw_defaults)
+    for name, dflt in zip(args.kwonlyargs or [], args.kw_defaults or []):
+        n = _arg_name(name)
+        if dflt is None:
+            parts.append(n)
+        else:
+            parts.append(f"{n}=?")
+
+    # If there are kw-only args but no *vararg, we need a bare "*" marker in front
+    if (args.kwonlyargs or []) and not star_already:
+        # Insert "*" before the first kw-only item; find its index
+        first_kw_idx = 0
+        # find where kw-only params started (after pos params)
+        # We placed posonly + "/" (optional) + args.args
+        # So kw-only start index is len(parts) - len(kwonlyargs)
+        first_kw_idx = len(parts) - len(args.kwonlyargs)
+        parts.insert(first_kw_idx, "*")
+
+    # Var-keyword
+    if args.kwarg is not None:
+        parts.append(f"**{_arg_name(args.kwarg)}")
+
+    return "(" + ", ".join(parts) + ")"
+
+
+def detect_loops(script_code: str):
+    """
+    Detects all 'for' and 'while' loops in the given Python script.
+
+    Args:
+        script_code (str): The Python source code as a string.
+
+    Returns:
+        dict: A dictionary with 'for' and 'while' as keys and lists of line numbers as values.
+    """
+    tree = ast.parse(script_code)
+    for_lines = []
+    while_lines = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.For):
+            for_lines.append(node.lineno)
+        elif isinstance(node, ast.While):
+            while_lines.append(node.lineno)
+
+    return {"for": sorted(for_lines), "while": sorted(while_lines)}
+
+
+def _display_name(n: ast.AST) -> Optional[str]:
+    """Return display name for a block:
+    - class: its name
+    - function/async function: name + normalized signature
+    """
+    if isinstance(n, ast.ClassDef):
+        return n.name
+    if isinstance(n, ast.FunctionDef):
+        return f"{n.name}{_normalize_signature(n.args)}"
+    if isinstance(n, ast.AsyncFunctionDef):
+        return f"{n.name}{_normalize_signature(n.args)}"
+    return None
+
+
+def _walk_blocks(source: str) -> List[BlockSpan]:
+    tree = ast.parse(source)
+    blocks: List[BlockSpan] = []
+    stack: List[str] = []
+
+    def visit(n: ast.AST):
+        disp = _display_name(n)
+        kind: Optional[str] = None
+        if isinstance(n, ast.ClassDef):
+            kind = "class"
+        elif isinstance(n, ast.FunctionDef):
+            kind = "function"
+        elif isinstance(n, ast.AsyncFunctionDef):
+            kind = "async_function"
+
+        if disp and kind:
+            qual_parts = stack + [disp]
+            qualname = ".".join(qual_parts)
+            start, end = _node_span(n)
+            blocks.append(BlockSpan(kind, qualname, start, end, len(qual_parts)))
+
+            stack.append(disp)
+            for child in ast.iter_child_nodes(n):
+                visit(child)
+            stack.pop()
+        else:
+            for child in ast.iter_child_nodes(n):
+                visit(child)
+
+    visit(tree)
+    return blocks
+
+
+def _find_loop_starts(source: str) -> Dict[int, str]:
+    """Return {lineno: loop_type} where loop_type in {"for", "while"}.
+    Includes AsyncFor as "for".
+    """
+    tree = ast.parse(source)
+    loop_starts: Dict[int, str] = {}
+
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.For, ast.AsyncFor)):
+            ln = getattr(node, "lineno", None)
+            if isinstance(ln, int):
+                loop_starts[ln] = "for"
+        elif isinstance(node, ast.While):
+            ln = getattr(node, "lineno", None)
+            if isinstance(ln, int):
+                loop_starts[ln] = "while"
+    return loop_starts
+
+
+def classify_lines(source: str) -> Dict[int, Dict[str, object]]:
+    """Return a dict keyed by line number (1-based)."""
+    lines = source.splitlines()
+    n = len(lines)
+
+    # Initialize all as module
+    result: Dict[int, Dict[str, object]] = {
+        i
+        + 1: {
+            "block": "module",
+            "kind": "module",
+            "is_loop_start": False,
+            "loop_type": None,
+        }
+        for i in range(n)
+    }
+
+    # Paint blocks (deeper overrides)
+    blocks = _walk_blocks(source)
+    blocks.sort(key=lambda b: (b.depth, b.start, -b.end))
+    for b in blocks:
+        for ln in range(max(1, b.start), min(n, b.end) + 1):
+            cell = result[ln]
+            cell["block"] = b.qualname
+            cell["kind"] = b.kind
+
+    # Mark loop starts
+    loop_starts = _find_loop_starts(source)
+    for ln, ltype in loop_starts.items():
+        if 1 <= ln <= n:
+            result[ln]["is_loop_start"] = True
+            result[ln]["loop_type"] = ltype
+
+    return result
 
 
 def _end_lineno_fallback(node: ast.AST) -> int:
@@ -833,8 +1065,12 @@ def test_case_processing(
                 elif l["kind"] == "class":
                     line_exclude.append(l["start_line"])
                 elif (l["kind"] == "function") or (l["kind"] == "async_function"):
+                    print(l)
                     if "decorators" in l.keys():
-                        line_exclude.append(l["start_line"] - 1)
+                        i = 1
+                        for decor in l["decorators"]:
+                            line_exclude.append(l["start_line"] - i)
+                            i += 1
                     line_exclude.append(l["start_line"])
 
             clean_arcs = []
@@ -869,37 +1105,48 @@ def test_case_processing(
                     remain_arcs.append(arc)
 
             init_arcs = sorted(init_arcs)
+            rows = classify_lines(source=task_instance["code_src"])
 
             branches = []
             remain_arcs = sorted(remain_arcs)
             branch = []
+            seen_loop = []
+            current_arc = ""
 
             for arc in remain_arcs:
+                arc_0 = arc[0] if arc[0] > 0 else -1 * arc[0]
+                new_arc = rows[arc_0]["block"]
+
+                if current_arc == "":
+                    current_arc = new_arc
+                else:
+                    if new_arc != current_arc:
+                        # end of branch
+                        branches.append(branch)
+                        branch = []
+                        current_arc = new_arc
+
                 if arc[1] < 0:
-                    if arc[0] in branch:
-                        branch = [-1 * arc[1]] + branch
-                    else:
+
+                    if arc[0] == -1 * arc[1]:
+                        continue
+
+                    if arc[0] not in branch:
                         branch.append(arc[0])
+
+                    if branch[0] != -1 * arc[1]:
                         branch = [-1 * arc[1]] + branch
-                    branches.append(branch)
-                    branch = []
+                    if ("is_loop_start" in rows[arc[0]].keys()) and (
+                        rows[arc[0]]["is_loop_start"] == True
+                    ):
+                        if arc[0] not in seen_loop:
+                            seen_loop.append(arc[0])
                 else:
                     if arc[0] in branch:
                         branch.append(arc[1])
                     else:
                         branch.append(arc[0])
                         branch.append(arc[1])
-
-            if len(branches) > 0:
-                branch = []
-                for arc in init_arcs:
-                    if arc[0] in branch:
-                        branch.append(arc[1])
-                    else:
-                        branch.append(arc[0])
-                        branch.append(arc[1])
-
-                branches = [branch] + branches
 
             if translated == -1:
                 task_instance["branches"][setting] = branches
@@ -910,36 +1157,7 @@ def test_case_processing(
             if os.path.exists(".coverage"):
                 logger.info("Removing coverage")
                 os.remove(".coverage")
-        # print(init_arcs)
 
-        # if arcs is None:
-        #     logger.info(f"Arcs not found")
-        # else:
-        #     branches = []
-        #     visited = []
-        #     for e in arcs:
-        #         if e[0] < 0:
-        #             continue
-        #         if e[1] < 0:
-        #             continue
-        #         if e[0] in visited:
-        #             for i, branch in enumerate(branches):
-        #                 if e[0] in branch:
-        #                     branches[i].append(e[1])
-        #                     visited.append(e[1])
-        #         else:
-        #             branches.append([e[0], e[1]])
-        #             visited.append(e[0])
-        #             visited.append(e[1])
-        #     if translated == -1:
-        #         task_instance["branches"][setting] = branches
-        #         task_instance["arcs"][setting] = arcs
-        #     else:
-        #         task_instance[f"branch_translate_{translated}"][setting] = branches
-
-        #     if os.path.exists(".coverage"):
-        #         logger.info("Removing coverage")
-        #         os.remove(".coverage")
         if success:
             successful_tests.append(prompt)
 
