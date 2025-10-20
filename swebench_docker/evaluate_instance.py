@@ -1107,6 +1107,16 @@ def test_case_processing(
             rows = classify_lines(source=task_instance["code_src"])
 
             branches = []
+
+            init_branch = []
+            for arc in init_arcs:
+                if arc[0] not in init_branch:
+                    init_branch.append(arc[0])
+                if arc[1] not in init_branch:
+                    init_branch.append(arc[1])
+
+            branches.append(init_branch)
+
             remain_arcs = sorted(remain_arcs)
             branch = []
             seen_loop = []
