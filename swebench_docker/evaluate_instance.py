@@ -1115,8 +1115,6 @@ def test_case_processing(
                 if arc[1] not in init_branch:
                     init_branch.append(arc[1])
 
-            branches.append(init_branch)
-
             remain_arcs = sorted(remain_arcs)
             branch = []
             seen_loop = []
@@ -1156,6 +1154,9 @@ def test_case_processing(
                     else:
                         branch.append(arc[0])
                         branch.append(arc[1])
+
+            if len(branches) > 0:
+                branches = [init_branch] + branches
 
             if translated == -1:
                 task_instance["branches"][setting] = branches
