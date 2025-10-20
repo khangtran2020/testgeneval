@@ -1,6 +1,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # Adapted from: https://github.com/aorwall/SWE-bench-docker/blob/main/swebench_docker/evaluate_instance.py
 
+from __future__ import annotations
 import base64
 import json
 import logging
@@ -65,8 +66,6 @@ logging.basicConfig(
 logging.getLogger().setLevel(logging.INFO)
 logger = logging.getLogger("evaluate_instance")
 
-import ast
-from __future__ import annotations
 import ast
 import json
 from dataclasses import dataclass
