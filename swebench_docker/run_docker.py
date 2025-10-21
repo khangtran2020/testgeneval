@@ -26,7 +26,7 @@ async def run_docker_evaluation(
     log_dir: str,
     setting: str,
     ind: int,
-    timeout: int = 300,
+    timeout: int = 180,
     verbose: bool = False,
     translated: int = -1,
     raw: int = 0,
