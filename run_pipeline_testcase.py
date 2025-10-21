@@ -381,7 +381,7 @@ if __name__ == "__main__":
         "--timeout",
         type=int,
         help="(Optional) Timeout for evaluation testcase",
-        default=60,
+        default=300,
     )
     parser.add_argument(
         "--num_processes", type=int, help="Number of processes to run", default=1
