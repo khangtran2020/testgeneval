@@ -112,6 +112,7 @@ async def main(
                             namespace,
                             log_dir,
                             testcase,
+                            1,
                             timeout,
                             raw=raw,
                             translated=translated,
