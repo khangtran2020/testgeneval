@@ -66,6 +66,8 @@ def main(args):
             str(args.num_processes),
             "--namespace",
             args.namespace,
+            "--repo",
+            args.repo,
             "--data_path",
             os.path.join(args.data_path, f"{data_suf}.jsonl"),
             "--res_path",
