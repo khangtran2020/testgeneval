@@ -192,6 +192,7 @@ class Data(object):
                 )
 
                 if trimmed_code is not None:
+                    trimmed_code = remove_docstrings(trimmed_code)
                     if repo == "django/django":
                         trimmed_code = handle_django_testcase(
                             trimmed_code=trimmed_code, test_name=tar_func
@@ -276,6 +277,7 @@ class Data(object):
                         id=instance_id,
                     )
                     if trimmed_code is not None:
+                        trimmed_code = remove_docstrings(trimmed_code)
                         if repo == "django/django":
                             trimmed_code = handle_django_testcase(
                                 trimmed_code=trimmed_code, test_name=method
@@ -420,7 +422,13 @@ def extract_preamble(test_src: str, test_name: str) -> str:
     preamble_lines = []
     for line in lines:
         if test_name in line:
-            break
+            # check for decorators
+            for rline_index in range(len(preamble_lines) - 1, -1, -1):
+                rline = preamble_lines[rline_index]
+                if rline.strip().startswith("@"):
+                    preamble_lines.pop(rline_index)
+                if rline.strip() == "":
+                    break
         preamble_lines.append(line)
 
     code_lines = [line for line in lines if line not in preamble_lines]
@@ -454,3 +462,56 @@ def indent_text(code: str, num_spaces: int) -> str:
                 results.append(supp_line)
             else:
                 results.append(line)
+
+
+class DocstringRemover(ast.NodeTransformer):
+    def visit_FunctionDef(self, node):
+        self.generic_visit(node)
+        if (
+            node.body
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(getattr(node.body[0], "value", None), ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        ):
+            node.body = node.body[1:]
+        return node
+
+    def visit_AsyncFunctionDef(self, node):
+        self.generic_visit(node)
+        if (
+            node.body
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(getattr(node.body[0], "value", None), ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        ):
+            node.body = node.body[1:]
+        return node
+
+    def visit_ClassDef(self, node):
+        self.generic_visit(node)
+        if (
+            node.body
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(getattr(node.body[0], "value", None), ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        ):
+            node.body = node.body[1:]
+        return node
+
+    def visit_Module(self, node):
+        self.generic_visit(node)
+        if (
+            node.body
+            and isinstance(node.body[0], ast.Expr)
+            and isinstance(getattr(node.body[0], "value", None), ast.Constant)
+            and isinstance(node.body[0].value.value, str)
+        ):
+            node.body = node.body[1:]
+        return node
+
+
+def remove_docstrings(source_code):
+    tree = ast.parse(source_code)
+    tree = DocstringRemover().visit(tree)
+    ast.fix_missing_locations(tree)
+    return ast.unparse(tree)
