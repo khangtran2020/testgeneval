@@ -190,7 +190,12 @@ class Data(object):
                 trimmed_code = extract_minimal_test(
                     script=test_src, target=tar_func, id=instance_id
                 )
+
                 if trimmed_code is not None:
+                    if repo == "django/django":
+                        trimmed_code = handle_django_testcase(
+                            trimmed_code=trimmed_code, test_name=tar_func
+                        )
                     try:
                         # Create a temporary file (not auto-deleted)
                         temp = tempfile.NamedTemporaryFile(delete=False)
@@ -271,6 +276,10 @@ class Data(object):
                         id=instance_id,
                     )
                     if trimmed_code is not None:
+                        if repo == "django/django":
+                            trimmed_code = handle_django_testcase(
+                                trimmed_code=trimmed_code, test_name=method
+                            )
                         try:
                             # Create a temporary file (not auto-deleted)
                             temp = tempfile.NamedTemporaryFile(delete=False)
@@ -375,3 +384,73 @@ class Data(object):
             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.console.log(f"Done {idx} at {current_time}")
             return len(processed_data["test_cases"].keys())
+
+
+def handle_django_testcase(trimmed_code: str, test_name: str):
+    # repo = task_instance["repo"]
+    # django_repo = repo == "django/django"
+
+    # extract everything before the test case
+    preamble, func_code = extract_preamble(test_src=trimmed_code, test_name=test_name)
+
+    def needs_django_harness(preamble):
+        no_django_test = "TestCase" not in preamble
+        no_unittest = "unittest" not in preamble
+        no_simple_test_case = "SimpleTestCase" not in preamble
+        return no_django_test and no_unittest and no_simple_test_case
+
+    added_class = False
+    if needs_django_harness(preamble):
+        preamble = "from django.test import SimpleTestCase\n" + preamble
+        class_wrapper_start = "\n\nclass TestsHarness(SimpleTestCase):\n"
+        preamble += class_wrapper_start
+        added_class = True
+
+    class_content = ""
+    if added_class:
+        test_content = preamble + "\n\n" + indent_text(code=func_code, num_spaces=4)
+    else:
+        test_content = preamble + "\n\n" + func_code
+
+    return test_content
+
+
+def extract_preamble(test_src: str, test_name: str) -> str:
+    lines = test_src.split("\n")
+    preamble_lines = []
+    for line in lines:
+        if test_name in line:
+            break
+        preamble_lines.append(line)
+
+    code_lines = [line for line in lines if line not in preamble_lines]
+    preamble = "\n".join(preamble_lines)
+    code = "\n".join(code_lines)
+    return preamble, code
+
+
+def indent_text(code: str, num_spaces: int) -> str:
+
+    code_lines = code.split("\n")
+    first_indent = len(code_lines[0]) - len(code_lines[0].lstrip())
+
+    results = []
+    if first_indent == 0:
+        indent = " " * num_spaces
+        for line in code_lines:
+            if line.strip() == "":
+                results.append(line)
+            else:
+                results.append(indent + line)
+    else:
+        for line in code_lines:
+            if line.strip() == "":
+                results.append(line)
+                continue
+            current_indent = len(line) - len(line.lstrip())
+            if current_indent >= first_indent:
+                supp_line = line[first_indent:]
+                supp_line = indent + supp_line
+                results.append(supp_line)
+            else:
+                results.append(line)
