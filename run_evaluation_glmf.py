@@ -127,18 +127,13 @@ async def main(
     predictions = []
     new_tasks = []
     for task in tasks:
-        # print(
-        #     "task_id:",
-        #     task[KEY_ID],
-        #     "prediction_files.keys:",
-        #     list(prediction_files.keys())[:5],
-        # )
+
         if task[KEY_ID] in prediction_files.keys():
             prediction = {
                 KEY_ID: task[KEY_ID],
                 KEY_INSTANCE_ID: task[KEY_INSTANCE_ID],
                 KEY_MODEL: "glmf",
-                KEY_PREDICTIONS: {"full": prediction_files[task[KEY_ID]]},
+                KEY_PREDICTIONS: prediction_files[task[KEY_ID]],
             }
             predictions.append(prediction)
             new_tasks.append(task)
@@ -146,17 +141,13 @@ async def main(
             logger.warning(f"Task {task[KEY_ID]} not found in generated data")
 
     # save prediction to a jsonl file
-    preds_path = predictions_path.replace(".json", ".jsonl")
+    pred_file_name = predictions_path.split("/")[-1].split(".")[0]
+    preds_path = predictions_path.replace(
+        pred_file_name, f"{pred_file_name}_toeval"
+    ).replace(".json", ".jsonl")
     with open(preds_path, "w") as f:
         for pred in predictions:
             f.write(json.dumps(pred) + "\n")
-
-    # num_test_case = 0
-    # for task in new_tasks:
-    #     num_test_case += len(task["test_cases"].keys())
-    # logger.info(
-    #     f"# of task to evaluate: {len(new_tasks)}. # of test cases: {num_test_case}"
-    # )
 
     if len(predictions) == 0:
         logger.info("No predictions to evaluate")
@@ -170,8 +161,8 @@ async def main(
             all_exist = True
             if KEY_PREDICTIONS not in p:
                 continue
-            for setting in p[KEY_PREDICTIONS]:
-                log_file_name = f"{p[KEY_ID]}.{p[KEY_MODEL]}.{setting}.eval.log"
+            for tc_idx, setting in enumerate(p[KEY_PREDICTIONS]):
+                log_file_name = f"{p[KEY_ID]}.{p[KEY_MODEL]}.testcase_{tc_idx}.eval.log"
                 log_file = os.path.join(log_dir, log_file_name)
                 if not os.path.exists(log_file):
                     all_exist = False
@@ -235,13 +226,13 @@ async def main(
                         skip_mutation=skip_mutation,
                     )
 
-            for setting in task_instance[KEY_PREDICTIONS].keys():
-                task = asyncio.create_task(
-                    run_docker_throttled(
-                        task_instance, namespace, log_dir, setting, timeout
-                    )
+            # for setting in task_instance[KEY_PREDICTIONS].keys():
+            task = asyncio.create_task(
+                run_docker_throttled(
+                    task_instance, namespace, log_dir, "branch_eval", timeout
                 )
-                tasks.append(task)
+            )
+            tasks.append(task)
         else:
             logger.info(f"[{task_instance[KEY_ID]}] No prediction found.")
 
