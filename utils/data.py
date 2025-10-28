@@ -393,7 +393,9 @@ def handle_django_testcase(trimmed_code: str, test_name: str):
     # django_repo = repo == "django/django"
 
     # extract everything before the test case
-    preamble, func_code = extract_preamble(test_src=trimmed_code, test_name=test_name)
+    preamble, func_code, decorator_found = extract_preamble(
+        test_src=trimmed_code, test_name=test_name
+    )
 
     def needs_django_harness(preamble):
         no_django_test = "TestCase" not in preamble
@@ -410,9 +412,13 @@ def handle_django_testcase(trimmed_code: str, test_name: str):
 
     class_content = ""
     if added_class:
-        test_content = preamble + "\n\n" + indent_text(code=func_code, num_spaces=4)
+        if not decorator_found:
+            func_code = "\n\n" + indent_text(code=func_code, num_spaces=4)
+        test_content = preamble + indent_text(code=func_code, num_spaces=4)
     else:
-        test_content = preamble + "\n\n" + func_code
+        if not decorator_found:
+            func_code = "\n\n" + func_code
+        test_content = preamble + func_code
 
     return test_content
 
@@ -420,6 +426,7 @@ def handle_django_testcase(trimmed_code: str, test_name: str):
 def extract_preamble(test_src: str, test_name: str) -> str:
     lines = test_src.split("\n")
     preamble_lines = []
+    decorator_found = False
     for line in lines:
         if test_name in line:
             # check for decorators
@@ -427,6 +434,7 @@ def extract_preamble(test_src: str, test_name: str) -> str:
                 rline = preamble_lines[rline_index]
                 if rline.strip().startswith("@"):
                     preamble_lines.pop(rline_index)
+                    decorator_found = True
                 if rline.strip() == "":
                     break
         preamble_lines.append(line)
@@ -434,7 +442,7 @@ def extract_preamble(test_src: str, test_name: str) -> str:
     code_lines = [line for line in lines if line not in preamble_lines]
     preamble = "\n".join(preamble_lines)
     code = "\n".join(code_lines)
-    return preamble, code
+    return preamble, code, decorator_found
 
 
 def indent_text(code: str, num_spaces: int) -> str:
