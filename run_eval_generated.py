@@ -18,6 +18,7 @@ async def main(
     data_path: str,
     res_path: str,
     gen_path: str,
+    name: str,
     namespace: str,
     log_dir: str,
     raw: int,
@@ -53,26 +54,37 @@ async def main(
         with open(gen_path, "r", encoding="utf-8") as json_file:
             gen_data = json.load(json_file)
 
+    if isinstance(gen_data, list):
+        gen_data = {list(item.keys())[0]: list(item.values())[0] for item in gen_data}
+
+    evaluation_dict = {}
     gen_dict = {}
     for key, value in gen_data.items():
 
-        if "_testcase_test_case_" in key:
-            uuid = key.split("_testcase_test_case_")[0]
+        if "_test_case_" in key:
+            uuid = key.split("_test_case_")[0]
             test_id = key.split("_test_case_")[-1]
         else:
             test_id = key.split("_")[-1].strip()
             uuid = key.replace(f"_{test_id}", "")
+
         if uuid not in gen_dict:
             gen_dict[uuid] = {
                 "test_cases": {},
                 "branches": {},
             }
+
         gen_dict[uuid]["test_cases"][f"test_case_{test_id}"] = value
         gen_dict[uuid]["branches"][f"test_case_{test_id}"] = []
 
     new_tasks = []
     for task in tasks:
         if task[KEY_ID] in gen_dict:
+            # since the train/test split is divided by the instance_id, the instance should have all test cases
+            evaluation_dict[task[KEY_ID]] = {
+                "original_branches": task.get("branches", {}),
+                "generated_branches": gen_dict[task[KEY_ID]]["branches"],
+            }
             task["test_cases"] = gen_dict[task[KEY_ID]]["test_cases"]
             task["branches"] = gen_dict[task[KEY_ID]]["branches"]
             new_tasks.append(task)
@@ -165,28 +177,83 @@ async def main(
         branch_key = "branches"
         test_case_key = "test_cases"
         logger.info(f"================== Task {res[KEY_ID]} ==================")
-        # logger.info(f"Task instance branches at setting {setting}: {res[branch_key]}")
-        logger.info(
-            f"Task {res[KEY_ID]} orignally has {len(task_dict[res[KEY_ID]][branch_key])} branches and {len(task_dict[res[KEY_ID]][test_case_key])} test cases"
-        )
-        logger.info(
-            f"Results {res[KEY_ID]} orignally has {len(res[branch_key])} branches and {len(res[test_case_key])} test cases"
-        )
-        # for key in res[branch_key].keys():
-        # logger.info(f"Setting {setting} has {len(res[branch_key][setting])} branches")
         for setting_ in res[branch_key].keys():
             if res[branch_key][setting_] != []:
                 logger.info(
                     f"Setting {setting_} at setting {setting} has {len(res[branch_key][setting_])} branches"
                 )
+                evaluation_dict[res[KEY_ID]]["generated_branches"][setting_] = res[
+                    branch_key
+                ][setting_]
                 task_dict[res[KEY_ID]][branch_key][setting_] = res[branch_key][setting_]
                 break
 
         # task_dict[res[KEY_ID]]["branches"][setting] = res["branches"][setting]
 
-    with open(res_path, "w") as f:
+    branch_path = os.path.join(res_path, f"{name}_evaluation_branches.jsonl")
+    with open(branch_path, "w") as f:
         for item in task_dict.values():
             f.write(json.dumps(item) + "\n")
+
+    eval_path = os.path.join(res_path, f"{name}_evaluation_summary.json")
+    with open(eval_path, "w") as f:
+        json.dump(evaluation_dict, f, indent=4)
+
+    # Compute branch accuracy and overlap
+    for task_id in evaluation_dict.keys():
+        total_cases = len(evaluation_dict[task_id]["original_branches"].keys())
+
+        # Compute branch accuracy
+        correct_cases = 0
+        for case_key in evaluation_dict[task_id]["original_branches"].keys():
+            original = evaluation_dict[task_id]["original_branches"][case_key]
+            generated = evaluation_dict[task_id]["generated_branches"][case_key]
+            if original == generated and original != []:
+                correct_cases += 1
+        accuracy = correct_cases / total_cases if total_cases > 0 else 0
+        logger.info(
+            f"Task {task_id} - Branch Accuracy: {correct_cases}/{total_cases} = {accuracy:.2f}"
+        )
+
+        # Compute branch overlap: how many executed branch are in the original branches
+        total_overlap_original = 0
+        total_overlap_generated = 0
+        for case_key in evaluation_dict[task_id]["original_branches"].keys():
+            original = set(
+                tuple(branch)
+                for branch in evaluation_dict[task_id]["original_branches"][case_key]
+            )
+            generated = set(
+                tuple(branch)
+                for branch in evaluation_dict[task_id]["generated_branches"][case_key]
+            )
+            overlap = len(original.intersection(generated))
+            total_overlap_original += (
+                overlap / len(original) if len(original) > 0 else 0
+            )
+            total_overlap_generated += (
+                overlap / len(generated) if len(generated) > 0 else 0
+            )
+        average_overlap_total = (
+            total_overlap_original / total_cases if total_cases > 0 else 0
+        )
+        average_overlap_generated = (
+            total_overlap_generated / total_cases if total_cases > 0 else 0
+        )
+        logger.info(
+            f"Task {task_id} - Average Branch Overlap Original: {average_overlap_total:.2f}, Generated: {average_overlap_generated:.2f}"
+        )
+
+        # Save the computed metrics
+        evaluation_results = {
+            "branch_accuracy": accuracy,
+            "average_branch_overlap_original": average_overlap_total,
+            "average_branch_overlap_generated": average_overlap_generated,
+        }
+        eval_result_path = os.path.join(res_path, f"{name}_evaluation_report.json")
+        with open(eval_result_path, "w") as f:
+            json.dump(evaluation_results, f, indent=4)
+
     print(f"Evaluation complete")
 
     try:
@@ -216,6 +283,7 @@ if __name__ == "__main__":
     parser.add_argument("--res_path", type=str, required=True)
     parser.add_argument("--repo", type=str, required=True)
     parser.add_argument("--raw", type=int, required=True)
+    parser.add_argument("--name", type=str, help="name of this evaluation run")
     parser.add_argument("--namespace", type=str, default="aorwall")
     parser.add_argument("--timeout", type=int, default=60)
     parser.add_argument("--num_processes", type=int, default=-1)

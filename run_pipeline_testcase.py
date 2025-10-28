@@ -223,6 +223,8 @@ def main(args):
             str(args.num_processes),
             "--namespace",
             args.namespace,
+            "--name",
+            args.name,
             "--repo",
             args.repo,
             "--data_path",
@@ -415,6 +417,9 @@ if __name__ == "__main__":
         "--combine",
         action="store_true",
         help="combine the preamble and the translation",
+    )
+    parser.add_argument(
+        "--name", type=str, help="name of this evaluation run", default="eval_run"
     )
     parser.add_argument(
         "--eval_translate",
