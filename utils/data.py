@@ -234,10 +234,10 @@ class Data(object):
                         except Exception as e:
                             print(f"Error removing temp file: {e}")
 
-                    imports = extract_imports(code=trimmed_code)
-                    module_path = code_file.replace("/", ".").split(".py")[0]
-                    module_code = code_src
-                    importables = get_importables(code=module_code)
+                    # imports = extract_imports(code=trimmed_code)
+                    # module_path = code_file.replace("/", ".").split(".py")[0]
+                    # module_code = code_src
+                    # importables = get_importables(code=module_code)
 
                     # is_directly_imported = False
                     # for imp in imports:
