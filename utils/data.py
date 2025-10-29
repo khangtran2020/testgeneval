@@ -471,6 +471,8 @@ def indent_text(code: str, num_spaces: int) -> str:
             else:
                 results.append(line)
 
+    return "\n".join(results)
+
 
 class DocstringRemover(ast.NodeTransformer):
     def visit_FunctionDef(self, node):
