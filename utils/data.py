@@ -239,30 +239,31 @@ class Data(object):
                     module_code = code_src
                     importables = get_importables(code=module_code)
 
-                    is_directly_imported = False
-                    for imp in imports:
-                        if isinstance(imp, tuple):
-                            module = imp[0]
-                            if module == module_path:
-                                is_directly_imported = True
-                                break
-                            else:
-                                if imp[1] in importables:
-                                    removed_code = remove_import(
-                                        src=trimmed_code,
-                                        object_name=imp[1],
-                                    )
-                                    trimmed_code = (
-                                        f"from {module_path} import {imp[1]}\n"
-                                        + removed_code
-                                    )
-                        else:
-                            if module_path in imp:
-                                is_directly_imported = True
-                                break
+                    # is_directly_imported = False
+                    # for imp in imports:
+                    #     if isinstance(imp, tuple):
+                    #         module = imp[0]
+                    #         if module == module_path:
+                    #             is_directly_imported = True
+                    #             break
+                    #         else:
+                    #             if imp[1] in importables:
+                    #                 removed_code = remove_import(
+                    #                     src=trimmed_code,
+                    #                     object_name=imp[1],
+                    #                 )
+                    #                 trimmed_code = (
+                    #                     f"from {module_path} import {imp[1]}\n"
+                    #                     + removed_code
+                    #                 )
+                    #     else:
+                    #         if module_path in imp:
+                    #             is_directly_imported = True
+                    #             break
 
-                    if not is_directly_imported:
-                        continue
+                    # if not is_directly_imported:
+                    #     continue
+
                     test_cases[f"test_case_{test_id}"] = {
                         "target": tar_func,
                         "code": trimmed_code,
