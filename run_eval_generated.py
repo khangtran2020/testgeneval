@@ -4,7 +4,7 @@ import logging
 import os
 import json
 from rich.pretty import pretty_repr
-from swebench_docker.constants import KEY_BASELINES, KEY_ID, REPO_ID
+from swebench_docker.constants import KEY_BASELINES, KEY_ID, REPO_ID, KEY_INSTANCE_ID
 from swebench_docker.run_docker import run_docker_evaluation
 from swebench_docker.utils import get_test_tasks
 
@@ -79,17 +79,17 @@ async def main(
 
     new_tasks = []
     for task in tasks:
-        if task[KEY_ID] in gen_dict:
+        if task[KEY_INSTANCE_ID] in gen_dict:
             # since the train/test split is divided by the instance_id, the instance should have all test cases
-            evaluation_dict[task[KEY_ID]] = {
+            evaluation_dict[task[KEY_INSTANCE_ID]] = {
                 "original_branches": task.get("branches", {}),
-                "generated_branches": gen_dict[task[KEY_ID]]["branches"],
+                "generated_branches": gen_dict[task[KEY_INSTANCE_ID]]["branches"],
             }
-            task["test_cases"] = gen_dict[task[KEY_ID]]["test_cases"]
-            task["branches"] = gen_dict[task[KEY_ID]]["branches"]
+            task["test_cases"] = gen_dict[task[KEY_INSTANCE_ID]]["test_cases"]
+            task["branches"] = gen_dict[task[KEY_INSTANCE_ID]]["branches"]
             new_tasks.append(task)
         else:
-            logger.warning(f"Task {task[KEY_ID]} not found in generated data")
+            logger.warning(f"Task {task[KEY_INSTANCE_ID]} not found in generated data")
 
     num_test_case = 0
     for task in new_tasks:
