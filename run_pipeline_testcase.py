@@ -228,11 +228,11 @@ def main(args):
             "--repo",
             args.repo,
             "--data_path",
-            os.path.join(args.data_path, f"{data_suf}_processed.jsonl"),
+            args.ground_truth_path,
             "--gen_path",
-            os.path.join(args.data_path, f"{args.glmf_generated_path}"),
+            args.gen_path,
             "--res_path",
-            os.path.join(args.data_path, f"{args.glmf_generated_output}"),
+            args.results_path,
             "--timeout",
             str(args.timeout),
             "--raw",
@@ -297,7 +297,7 @@ def main(args):
             "python",
             "run_merge.py",
             "--ground_truth_path",
-            os.path.join(args.data_path, f"{data_suf}_processed.jsonl"),
+            args.ground_truth_path,
             "--translate_path",
             os.path.join(
                 args.data_path,
@@ -455,5 +455,10 @@ if __name__ == "__main__":
         action="store_true",
         help="Merge the ground truth and the translated data",
     )
+    parser.add_argument(
+        "--ground_truth_path", type=str, help="Path to the ground truth data"
+    )
+    parser.add_argument("--gen_path", type=str, help="Path to the generated data")
+    parser.add_argument("--results_path", type=str, help="Path to the results data")
     args = parser.parse_args()
     main(args)
