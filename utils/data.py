@@ -186,6 +186,9 @@ class Data(object):
             # self.console.log(f"==================== {idx} ====================")
             test_cases = {}
             test_id = 0
+
+            test_cases_exist = []
+
             for tar_func in test_dict["test_functions"]:
                 trimmed_code = extract_minimal_test(
                     script=test_src, target=tar_func, id=instance_id
@@ -263,6 +266,8 @@ class Data(object):
 
                     # if not is_directly_imported:
                     #     continue
+                    if trimmed_code in test_cases_exist:
+                        continue
 
                     test_cases[f"test_case_{test_id}"] = {
                         "target": tar_func,
@@ -320,29 +325,32 @@ class Data(object):
                             except Exception as e:
                                 print(f"Error removing temp file: {e}")
 
-                        imports = extract_imports(code=trimmed_code)
-                        module_path = code_file.replace("/", ".").split(".py")[0]
-                        module_code = code_src
-                        importables = get_importables(code=module_code)
+                        # imports = extract_imports(code=trimmed_code)
+                        # module_path = code_file.replace("/", ".").split(".py")[0]
+                        # module_code = code_src
+                        # importables = get_importables(code=module_code)
 
-                        is_directly_imported = False
-                        for imp in imports:
-                            if isinstance(imp, tuple):
-                                module = imp[0]
-                                if module == module_path:
-                                    is_directly_imported = True
-                                    break
-                                # else:
-                                #     if imp[1] in importables:
-                                #         is_directly_imported = True
-                                #         break
-                            else:
-                                if module_path in imp:
-                                    is_directly_imported = True
-                                    break
+                        # is_directly_imported = False
+                        # for imp in imports:
+                        #     if isinstance(imp, tuple):
+                        #         module = imp[0]
+                        #         if module == module_path:
+                        #             is_directly_imported = True
+                        #             break
+                        #         # else:
+                        #         #     if imp[1] in importables:
+                        #         #         is_directly_imported = True
+                        #         #         break
+                        #     else:
+                        #         if module_path in imp:
+                        #             is_directly_imported = True
+                        #             break
 
-                        if not is_directly_imported:
+                        # if not is_directly_imported:
+                        #     continue
+                        if trimmed_code in test_cases_exist:
                             continue
+
                         test_cases[f"test_case_{test_id}"] = {
                             "target": f"{class_name}.{method}",
                             "code": trimmed_code,
