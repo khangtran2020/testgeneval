@@ -176,16 +176,20 @@ async def main(
         res, setting = result
         branch_key = "branches"
         test_case_key = "test_cases"
-        logger.info(f"================== Task {res[KEY_ID]} ==================")
+        logger.info(
+            f"================== Task {res[KEY_INSTANCE_ID]} =================="
+        )
         for setting_ in res[branch_key].keys():
             if res[branch_key][setting_] != []:
                 logger.info(
                     f"Setting {setting_} at setting {setting} has {len(res[branch_key][setting_])} branches"
                 )
-                evaluation_dict[res[KEY_ID]]["generated_branches"][setting_] = res[
-                    branch_key
-                ][setting_]
-                task_dict[res[KEY_ID]][branch_key][setting_] = res[branch_key][setting_]
+                evaluation_dict[res[KEY_INSTANCE_ID]]["generated_branches"][
+                    setting_
+                ] = res[branch_key][setting_]
+                task_dict[res[KEY_INSTANCE_ID]][branch_key][setting_] = res[branch_key][
+                    setting_
+                ]
                 break
 
         # task_dict[res[KEY_ID]]["branches"][setting] = res["branches"][setting]
