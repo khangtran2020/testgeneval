@@ -7,6 +7,7 @@ import hashlib
 import logging
 import os
 import json
+from tqdm import tqdm
 from rich.pretty import pretty_repr
 
 from swebench_docker.constants import (
@@ -122,7 +123,7 @@ async def main(
     with open(predictions_path, "r", encoding="utf-8") as json_file:
         prediction_files = json.load(json_file)
 
-    print("prediction_keys:", list(prediction_files.keys())[:5])
+    # print("prediction_keys:", list(prediction_files.keys())[:5])
 
     predictions = []
     new_tasks = []
@@ -142,7 +143,8 @@ async def main(
             predictions.append(prediction)
             new_tasks.append(task)
         else:
-            logger.warning(f"Task {task[KEY_INSTANCE_ID]} not found in generated data")
+            pass
+            # logger.warning(f"Task {task[KEY_INSTANCE_ID]} not found in generated data")
 
     # save prediction to a jsonl file
     # pred_file_name = predictions_path.split("/")[-1].split(".")[0]
@@ -188,8 +190,9 @@ async def main(
 
     task_instances = []
 
+    logger.info(f"Preparing {len(predictions)} task instances for evaluation")
     # Set the relevant data on task_instances
-    for prediction in predictions:
+    for prediction in tqdm(predictions):
         task = tasks_map[prediction[KEY_ID]]
         test_type = MAP_REPO_TO_TEST_FRAMEWORK[task["repo"]]
         test_directives = get_test_directives(task)
@@ -218,7 +221,7 @@ async def main(
 
     sem = asyncio.Semaphore(num_processes if num_processes > 0 else len(task_instances))
     tasks = []
-    for task_instance in task_instances:
+    for task_instance in tqdm(task_instances):
         if task_instance[KEY_PREDICTIONS] != []:
 
             async def run_docker_throttled(*args, **kwargs):
