@@ -129,11 +129,15 @@ async def main(
     for task in tasks:
 
         if task[KEY_INSTANCE_ID] in prediction_files.keys():
+            pred_dict = {}
+            for i, tc in enumerate(prediction_files[task[KEY_INSTANCE_ID]]):
+                pred_dict[f"test_case_{i}"] = tc
+
             prediction = {
                 KEY_ID: task[KEY_ID],
                 KEY_INSTANCE_ID: task[KEY_INSTANCE_ID],
                 KEY_MODEL: "glmf",
-                KEY_PREDICTIONS: prediction_files[task[KEY_INSTANCE_ID]],
+                KEY_PREDICTIONS: pred_dict,
             }
             predictions.append(prediction)
             new_tasks.append(task)
