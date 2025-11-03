@@ -230,7 +230,7 @@ async def main(
             # for setting in task_instance[KEY_PREDICTIONS].keys():
             task = asyncio.create_task(
                 run_docker_throttled(
-                    task_instance, namespace, log_dir, "branch_eval", timeout
+                    task_instance, namespace, log_dir, "branch_eval", 4, timeout
                 )
             )
             tasks.append(task)
