@@ -266,6 +266,8 @@ def main(args):
             os.path.join(args.results_path, args.glmf_generated_output),
             "--repo",
             args.repo,
+            "--timeout",
+            str(args.timeout),
             "--swe_bench_tasks",
             args.dataset,
             "--num_processes",
