@@ -105,7 +105,7 @@ async def main(
         test_case_keys = ["test_case_0"]
         print(f"Task: {new_tasks[0][KEY_ID]}, version {new_tasks[0]['version']}")
 
-    task_dict = {task[KEY_ID]: task for task in new_tasks}
+    task_dict = {task[KEY_INSTANCE_ID]: task for task in new_tasks}
 
     for task_instance in new_tasks:
         if debug:
