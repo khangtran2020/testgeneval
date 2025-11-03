@@ -129,15 +129,15 @@ async def main(
     for task in tasks:
 
         if task[KEY_INSTANCE_ID] in prediction_files.keys():
-            pred_dict = {}
-            for i, tc in enumerate(prediction_files[task[KEY_INSTANCE_ID]]):
-                pred_dict[f"test_case_{i}"] = tc
+            # pred_dict = {}
+            # for i, tc in enumerate(prediction_files[task[KEY_INSTANCE_ID]]):
+            #     pred_dict[f"test_case_{i}"] = tc
 
             prediction = {
                 KEY_ID: task[KEY_ID],
                 KEY_INSTANCE_ID: task[KEY_INSTANCE_ID],
                 KEY_MODEL: "glmf",
-                KEY_PREDICTIONS: pred_dict,
+                KEY_PREDICTIONS: prediction_files[task[KEY_INSTANCE_ID]],
             }
             predictions.append(prediction)
             new_tasks.append(task)
@@ -158,33 +158,33 @@ async def main(
         logger.info("No predictions to evaluate")
         return
 
-    # Remove predictions that have already been evaluated
-    if skip_existing:
-        # Skip logs that already exist
-        predictions_filtered = []
-        for p in predictions:
-            all_exist = True
-            if KEY_PREDICTIONS not in p:
-                continue
-            for tc_idx, setting in enumerate(p[KEY_PREDICTIONS]):
-                log_file_name = f"{p[KEY_ID]}.{p[KEY_MODEL]}.testcase_{tc_idx}.eval.log"
-                log_file = os.path.join(log_dir, log_file_name)
-                if not os.path.exists(log_file):
-                    all_exist = False
-                    break
-            if not all_exist:
-                predictions_filtered.append(p)
-        if len(predictions_filtered) == 0:
-            logger.info(f"All predictions already exist, skipping")
-            return
-        else:
-            logger.info(
-                f"# of predictions to evaluate: {len(predictions_filtered)} "
-                + f"({len(predictions) - len(predictions_filtered)} already evaluated)"
-            )
-            predictions = predictions_filtered
-    else:
-        logger.info(f"# of predictions to evaluate: {len(predictions)}")
+    # # Remove predictions that have already been evaluated
+    # if skip_existing:
+    #     # Skip logs that already exist
+    #     predictions_filtered = []
+    #     for p in predictions:
+    #         all_exist = True
+    #         if KEY_PREDICTIONS not in p:
+    #             continue
+    #         for tc_idx, setting in enumerate(p[KEY_PREDICTIONS]):
+    #             log_file_name = f"{p[KEY_ID]}.{p[KEY_MODEL]}.testcase_{tc_idx}.eval.log"
+    #             log_file = os.path.join(log_dir, log_file_name)
+    #             if not os.path.exists(log_file):
+    #                 all_exist = False
+    #                 break
+    #         if not all_exist:
+    #             predictions_filtered.append(p)
+    #     if len(predictions_filtered) == 0:
+    #         logger.info(f"All predictions already exist, skipping")
+    #         return
+    #     else:
+    #         logger.info(
+    #             f"# of predictions to evaluate: {len(predictions_filtered)} "
+    #             + f"({len(predictions) - len(predictions_filtered)} already evaluated)"
+    #         )
+    #         predictions = predictions_filtered
+    # else:
+    #     logger.info(f"# of predictions to evaluate: {len(predictions)}")
 
     task_instances = []
 
@@ -219,7 +219,7 @@ async def main(
     sem = asyncio.Semaphore(num_processes if num_processes > 0 else len(task_instances))
     tasks = []
     for task_instance in task_instances:
-        if task_instance[KEY_PREDICTIONS]:
+        if task_instance[KEY_PREDICTIONS] != []:
 
             async def run_docker_throttled(*args, **kwargs):
                 async with sem:
@@ -233,7 +233,7 @@ async def main(
             # for setting in task_instance[KEY_PREDICTIONS].keys():
             task = asyncio.create_task(
                 run_docker_throttled(
-                    task_instance, namespace, log_dir, "branch_eval", 4, timeout
+                    task_instance, namespace, log_dir, "branch_eval", timeout
                 )
             )
             tasks.append(task)

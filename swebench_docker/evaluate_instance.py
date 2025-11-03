@@ -1295,7 +1295,7 @@ def main(
                 translated=translated,
             )
         elif "eval_branch" in setting:
-            prompt_list = task_instance[KEY_PREDICTIONS][setting]
+            prompt_list = task_instance[KEY_PREDICTIONS]
             test_case_processing(
                 prompt_list=prompt_list,
                 tcm=tcm,
