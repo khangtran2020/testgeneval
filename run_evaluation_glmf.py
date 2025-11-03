@@ -141,11 +141,12 @@ async def main(
             logger.warning(f"Task {task[KEY_ID]} not found in generated data")
 
     # save prediction to a jsonl file
-    pred_file_name = predictions_path.split("/")[-1].split(".")[0]
-    preds_path = predictions_path.replace(
-        pred_file_name, f"{pred_file_name}_toeval"
-    ).replace(".json", ".jsonl")
-    with open(preds_path, "w") as f:
+    # pred_file_name = predictions_path.split("/")[-1].split(".")[0]
+    # preds_path = predictions_path.replace(
+    #     pred_file_name, f"{pred_file_name}_toeval.jsonl"
+    # )
+
+    with open(save_dir, "w") as f:
         for pred in predictions:
             f.write(json.dumps(pred) + "\n")
 

@@ -252,18 +252,18 @@ def main(args):
 
         # make output directory
         os.makedirs(
-            os.path.join(args.data_path, args.glmf_generated_output), exist_ok=True
+            os.path.join(args.results_path, args.glmf_generated_output), exist_ok=True
         )
 
         eval_cmd = [
             "python",
             "run_evaluation_glmf.py",
             "--predictions_path",
-            os.path.join(args.data_path, args.glmf_generated_path),
+            args.gen_path,
             "--log_dir",
             log_dir,
             "--save_dir",
-            os.path.join(args.data_path, args.glmf_generated_output),
+            os.path.join(args.results_path, args.glmf_generated_output),
             "--repo",
             args.repo,
             "--swe_bench_tasks",
@@ -279,9 +279,7 @@ def main(args):
             "python",
             "generate_report.py",
             "--predictions_path",
-            os.path.join(
-                args.data_path, args.glmf_generated_path.replace(".json", ".jsonl")
-            ),
+            os.path.join(args.results_path, args.glmf_generated_output),
             "--log_dir",
             log_dir,
             "--output_dir",
