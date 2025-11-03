@@ -128,7 +128,7 @@ async def main(
     new_tasks = []
     for task in tasks:
 
-        if task[KEY_ID] in prediction_files.keys():
+        if task[KEY_INSTANCE_ID] in prediction_files.keys():
             prediction = {
                 KEY_ID: task[KEY_ID],
                 KEY_INSTANCE_ID: task[KEY_INSTANCE_ID],
@@ -187,7 +187,6 @@ async def main(
     # Set the relevant data on task_instances
     for prediction in predictions:
         task = tasks_map[prediction[KEY_ID]]
-
         test_type = MAP_REPO_TO_TEST_FRAMEWORK[task["repo"]]
         test_directives = get_test_directives(task)
         test_cmd = f"{test_type} {' '.join(test_directives)}"

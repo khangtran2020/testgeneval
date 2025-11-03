@@ -251,9 +251,7 @@ def main(args):
         )
 
         # make output directory
-        os.makedirs(
-            os.path.join(args.results_path, args.glmf_generated_output), exist_ok=True
-        )
+        os.makedirs(os.path.join(args.results_path), exist_ok=True)
 
         eval_cmd = [
             "python",
