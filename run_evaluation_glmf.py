@@ -133,12 +133,12 @@ async def main(
                 KEY_ID: task[KEY_ID],
                 KEY_INSTANCE_ID: task[KEY_INSTANCE_ID],
                 KEY_MODEL: "glmf",
-                KEY_PREDICTIONS: prediction_files[task[KEY_ID]],
+                KEY_PREDICTIONS: prediction_files[task[KEY_INSTANCE_ID]],
             }
             predictions.append(prediction)
             new_tasks.append(task)
         else:
-            logger.warning(f"Task {task[KEY_ID]} not found in generated data")
+            logger.warning(f"Task {task[KEY_INSTANCE_ID]} not found in generated data")
 
     # save prediction to a jsonl file
     # pred_file_name = predictions_path.split("/")[-1].split(".")[0]
