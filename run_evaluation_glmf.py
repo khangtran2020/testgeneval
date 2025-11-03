@@ -96,7 +96,7 @@ async def main(
     # Make sure that the log directory is world-writable so that we can write to it from
     # within the container, even if we're not the root user.
     os.chmod(log_dir, 0o777)
-    os.chmod(save_dir, 0o777)
+    # os.chmod(save_dir, 0o777)
 
     tasks = list(get_eval_refs(swe_bench_tasks).values())
 
