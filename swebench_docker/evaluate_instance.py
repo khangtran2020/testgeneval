@@ -1260,7 +1260,7 @@ def main(
             logger.warning("Evaluation failed")
             sys.exit(1)
 
-        if setting == "ground_truth":
+        if (setting == "ground_truth") or (setting == "branch_evaluation"):
             dict_tckey_to_index = dict(
                 zip(
                     task_instance["test_cases"].keys(),
