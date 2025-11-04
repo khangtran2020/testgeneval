@@ -1339,11 +1339,6 @@ if __name__ == "__main__":
     if setting is None:
         raise ValueError("SETTING environment variable is not set")
 
-    translated = os.getenv("TRANSLATED")
-    if translated is None:
-        raise ValueError("TRANSLATED environment variable is not set")
-    translated = int(translated)
-
     main(
         task_instance=task_instance,
         testbed_name=testbed_name,
