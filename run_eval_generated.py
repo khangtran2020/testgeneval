@@ -89,8 +89,6 @@ async def main(
             task["test_cases"] = gen_dict[task[KEY_INSTANCE_ID]]["test_cases"]
             task["branches"] = gen_dict[task[KEY_INSTANCE_ID]]["branches"]
             new_tasks.append(task)
-        else:
-            logger.warning(f"Task {task[KEY_INSTANCE_ID]} not found in generated data")
 
     num_test_case = 0
     for task in new_tasks:
