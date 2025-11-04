@@ -190,7 +190,6 @@ async def main(
                 task_dict[res[KEY_INSTANCE_ID]][branch_key][setting_] = res[branch_key][
                     setting_
                 ]
-                break
 
         # task_dict[res[KEY_ID]]["branches"][setting] = res["branches"][setting]
 
