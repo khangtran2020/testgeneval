@@ -72,12 +72,8 @@ def main(args):
             os.path.join(args.data_path, f"{data_suf}.jsonl"),
             "--res_path",
             os.path.join(args.data_path, f"{data_suf}_processed.jsonl"),
-            "--translated",
-            str(-1),
             "--timeout",
             str(args.timeout),
-            "--raw",
-            str(1),
         ]
         if args.debug:
             eval_cmd.append("--debug")
