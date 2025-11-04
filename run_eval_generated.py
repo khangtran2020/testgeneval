@@ -75,7 +75,7 @@ async def main(
                 "test_cases": {},
                 "branches": {},
             }
-        gen_dict[uuid]["test_cases"][f"test_case_{test_id}"] = value
+        gen_dict[uuid]["test_cases"][f"test_case_{test_id}"] = {"code": value}
         gen_dict[uuid]["branches"][f"test_case_{test_id}"] = []
 
     new_tasks = []
@@ -101,98 +101,43 @@ async def main(
 
     sem = asyncio.Semaphore(num_processes if num_processes > 0 else len(new_tasks))
     asyncio_tasks = []
-    if debug:
-        new_tasks = new_tasks[:1]
-        test_case_keys = ["test_case_0"]
-        print(f"Task: {new_tasks[0][KEY_ID]}, version {new_tasks[0]['version']}")
-
     task_dict = {task[KEY_INSTANCE_ID]: task for task in new_tasks}
 
     for task_instance in new_tasks:
-        if debug:
-            print(f"An example of task_instance: {pretty_repr(task_instance.keys())}")
-            # exit()
-            for testcase in test_case_keys:
 
-                async def run_docker_throttled(task_instance, testcase):
-                    async with sem:
-                        # TODO: remove generated task
-                        return await run_docker_evaluation(
-                            task_instance,
-                            namespace,
-                            log_dir,
-                            testcase,
-                            timeout=timeout,
-                            translated=-1,
-                            raw=raw,
-                            verbose=True,
-                            skip_mutation=True,
-                        )
+        if len(task_instance["test_cases"].keys()) == 0:
+            continue
 
-                task = asyncio.create_task(
-                    run_docker_throttled(task_instance, testcase)
+        async def run_docker_throttled(task_instance):
+            async with sem:
+                return await run_docker_evaluation(
+                    task_instance,
+                    namespace,
+                    log_dir,
+                    "branch_evaluation",
+                    timeout,
+                    only_baseline=True,
+                    verbose=True,
+                    skip_mutation=True,
                 )
-                asyncio_tasks.append(task)
-        else:
-            # if debug:
-            if len(task_instance["test_cases"].keys()) > 0:
-                max_id = max(
-                    [int(x.split("_")[-1]) for x in task_instance["test_cases"].keys()]
-                )
-                logger.info(
-                    f"# of test cases: {len(task_instance['test_cases'].keys())}, and max id: {max_id}, {max_id == len(task_instance['test_cases'].keys()) - 1}"
-                )
-            else:
-                logger.info(f"No test cases found for {task_instance[KEY_ID]}")
-                max_id = 0
 
-            for testcase in task_instance["test_cases"].keys():
-
-                async def run_docker_throttled(task_instance, testcase):
-                    async with sem:
-                        return await run_docker_evaluation(
-                            task_instance,
-                            namespace,
-                            log_dir,
-                            testcase,
-                            timeout,
-                            raw=raw,
-                            translated=-1,
-                            only_baseline=True,
-                            verbose=True,
-                            skip_mutation=True,
-                        )
-
-                task = asyncio.create_task(
-                    run_docker_throttled(task_instance, testcase)
-                )
-                asyncio_tasks.append(task)
+        task = asyncio.create_task(run_docker_throttled(task_instance))
+        asyncio_tasks.append(task)
 
     results = await asyncio.gather(*asyncio_tasks)
-    # setting_res = []
-    for result in results:
+    for res in results:
         # print(result)
-        if result is None:
+        if res is None:
             continue
-        res, setting = result
         branch_key = "branches"
-        test_case_key = "test_cases"
-        logger.info(
-            f"================== Task {res[KEY_INSTANCE_ID]} =================="
-        )
         for setting_ in res[branch_key].keys():
             if res[branch_key][setting_] != []:
-                logger.info(
-                    f"Setting {setting_} at setting {setting} has {len(res[branch_key][setting_])} branches"
-                )
                 evaluation_dict[res[KEY_INSTANCE_ID]]["generated_branches"][
                     setting_
                 ] = res[branch_key][setting_]
                 task_dict[res[KEY_INSTANCE_ID]][branch_key][setting_] = res[branch_key][
                     setting_
                 ]
-
-        # task_dict[res[KEY_ID]]["branches"][setting] = res["branches"][setting]
 
     branch_path = os.path.join(res_path, f"{name}_evaluation_branches.jsonl")
     with open(branch_path, "w") as f:
