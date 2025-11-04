@@ -1284,7 +1284,7 @@ def main(
                 prompt_list,
                 tcm,
                 task_instance,
-                tranlsated=translated,
+                tranlsated=-1,
                 skip_mutation=skip_mutation,
                 setting=setting,
             )
