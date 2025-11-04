@@ -101,6 +101,15 @@ async def main(
     asyncio_tasks = []
     task_dict = {task[KEY_INSTANCE_ID]: task for task in new_tasks}
 
+    # Check same set of keys for evaluation_dict:
+    for task_id in evaluation_dict.keys():
+        for case_key in evaluation_dict[task_id]["original_branches"].keys():
+            if case_key not in evaluation_dict[task_id]["generated_branches"].keys():
+                logger.info(
+                    f"Task {task_id} - Case {case_key} missing in generated branches. Setting to empty list."
+                )
+                evaluation_dict[task_id]["generated_branches"][case_key] = []
+
     for task_instance in new_tasks:
 
         if len(task_instance["test_cases"].keys()) == 0:
