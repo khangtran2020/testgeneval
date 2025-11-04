@@ -34,6 +34,7 @@ async def main(
         raise ValueError("--log_dir must exist and point at a directory")
     os.chmod(log_dir, 0o777)
 
+    # Get ground truth data
     tasks = get_test_tasks(data_path)
     if not isinstance(tasks, list):
         raise ValueError(f"Data from {data_path} must contain an array of tasks")
@@ -47,6 +48,7 @@ async def main(
         tasks = [t for t in tasks if t[REPO_ID] == repo]
     print(f"Number of tasks after filtering by repo: {len(tasks)}")
 
+    # Load generated data
     if gen_path.endswith(".jsonl"):
         with open(gen_path, "r", encoding="utf-8") as jsonl_file:
             gen_data = [json.loads(line) for line in jsonl_file]
@@ -68,12 +70,11 @@ async def main(
             test_id = key.split("_")[-1].strip()
             uuid = key.replace(f"_{test_id}", "")
 
-        if uuid not in gen_dict:
+        if uuid not in gen_dict.keys():
             gen_dict[uuid] = {
                 "test_cases": {},
                 "branches": {},
             }
-
         gen_dict[uuid]["test_cases"][f"test_case_{test_id}"] = value
         gen_dict[uuid]["branches"][f"test_case_{test_id}"] = []
 

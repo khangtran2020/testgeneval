@@ -27,9 +27,6 @@ async def run_docker_evaluation(
     setting: str,
     timeout: int = 180,
     verbose: bool = False,
-    translated: int = -1,
-    raw: int = 0,
-    base64_instance: bool = True,
     only_baseline: bool = False,
     skip_mutation: bool = False,
 ) -> Dict:
@@ -93,10 +90,6 @@ async def run_docker_evaluation(
             f"ONLY_BASELINE={only_baseline}",
             "-e",
             f"SKIP_MUTATION={skip_mutation}",
-            "-e",
-            f"TRANSLATED={translated}",
-            "-e",
-            f"RAW={raw}",
             docker_image,
         ]
     else:
@@ -125,10 +118,6 @@ async def run_docker_evaluation(
             f"ONLY_BASELINE={only_baseline}",
             "-e",
             f"SKIP_MUTATION={skip_mutation}",
-            "-e",
-            f"TRANSLATED={translated}",
-            "-e",
-            f"RAW={raw}",
             docker_image,
         ]
 
@@ -169,31 +158,18 @@ async def run_docker_evaluation(
                 f"[{task_instance['id']}][{docker_image}]  Container ran successfully in {elapsed_time} seconds."
             )
 
-        if "test_case" in setting:
+        if "ground_truth" in setting:
             # read task instance from tmpfile_path
-            if translated == -1:
-                branch_key = "branches"
-                arcs_key = "arcs"
-            else:
-                branch_key = f"branch_translate_{translated}"
-            if os.path.exists(
-                os.path.join(log_dir, f"{task_instance[KEY_ID]}_setting_{setting}.json")
-            ):
+            if os.path.exists(os.path.join(log_dir, f"{task_instance[KEY_ID]}.json")):
                 with open(
-                    os.path.join(
-                        log_dir, f"{task_instance[KEY_ID]}_setting_{setting}.json"
-                    ),
+                    os.path.join(log_dir, f"{task_instance[KEY_ID]}.json"),
                     "r",
                 ) as f:
                     task_instance = json.load(f)
-                    logger.info(
-                        f"Task instance {task_instance[KEY_ID]} for setting {setting} loaded from {task_instance[KEY_ID]}_setting_{setting}.json"
-                    )
-                    logger.info(f"Task instance branches: {task_instance[branch_key]}")
-                return task_instance, setting
+                return task_instance
             else:
                 logger.error("task_instance_results.json not found")
-                return task_instance, setting
+                return task_instance
     except Exception as e:
         logger.warning(
             f"[{task_instance['id']}][{docker_image}]  Error running container: {e}"

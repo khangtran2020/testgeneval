@@ -1021,10 +1021,16 @@ def completion_processing(
 
 
 def test_case_processing(
-    prompt_list, tcm, task_instance, translated, skip_mutation, setting: str
+    prompt_list,
+    tcm,
+    task_instance,
+    skip_mutation,
+    index_to_key: dict = None,
 ):
     successful_tests = []
-    for prompt in prompt_list:
+
+    for tc_idx, prompt in enumerate(prompt_list):
+
         with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
             test_content = prompt
             f.write(test_content)
@@ -1043,6 +1049,7 @@ def test_case_processing(
             warn=None,
             debug=None,
         )
+
         data.read()
         prefix = os.getcwd()
         code_file_name = os.path.join(prefix, task_instance["code_file"])
@@ -1052,127 +1059,125 @@ def test_case_processing(
 
         arcs = data.arcs(filename=code_file_name)
         if arcs is None:
-            logger.info(f"\n\nArcs not found\n\n")
-        else:
-            init_lines = get_executed_lines(source_code=task_instance["code_src"])
-            res = analyze_file(code=task_instance["code_src"])
-            line_exclude = []
-            for l in res:
-                if l["kind"] == "docstring":
-                    line_exclude.append(l["start_line"])
-                    line_exclude.append(l["end_line"])
-                elif l["kind"] == "class":
-                    line_exclude.append(l["start_line"])
-                elif (l["kind"] == "function") or (l["kind"] == "async_function"):
-                    print(l)
-                    if "decorators" in l.keys():
-                        i = 1
-                        for decor in l["decorators"]:
-                            line_exclude.append(l["start_line"] - i)
-                            i += 1
-                    line_exclude.append(l["start_line"])
+            logger.info(f"\n\nArcs not found for test case: {tc_idx} \n\n")
+            continue
 
-            clean_arcs = []
-            start_arcs = []
+        init_lines = get_executed_lines(source_code=task_instance["code_src"])
+        res = analyze_file(code=task_instance["code_src"])
+        line_exclude = []
+        for l in res:
+            if l["kind"] == "docstring":
+                line_exclude.append(l["start_line"])
+                line_exclude.append(l["end_line"])
+            elif l["kind"] == "class":
+                line_exclude.append(l["start_line"])
+            elif (l["kind"] == "function") or (l["kind"] == "async_function"):
+                print(l)
+                if "decorators" in l.keys():
+                    i = 1
+                    for decor in l["decorators"]:
+                        line_exclude.append(l["start_line"] - i)
+                        i += 1
+                line_exclude.append(l["start_line"])
 
-            for arc in arcs:
+        clean_arcs = []
+        start_arcs = []
+
+        for arc in arcs:
+            if arc[1] in line_exclude:
+                continue
+            if arc[0] < 0:
+                if arc[1] == -1 * arc[0]:
+                    continue
+                else:
+                    start_arcs.append((-1 * arc[0], arc[1]))
+            elif arc[0] in line_exclude:
                 if arc[1] in line_exclude:
                     continue
-                if arc[0] < 0:
-                    if arc[1] == -1 * arc[0]:
-                        continue
-                    else:
-                        start_arcs.append((-1 * arc[0], arc[1]))
-                elif arc[0] in line_exclude:
-                    if arc[1] in line_exclude:
-                        continue
-                    elif arc[1] < 0:
-                        continue
-                    else:
-                        clean_arcs.append(arc)
-
+                elif arc[1] < 0:
+                    continue
                 else:
                     clean_arcs.append(arc)
 
-            clean_arcs = sorted(clean_arcs)
-            init_arcs = []
-            remain_arcs = []
-            for i, arc in enumerate(clean_arcs):
-                if arc[0] in init_lines and arc[1] in init_lines:
-                    init_arcs.append(arc)
-                else:
-                    remain_arcs.append(arc)
-
-            init_arcs = sorted(init_arcs)
-            rows = classify_lines(source=task_instance["code_src"])
-
-            branches = []
-
-            init_branch = []
-            for arc in init_arcs:
-                if arc[0] not in init_branch:
-                    init_branch.append(arc[0])
-                if arc[1] not in init_branch:
-                    init_branch.append(arc[1])
-
-            remain_arcs = sorted(remain_arcs)
-            branch = []
-            seen_loop = []
-            current_arc = ""
-
-            for arc in remain_arcs:
-                arc_0 = arc[0] if arc[0] > 0 else -1 * arc[0]
-                new_arc = rows[arc_0]["block"]
-
-                if current_arc == "":
-                    current_arc = new_arc
-                else:
-                    if new_arc != current_arc:
-                        # end of branch
-                        branches.append(branch)
-                        branch = []
-                        current_arc = new_arc
-
-                if arc[1] < 0:
-
-                    if arc[0] == -1 * arc[1]:
-                        continue
-
-                    if arc[0] not in branch:
-                        branch.append(arc[0])
-
-                    if branch[0] != -1 * arc[1]:
-                        branch = [-1 * arc[1]] + branch
-                    if ("is_loop_start" in rows[arc[0]].keys()) and (
-                        rows[arc[0]]["is_loop_start"] == True
-                    ):
-                        if arc[0] not in seen_loop:
-                            seen_loop.append(arc[0])
-                else:
-                    if arc[0] in branch:
-                        branch.append(arc[1])
-                    else:
-                        branch.append(arc[0])
-                        branch.append(arc[1])
-
-            if len(branches) > 0:
-                branches = [init_branch] + branches
-
-            if translated == -1:
-                task_instance["branches"][setting] = branches
-                task_instance["arcs"][setting] = arcs
             else:
-                task_instance[f"branch_translate_{translated}"][setting] = branches
+                clean_arcs.append(arc)
 
-            if os.path.exists(".coverage"):
-                logger.info("Removing coverage")
-                os.remove(".coverage")
+        clean_arcs = sorted(clean_arcs)
+        init_arcs = []
+        remain_arcs = []
+        for i, arc in enumerate(clean_arcs):
+            if arc[0] in init_lines and arc[1] in init_lines:
+                init_arcs.append(arc)
+            else:
+                remain_arcs.append(arc)
+
+        init_arcs = sorted(init_arcs)
+        rows = classify_lines(source=task_instance["code_src"])
+
+        branches = []
+
+        init_branch = []
+        for arc in init_arcs:
+            if arc[0] not in init_branch:
+                init_branch.append(arc[0])
+            if arc[1] not in init_branch:
+                init_branch.append(arc[1])
+
+        remain_arcs = sorted(remain_arcs)
+        branch = []
+        seen_loop = []
+        current_arc = ""
+
+        for arc in remain_arcs:
+            arc_0 = arc[0] if arc[0] > 0 else -1 * arc[0]
+            new_arc = rows[arc_0]["block"]
+
+            if current_arc == "":
+                current_arc = new_arc
+            else:
+                if new_arc != current_arc:
+                    # end of branch
+                    branches.append(branch)
+                    branch = []
+                    current_arc = new_arc
+
+            if arc[1] < 0:
+
+                if arc[0] == -1 * arc[1]:
+                    continue
+
+                if arc[0] not in branch:
+                    branch.append(arc[0])
+
+                if branch[0] != -1 * arc[1]:
+                    branch = [-1 * arc[1]] + branch
+                if ("is_loop_start" in rows[arc[0]].keys()) and (
+                    rows[arc[0]]["is_loop_start"] == True
+                ):
+                    if arc[0] not in seen_loop:
+                        seen_loop.append(arc[0])
+            else:
+                if arc[0] in branch:
+                    branch.append(arc[1])
+                else:
+                    branch.append(arc[0])
+                    branch.append(arc[1])
+
+        if len(branches) > 0:
+            branches = [init_branch] + branches
+
+        task_instance["branches"][index_to_key[tc_idx]] = branches
+        task_instance["arcs"][index_to_key[tc_idx]] = arcs
+
+        if os.path.exists(".coverage"):
+            logger.info("Removing coverage")
+            os.remove(".coverage")
 
         if success:
             successful_tests.append(prompt)
 
     with open(
-        os.path.join(tcm.log_dir, f"{task_instance[KEY_ID]}_setting_{setting}.json"),
+        os.path.join(tcm.log_dir, f"{task_instance[KEY_ID]}.json"),
         "w",
     ) as f:
         json.dump(task_instance, f)
@@ -1209,8 +1214,6 @@ def main(
     repo_dir: str,
     log_dir: str,
     timeout: Optional[int],
-    translated: int = -1,
-    raw: int = 0,
     image_type: str = "conda",
     only_baseline: bool = False,
     skip_mutation: bool = False,
@@ -1257,26 +1260,26 @@ def main(
             logger.warning("Evaluation failed")
             sys.exit(1)
 
-        # Make baselines a list so the loop below works
-        if "test_case" not in setting:
+        if setting == "ground_truth":
+            dict_tckey_to_index = dict(
+                zip(
+                    task_instance["test_cases"].keys(),
+                    range(len(task_instance["test_cases"].keys())),
+                )
+            )
+            dict_index_to_tckey = {v: k for k, v in dict_tckey_to_index.items()}
+            prompt_list = []
+            for idx in range(len(dict_index_to_tckey.keys())):
+                tc = task_instance["test_cases"][dict_index_to_tckey[idx]]
+                prompt_list.append(tc)
+        else:
             prompt_list = (
                 [task_instance[KEY_BASELINES][setting]]
                 if only_baseline
                 else [task_instance[KEY_PREDICTIONS][setting]]
             )
-            print(f"Running {setting} with prompt list length:", len(prompt_list))
-        else:
-            if translated != -1:
-                prompt_list = [task_instance[f"translate_{translated}"][setting]]
-            else:
-                if raw == 1:
-                    prompt_list = [task_instance["test_cases"][setting]["code"]]
-                else:
-                    prompt_list = [task_instance["test_cases"][setting]]
+
         if setting == "full":
-            print(
-                "Running full processing - with prompt list length:", len(prompt_list)
-            )
             full_processing(
                 prompt_list,
                 tcm,
@@ -1285,24 +1288,13 @@ def main(
                 skip_mutation=skip_mutation,
                 setting=setting,
             )
-        elif "test_case" in setting:
+        elif setting == "ground_truth":
             test_case_processing(
-                prompt_list=prompt_list,
-                tcm=tcm,
-                task_instance=task_instance,
+                prompt_list,
+                tcm,
+                task_instance,
                 skip_mutation=skip_mutation,
-                setting=setting,
-                translated=translated,
-            )
-        elif "eval_branch" in setting:
-            prompt_list = task_instance[KEY_PREDICTIONS]
-            test_case_processing(
-                prompt_list=prompt_list,
-                tcm=tcm,
-                task_instance=task_instance,
-                skip_mutation=skip_mutation,
-                setting=setting,
-                translated=translated,
+                index_to_key=dict_index_to_tckey,
             )
         else:
             completion_processing(
@@ -1352,19 +1344,12 @@ if __name__ == "__main__":
         raise ValueError("TRANSLATED environment variable is not set")
     translated = int(translated)
 
-    raw = os.getenv("RAW")
-    if raw is None:
-        raise ValueError("RAW environment variable is not set")
-    raw = int(raw)
-
     main(
         task_instance=task_instance,
         testbed_name=testbed_name,
         repo_dir=repo_dir,
         log_dir=log_dir,
         timeout=int_timeout,
-        translated=translated,
-        raw=raw,
         setting=setting,
         image_type=os.getenv("IMAGE_TYPE", "conda"),
         only_baseline=os.getenv("ONLY_BASELINE") == "True",
