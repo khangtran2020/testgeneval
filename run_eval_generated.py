@@ -164,6 +164,11 @@ async def main(
     with open(eval_path, "w") as f:
         json.dump(evaluation_dict, f, indent=4)
 
+    overall_acc = 0
+    overall_overlap_original = 0
+    overall_overlap_generated = 0
+    num_tasks = 0
+
     # Compute branch accuracy and overlap
     for task_id in evaluation_dict.keys():
         total_cases = len(evaluation_dict[task_id]["original_branches"].keys())
@@ -182,6 +187,8 @@ async def main(
             if contain_all and original != []:
                 correct_cases += 1
         accuracy = correct_cases / total_cases if total_cases > 0 else 0
+        overall_acc += accuracy
+        num_tasks += 1
         logger.info(
             f"Task {task_id} - Branch Accuracy: {correct_cases}/{total_cases} = {accuracy:.2f}"
         )
@@ -205,25 +212,31 @@ async def main(
             total_overlap_generated += (
                 overlap / len(generated) if len(generated) > 0 else 0
             )
-        average_overlap_total = (
+        average_overlap_original = (
             total_overlap_original / total_cases if total_cases > 0 else 0
         )
         average_overlap_generated = (
             total_overlap_generated / total_cases if total_cases > 0 else 0
         )
+        overall_overlap_original += average_overlap_original
+        overall_overlap_generated += average_overlap_generated
         logger.info(
-            f"Task {task_id} - Average Branch Overlap Original: {average_overlap_total:.2f}, Generated: {average_overlap_generated:.2f}"
+            f"Task {task_id} - Average Branch Overlap Original: {average_overlap_original:.2f}, Generated: {average_overlap_generated:.2f}"
         )
 
-        # Save the computed metrics
-        evaluation_results = {
-            "branch_accuracy": accuracy,
-            "average_branch_overlap_original": average_overlap_total,
-            "average_branch_overlap_generated": average_overlap_generated,
-        }
-        eval_result_path = os.path.join(res_path, f"{name}_evaluation_report.json")
-        with open(eval_result_path, "w") as f:
-            json.dump(evaluation_results, f, indent=4)
+    # Save the computed metrics
+    evaluation_results = {
+        "branch_accuracy": overall_acc / num_tasks if num_tasks > 0 else 0,
+        "average_branch_overlap_original": (
+            overall_overlap_original / num_tasks if num_tasks > 0 else 0
+        ),
+        "average_branch_overlap_generated": (
+            overall_overlap_generated / num_tasks if num_tasks > 0 else 0
+        ),
+    }
+    eval_result_path = os.path.join(res_path, f"{name}_evaluation_report.json")
+    with open(eval_result_path, "w") as f:
+        json.dump(evaluation_results, f, indent=4)
 
     print(f"Evaluation complete")
 
