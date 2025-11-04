@@ -167,10 +167,7 @@ async def main(
         correct_cases = 0
         for case_key in evaluation_dict[task_id]["original_branches"].keys():
             original = evaluation_dict[task_id]["original_branches"][case_key]
-            try:
-                generated = evaluation_dict[task_id]["generated_branches"][case_key]
-            except KeyError:
-                generated = []
+            generated = evaluation_dict[task_id]["generated_branches"][case_key]
             if original == generated and original != []:
                 correct_cases += 1
         accuracy = correct_cases / total_cases if total_cases > 0 else 0
