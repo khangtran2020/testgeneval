@@ -1270,7 +1270,7 @@ def main(
             dict_index_to_tckey = {v: k for k, v in dict_tckey_to_index.items()}
             prompt_list = []
             for idx in range(len(dict_index_to_tckey.keys())):
-                tc = task_instance["test_cases"][dict_index_to_tckey[idx]]
+                tc = task_instance["test_cases"][dict_index_to_tckey[idx]]["code"]
                 prompt_list.append(tc)
         else:
             prompt_list = (
