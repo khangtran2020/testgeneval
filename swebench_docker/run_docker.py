@@ -158,7 +158,7 @@ async def run_docker_evaluation(
                 f"[{task_instance['id']}][{docker_image}]  Container ran successfully in {elapsed_time} seconds."
             )
 
-        if "ground_truth" in setting:
+        if ("ground_truth" in setting) or ("branch_evaluation" in setting):
             # read task instance from tmpfile_path
             if os.path.exists(os.path.join(log_dir, f"{task_instance[KEY_ID]}.json")):
                 with open(
