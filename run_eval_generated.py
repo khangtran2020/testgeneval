@@ -232,8 +232,8 @@ async def main(
             # Check if the file has a .json extension and is a file
             if file.endswith(".json") and os.path.isfile(file_path):
                 os.remove(file_path)
-                print(f"Deleted: {file_path}")
-        print("All .json files have been deleted.")
+                # print(f"Deleted: {file_path}")
+        # print("All .json files have been deleted.")
     except Exception as e:
         print(f"An error occurred: {e}")
 
