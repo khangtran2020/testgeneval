@@ -141,6 +141,7 @@ async def main(
         if res is None:
             continue
         branch_key = "branches"
+        num_branch_extracted = 0
         for setting_ in res[branch_key].keys():
             if res[branch_key][setting_] != []:
                 evaluation_dict[res[KEY_INSTANCE_ID]]["generated_branches"][
@@ -149,6 +150,10 @@ async def main(
                 task_dict[res[KEY_INSTANCE_ID]][branch_key][setting_] = res[branch_key][
                     setting_
                 ]
+                num_branch_extracted += 1
+        logger.info(
+            f"Task {res[KEY_INSTANCE_ID]} - Extracted branches for {num_branch_extracted} test cases."
+        )
 
     branch_path = os.path.join(res_path, f"{name}_evaluation_branches.jsonl")
     with open(branch_path, "w") as f:
