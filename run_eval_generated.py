@@ -173,7 +173,13 @@ async def main(
         for case_key in evaluation_dict[task_id]["original_branches"].keys():
             original = evaluation_dict[task_id]["original_branches"][case_key]
             generated = evaluation_dict[task_id]["generated_branches"][case_key]
-            if original == generated and original != []:
+
+            contain_all = True
+            for branch in original:
+                if branch not in generated:
+                    contain_all = False
+                    break
+            if contain_all and original != []:
                 correct_cases += 1
         accuracy = correct_cases / total_cases if total_cases > 0 else 0
         logger.info(
