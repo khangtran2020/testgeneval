@@ -13,7 +13,7 @@ import pickle
 
 # install coverage
 try:
-    # Run the pip command to install the coverage package quietly
+    # Run the command to install the coverage package quietly
     result = subprocess.run(
         [sys.executable, "-m", "pip", "install", "coverage", "--quiet"],
         check=True,

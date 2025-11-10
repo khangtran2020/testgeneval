@@ -80,18 +80,18 @@ async def main(
 
     new_tasks = []
     for task in tasks:
-        if task[KEY_INSTANCE_ID] in gen_dict:
+        if task[KEY_ID] in gen_dict:
             # since the train/test split is divided by the instance_id, the instance should have all test cases
-            evaluation_dict[task[KEY_INSTANCE_ID]] = {
+            evaluation_dict[task[KEY_ID]] = {
                 "original_branches": {
                     k: v
                     for k, v in task["branches"].items()
-                    if k in gen_dict[task[KEY_INSTANCE_ID]]["branches"].keys()
+                    if k in gen_dict[task[KEY_ID]]["branches"].keys()
                 },
-                "generated_branches": gen_dict[task[KEY_INSTANCE_ID]]["branches"],
+                "generated_branches": gen_dict[task[KEY_ID]]["branches"],
             }
-            task["test_cases"] = gen_dict[task[KEY_INSTANCE_ID]]["test_cases"]
-            task["branches"] = gen_dict[task[KEY_INSTANCE_ID]]["branches"]
+            task["test_cases"] = gen_dict[task[KEY_ID]]["test_cases"]
+            task["branches"] = gen_dict[task[KEY_ID]]["branches"]
             new_tasks.append(task)
 
     num_test_case = 0
@@ -103,7 +103,7 @@ async def main(
 
     sem = asyncio.Semaphore(num_processes if num_processes > 0 else len(new_tasks))
     asyncio_tasks = []
-    task_dict = {task[KEY_INSTANCE_ID]: task for task in new_tasks}
+    task_dict = {task[KEY_ID]: task for task in new_tasks}
 
     # Check same set of keys for evaluation_dict:
     for task_id in evaluation_dict.keys():
@@ -144,15 +144,13 @@ async def main(
         num_branch_extracted = 0
         for setting_ in res[branch_key].keys():
             if res[branch_key][setting_] != []:
-                evaluation_dict[res[KEY_INSTANCE_ID]]["generated_branches"][
-                    setting_
-                ] = res[branch_key][setting_]
-                task_dict[res[KEY_INSTANCE_ID]][branch_key][setting_] = res[branch_key][
-                    setting_
-                ]
+                evaluation_dict[res[KEY_ID]]["generated_branches"][setting_] = res[
+                    branch_key
+                ][setting_]
+                task_dict[res[KEY_ID]][branch_key][setting_] = res[branch_key][setting_]
                 num_branch_extracted += 1
         logger.info(
-            f"Task {res[KEY_INSTANCE_ID]} - Extracted branches for {num_branch_extracted} test cases."
+            f"Task {res[KEY_ID]} - Extracted branches for {num_branch_extracted} test cases."
         )
 
     branch_path = os.path.join(res_path, f"{name}_evaluation_branches.jsonl")
