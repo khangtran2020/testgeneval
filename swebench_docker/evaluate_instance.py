@@ -1290,7 +1290,11 @@ def main(
                 skip_mutation=skip_mutation,
                 setting=setting,
             )
-        elif (setting == "ground_truth") or (setting == "branch_evaluation"):
+        elif (
+            (setting == "ground_truth")
+            or (setting == "branch_evaluation")
+            or (setting == "branch_eval")
+        ):
             test_case_processing(
                 prompt_list,
                 tcm,
