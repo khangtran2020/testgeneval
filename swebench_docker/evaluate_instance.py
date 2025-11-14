@@ -1166,8 +1166,9 @@ def test_case_processing(
         if len(branches) > 0:
             branches = [init_branch] + branches
 
-        task_instance["branches"][index_to_key[tc_idx]] = branches
-        task_instance["arcs"][index_to_key[tc_idx]] = arcs
+        if index_to_key is not None:
+            task_instance["branches"][index_to_key[tc_idx]] = branches
+            task_instance["arcs"][index_to_key[tc_idx]] = arcs
 
         if os.path.exists(".coverage"):
             logger.info("Removing coverage")
