@@ -20,6 +20,13 @@ if __name__ == "__main__":
         help="HuggingFace dataset name or local path",
     )
     parser.add_argument(
+        "--data_path",
+        type=str,
+        required=False,
+        default=None,
+        help="Local path to data",
+    )
+    parser.add_argument(
         "--model",
         type=str,
         help="Model name",
@@ -136,6 +143,7 @@ if __name__ == "__main__":
         "gpt-4-0613",
         "gpt-4-turbo-2024-04-09",
         "gpt-3.5-turbo-0125",
+        "claude-sonnet-4-5-20250929",
         "Meta-Llama-3.1-405B-Instruct",
     ]
     if not os.path.exists(preds_file):
@@ -159,6 +167,8 @@ if __name__ == "__main__":
                 str(args.num_samples_full),
                 "--num_samples_completion",
                 str(args.num_samples_completion),
+                "--local_data_path",
+                str(args.data_path),
             ] + model_extra_cmd
             subprocess.run(model_cmd)
         elif args.model != "baseline":

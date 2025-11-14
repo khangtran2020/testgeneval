@@ -1,6 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 
-"""This python script is designed to run inference on a dataset using either the OpenAI or Anthropic API, depending on the model specified. 
+"""This python script is designed to run inference on a dataset using either the OpenAI or Anthropic API, depending on the model specified.
 It sorts instances by length and continually writes the outputs to a specified file, so that the script can be stopped and restarted without losing progress.
 """
 
@@ -400,6 +400,8 @@ def openai_inference(
                 num_samples_curr = 1 if prompt_name == "full" else num_samples
                 if skip_full and prompt_name == "full":
                     continue
+                if prompt_name != "full":
+                    continue
                 for _ in range(num_samples_curr):
                     try:
                         response, cost = call_chat(
@@ -607,6 +609,8 @@ def anthropic_inference(
                 num_samples_curr = 1 if prompt_name == "full" else num_samples
                 if skip_full and prompt_name == "full":
                     continue
+                if prompt_name != "full":
+                    continue
                 for _ in range(num_samples_curr):
                     try:
                         completion, cost = call_api(
@@ -690,6 +694,7 @@ def main(
     max_cost,
     num_samples,
     skip_full,
+    local_data_path: str = None,
 ):
     if shard_id is None and num_shards is not None:
         logger.warning(
@@ -732,6 +737,13 @@ def main(
         raise ValueError(f"Invalid split {split} for dataset {dataset_name_or_path}")
     dataset = dataset[split]
 
+    if local_data_path is not None:
+        tasks = [json.loads(l) for l in open(local_data_path).readlines()]
+        filter_id = [task["id"] for task in tasks]
+        dataset = dataset.filter(
+            lambda x: x["id"] in filter_id, load_from_cache_file=False
+        )
+
     print(dataset[0].keys())
     if len(existing_ids) > 0:
         dataset = dataset.filter(
@@ -772,6 +784,13 @@ if __name__ == "__main__":
         type=str,
         required=True,
         help="HuggingFace dataset name or local path",
+    )
+    parser.add_argument(
+        "--data_path",
+        type=str,
+        required=False,
+        default=None,
+        help="Local path to data",
     )
     parser.add_argument(
         "--split",

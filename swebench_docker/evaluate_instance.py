@@ -697,14 +697,7 @@ def extract_preamble_classes_and_functions(code, tcm):
 
 
 def postprocess_tests(
-    task_instance,
-    preamble,
-    class_name,
-    methods,
-    successful_tests,
-    tcm,
-    setting,
-    translated=-1,
+    task_instance, preamble, class_name, methods, successful_tests, tcm
 ):
     repo = task_instance["repo"]
     django_repo = repo == "django/django"
@@ -736,66 +729,12 @@ def postprocess_tests(
         _, success = tcm.run_tests_task(
             task_instance, log_data=False, skip_mutation=True
         )
-
-        # check if .corverage exist
-        if "test_case" in setting:
-            if os.path.exists(".coverage") == False:
-                raise Exception("Coverage file not found")
-
-            data = CoverageData(
-                basename=".coverage",
-                suffix=None,
-                warn=None,
-                debug=None,
-            )
-            data.read()
-            prefix = os.getcwd()
-            code_file_name = os.path.join(prefix, task_instance["code_file"])
-            logger.info(f"Testing for code file: {code_file_name}")
-            logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
-            logger.info(f"Coverage data: {data._file_map}")
-
-            arcs = data.arcs(filename=code_file_name)
-            if arcs is None:
-                logger.info(f"Arcs not found")
-            else:
-                branches = []
-                visited = []
-                for e in arcs:
-                    if e[0] < 0:
-                        continue
-                    if e[1] < 0:
-                        continue
-                    if e[0] in visited:
-                        for i, branch in enumerate(branches):
-                            if e[0] in branch:
-                                branches[i].append(e[1])
-                                visited.append(e[1])
-                    else:
-                        branches.append([e[0], e[1]])
-                        visited.append(e[0])
-                        visited.append(e[1])
-                if translated == -1:
-                    task_instance["branches"][setting] = branches
-                else:
-                    task_instance[f"branch_translate_{translated}"][setting] = branches
-
-        if os.path.exists(".coverage"):
-            logger.info("Removing coverage")
-            os.remove(".coverage")
-
         if success:
             successful_tests.append((class_name, method_name, test_case))
 
 
 def postprocess_functions(
-    task_instance,
-    preamble,
-    test_functions,
-    successful_tests,
-    tcm,
-    setting,
-    translated=-1,
+    task_instance, preamble, test_functions, successful_tests, tcm
 ):
     repo = task_instance["repo"]
     django_repo = repo == "django/django"
@@ -827,126 +766,33 @@ def postprocess_functions(
         _, success = tcm.run_tests_task(
             task_instance, log_data=False, skip_mutation=True
         )
-
-        if "test_case" in setting:
-            if os.path.exists(".coverage") == False:
-                raise Exception("Coverage file not found")
-
-            data = CoverageData(
-                basename=".coverage",
-                suffix=None,
-                warn=None,
-                debug=None,
-            )
-            data.read()
-            prefix = os.getcwd()
-            code_file_name = os.path.join(prefix, task_instance["code_file"])
-            logger.info(f"Testing for code file: {code_file_name}")
-            logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
-            logger.info(f"Coverage data: {data._file_map}")
-
-            arcs = data.arcs(filename=code_file_name)
-            if arcs is None:
-                logger.info(f"\n\nArcs not found\n\n")
-            else:
-                branches = []
-                visited = []
-                for e in arcs:
-                    if e[0] < 0:
-                        continue
-                    if e[1] < 0:
-                        continue
-                    if e[0] in visited:
-                        for i, branch in enumerate(branches):
-                            if e[0] in branch:
-                                branches[i].append(e[1])
-                                visited.append(e[1])
-                    else:
-                        branches.append([e[0], e[1]])
-                        visited.append(e[0])
-                        visited.append(e[1])
-                if translated == -1:
-                    task_instance["branches"][setting] = branches
-                else:
-                    task_instance[f"branch_translate_{translated}"][setting] = branches
-                logger.info(f"====================== Branches: {branches}")
-
-        if os.path.exists(".coverage"):
-            logger.info("Removing coverage")
-            os.remove(".coverage")
-
         if success:
             if django_repo and added_class:
                 class_content += indent_text(test_function, 4) + "\n"
             else:
                 successful_tests.append((None, test_function))
 
-            # check if .corverage exist
-
     if django_repo and class_content:
         successful_tests.append((None, class_wrapper_start + class_content))
 
 
-def full_processing(
-    prompt_list, tcm, task_instance, tranlsated, skip_mutation, setting: str
-):
-
+def full_processing(prompt_list, tcm, task_instance, skip_mutation):
     for prompt in prompt_list:
         preamble, classes, test_functions = extract_preamble_classes_and_functions(
             prompt, tcm
         )
-
-        # store the extracted preamble, classes, and functions
-        extracted_preamble = {
-            "preamble": preamble,
-            "classes": classes,
-            "test_functions": test_functions,
-        }
-
-        with open(
-            os.path.join(
-                tcm.log_dir,
-                f"{task_instance[KEY_ID]}_setting_{setting}_extracted.pkl",
-            ),
-            "wb",
-        ) as f:
-            pickle.dump(extracted_preamble, f)
-
         successful_tests = []
 
         if classes:
             for class_name, methods, start in classes:
                 postprocess_tests(
-                    task_instance,
-                    preamble,
-                    class_name,
-                    methods,
-                    successful_tests,
-                    tcm,
-                    setting,
-                    translated=tranlsated,
+                    task_instance, preamble, class_name, methods, successful_tests, tcm
                 )
 
         if test_functions:
             postprocess_functions(
-                task_instance,
-                preamble,
-                test_functions,
-                successful_tests,
-                tcm,
-                setting,
-                translated=tranlsated,
+                task_instance, preamble, test_functions, successful_tests, tcm
             )
-
-        # save task_instance
-        # tmpfile_path = tempfile.mktemp(suffix=".json")
-        with open(
-            os.path.join(
-                tcm.log_dir, f"{task_instance[KEY_ID]}_setting_{setting}.json"
-            ),
-            "w",
-        ) as f:
-            json.dump(task_instance, f)
 
         tcm.log.write(f"{TESTS_CONFIG}full pred\n")
         if len(successful_tests) > 0:
@@ -1286,14 +1132,7 @@ def main(
             )
 
         if setting == "full":
-            full_processing(
-                prompt_list,
-                tcm,
-                task_instance,
-                tranlsated=-1,
-                skip_mutation=skip_mutation,
-                setting=setting,
-            )
+            full_processing(prompt_list, tcm, task_instance, skip_mutation)
         elif (
             (setting == "ground_truth")
             or (setting == "branch_evaluation")
