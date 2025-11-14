@@ -1260,11 +1260,7 @@ def main(
             logger.warning("Evaluation failed")
             sys.exit(1)
 
-        if (
-            (setting == "ground_truth")
-            or (setting == "branch_evaluation")
-            or (setting == "branch_eval")
-        ):
+        if (setting == "ground_truth") or (setting == "branch_evaluation"):
             dict_tckey_to_index = dict(
                 zip(
                     task_instance["test_cases"].keys(),
@@ -1276,6 +1272,8 @@ def main(
             for idx in range(len(dict_index_to_tckey.keys())):
                 tc = task_instance["test_cases"][dict_index_to_tckey[idx]]["code"]
                 prompt_list.append(tc)
+        elif setting == "branch_eval":
+            prompt_list = task_instance[KEY_PREDICTIONS]
         else:
             prompt_list = (
                 [task_instance[KEY_BASELINES][setting]]
