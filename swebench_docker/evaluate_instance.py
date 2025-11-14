@@ -1025,6 +1025,7 @@ def test_case_processing(
     tcm,
     task_instance,
     skip_mutation,
+    get_branches: bool = False,
     index_to_key: dict = None,
 ):
     successful_tests = []
@@ -1040,131 +1041,133 @@ def test_case_processing(
         )
 
         # check if .corverage exist
-        if os.path.exists(".coverage") == False:
-            raise Exception("Coverage file not found")
 
-        data = CoverageData(
-            basename=".coverage",
-            suffix=None,
-            warn=None,
-            debug=None,
-        )
+        if get_branches:
+            if os.path.exists(".coverage") == False:
+                raise Exception("Coverage file not found")
 
-        data.read()
-        prefix = os.getcwd()
-        code_file_name = os.path.join(prefix, task_instance["code_file"])
-        logger.info(f"Testing for code file: {code_file_name}")
-        logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
-        logger.info(f"Coverage data: {data._file_map}")
+            data = CoverageData(
+                basename=".coverage",
+                suffix=None,
+                warn=None,
+                debug=None,
+            )
 
-        arcs = data.arcs(filename=code_file_name)
-        if arcs is None:
-            logger.info(f"\n\nArcs not found for test case: {tc_idx} \n\n")
-            continue
+            data.read()
+            prefix = os.getcwd()
+            code_file_name = os.path.join(prefix, task_instance["code_file"])
+            logger.info(f"Testing for code file: {code_file_name}")
+            logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
+            logger.info(f"Coverage data: {data._file_map}")
 
-        init_lines = get_executed_lines(source_code=task_instance["code_src"])
-        res = analyze_file(code=task_instance["code_src"])
-        line_exclude = []
-        for l in res:
-            if l["kind"] == "docstring":
-                line_exclude.append(l["start_line"])
-                line_exclude.append(l["end_line"])
-            elif l["kind"] == "class":
-                line_exclude.append(l["start_line"])
-            elif (l["kind"] == "function") or (l["kind"] == "async_function"):
-                print(l)
-                if "decorators" in l.keys():
-                    i = 1
-                    for decor in l["decorators"]:
-                        line_exclude.append(l["start_line"] - i)
-                        i += 1
-                line_exclude.append(l["start_line"])
-
-        clean_arcs = []
-        start_arcs = []
-
-        for arc in arcs:
-            if arc[1] in line_exclude:
+            arcs = data.arcs(filename=code_file_name)
+            if arcs is None:
+                logger.info(f"\n\nArcs not found for test case: {tc_idx} \n\n")
                 continue
-            if arc[0] < 0:
-                if arc[1] == -1 * arc[0]:
-                    continue
-                else:
-                    start_arcs.append((-1 * arc[0], arc[1]))
-            elif arc[0] in line_exclude:
+
+            init_lines = get_executed_lines(source_code=task_instance["code_src"])
+            res = analyze_file(code=task_instance["code_src"])
+            line_exclude = []
+            for l in res:
+                if l["kind"] == "docstring":
+                    line_exclude.append(l["start_line"])
+                    line_exclude.append(l["end_line"])
+                elif l["kind"] == "class":
+                    line_exclude.append(l["start_line"])
+                elif (l["kind"] == "function") or (l["kind"] == "async_function"):
+                    print(l)
+                    if "decorators" in l.keys():
+                        i = 1
+                        for decor in l["decorators"]:
+                            line_exclude.append(l["start_line"] - i)
+                            i += 1
+                    line_exclude.append(l["start_line"])
+
+            clean_arcs = []
+            start_arcs = []
+
+            for arc in arcs:
                 if arc[1] in line_exclude:
                     continue
-                elif arc[1] < 0:
-                    continue
+                if arc[0] < 0:
+                    if arc[1] == -1 * arc[0]:
+                        continue
+                    else:
+                        start_arcs.append((-1 * arc[0], arc[1]))
+                elif arc[0] in line_exclude:
+                    if arc[1] in line_exclude:
+                        continue
+                    elif arc[1] < 0:
+                        continue
+                    else:
+                        clean_arcs.append(arc)
+
                 else:
                     clean_arcs.append(arc)
 
-            else:
-                clean_arcs.append(arc)
-
-        clean_arcs = sorted(clean_arcs)
-        init_arcs = []
-        remain_arcs = []
-        for i, arc in enumerate(clean_arcs):
-            if arc[0] in init_lines and arc[1] in init_lines:
-                init_arcs.append(arc)
-            else:
-                remain_arcs.append(arc)
-
-        init_arcs = sorted(init_arcs)
-        rows = classify_lines(source=task_instance["code_src"])
-
-        branches = []
-
-        init_branch = []
-        for arc in init_arcs:
-            if arc[0] not in init_branch:
-                init_branch.append(arc[0])
-            if arc[1] not in init_branch:
-                init_branch.append(arc[1])
-
-        remain_arcs = sorted(remain_arcs)
-        branch = []
-        seen_loop = []
-        current_arc = ""
-
-        for arc in remain_arcs:
-            arc_0 = arc[0] if arc[0] > 0 else -1 * arc[0]
-            new_arc = rows[arc_0]["block"]
-
-            if current_arc == "":
-                current_arc = new_arc
-            else:
-                if new_arc != current_arc:
-                    # end of branch
-                    branches.append(branch)
-                    branch = []
-                    current_arc = new_arc
-
-            if arc[1] < 0:
-
-                if arc[0] == -1 * arc[1]:
-                    continue
-
-                if arc[0] not in branch:
-                    branch.append(arc[0])
-
-                if branch[0] != -1 * arc[1]:
-                    branch = [-1 * arc[1]] + branch
-                if ("is_loop_start" in rows[arc[0]].keys()) and (
-                    rows[arc[0]]["is_loop_start"] == True
-                ):
-                    if arc[0] not in seen_loop:
-                        seen_loop.append(arc[0])
-            else:
-                if arc[0] in branch:
-                    branch.append(arc[1])
+            clean_arcs = sorted(clean_arcs)
+            init_arcs = []
+            remain_arcs = []
+            for i, arc in enumerate(clean_arcs):
+                if arc[0] in init_lines and arc[1] in init_lines:
+                    init_arcs.append(arc)
                 else:
-                    branch.append(arc[0])
-                    branch.append(arc[1])
+                    remain_arcs.append(arc)
 
-        if len(branches) > 0:
-            branches = [init_branch] + branches
+            init_arcs = sorted(init_arcs)
+            rows = classify_lines(source=task_instance["code_src"])
+
+            branches = []
+
+            init_branch = []
+            for arc in init_arcs:
+                if arc[0] not in init_branch:
+                    init_branch.append(arc[0])
+                if arc[1] not in init_branch:
+                    init_branch.append(arc[1])
+
+            remain_arcs = sorted(remain_arcs)
+            branch = []
+            seen_loop = []
+            current_arc = ""
+
+            for arc in remain_arcs:
+                arc_0 = arc[0] if arc[0] > 0 else -1 * arc[0]
+                new_arc = rows[arc_0]["block"]
+
+                if current_arc == "":
+                    current_arc = new_arc
+                else:
+                    if new_arc != current_arc:
+                        # end of branch
+                        branches.append(branch)
+                        branch = []
+                        current_arc = new_arc
+
+                if arc[1] < 0:
+
+                    if arc[0] == -1 * arc[1]:
+                        continue
+
+                    if arc[0] not in branch:
+                        branch.append(arc[0])
+
+                    if branch[0] != -1 * arc[1]:
+                        branch = [-1 * arc[1]] + branch
+                    if ("is_loop_start" in rows[arc[0]].keys()) and (
+                        rows[arc[0]]["is_loop_start"] == True
+                    ):
+                        if arc[0] not in seen_loop:
+                            seen_loop.append(arc[0])
+                else:
+                    if arc[0] in branch:
+                        branch.append(arc[1])
+                    else:
+                        branch.append(arc[0])
+                        branch.append(arc[1])
+
+            if len(branches) > 0:
+                branches = [init_branch] + branches
 
         if index_to_key is not None:
             task_instance["branches"][index_to_key[tc_idx]] = branches
@@ -1301,6 +1304,7 @@ def main(
                 tcm,
                 task_instance,
                 skip_mutation=skip_mutation,
+                get_branches=True if setting != "branch_eval" else False,
                 index_to_key=dict_index_to_tckey if setting != "branch_eval" else None,
             )
         else:
