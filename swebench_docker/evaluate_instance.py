@@ -1301,7 +1301,7 @@ def main(
                 tcm,
                 task_instance,
                 skip_mutation=skip_mutation,
-                index_to_key=dict_index_to_tckey,
+                index_to_key=dict_index_to_tckey if setting != "branch_eval" else None,
             )
         else:
             completion_processing(
