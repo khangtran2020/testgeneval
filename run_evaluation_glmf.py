@@ -104,10 +104,6 @@ async def main(
     if debug:
         print(f"First task keys: {pretty_repr(tasks[0].keys())}")
         print(f"Number of tasks: {len(tasks)}")
-        # exit()
-
-    # if repo is not None:
-    #     tasks = [t for t in tasks if t[REPO_ID] == repo]
 
     if debug:
         print(f"Number of tasks after filtering by repo: {len(tasks)}")
@@ -124,12 +120,11 @@ async def main(
         prediction_files = json.load(json_file)
 
     # print("prediction_keys:", list(prediction_files.keys())[:5])
-
     predictions = []
     new_tasks = []
     for task in tasks:
 
-        if task[KEY_INSTANCE_ID] in prediction_files.keys():
+        if task[KEY_ID] in prediction_files.keys():
             # pred_dict = {}
             # for i, tc in enumerate(prediction_files[task[KEY_INSTANCE_ID]]):
             #     pred_dict[f"test_case_{i}"] = tc
@@ -138,13 +133,10 @@ async def main(
                 KEY_ID: task[KEY_ID],
                 KEY_INSTANCE_ID: task[KEY_INSTANCE_ID],
                 KEY_MODEL: "glmf",
-                KEY_PREDICTIONS: prediction_files[task[KEY_INSTANCE_ID]],
+                KEY_PREDICTIONS: prediction_files[task[KEY_ID]],
             }
             predictions.append(prediction)
             new_tasks.append(task)
-        else:
-            pass
-            # logger.warning(f"Task {task[KEY_INSTANCE_ID]} not found in generated data")
 
     # save prediction to a jsonl file
     # pred_file_name = predictions_path.split("/")[-1].split(".")[0]
