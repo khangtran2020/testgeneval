@@ -95,6 +95,7 @@ async def main(
     os.chmod(save_dir, 0o777)
 
     tasks = list(get_eval_refs(swe_bench_tasks).values())
+    logger.info(f"Number of tasks loaded: {len(tasks)}")
 
     if debug:
         print(f"First task keys: {pretty_repr(tasks[0].keys())}")
