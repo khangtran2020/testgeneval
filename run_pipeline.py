@@ -165,10 +165,8 @@ if __name__ == "__main__":
                 dataset_name_or_path,
                 "--output_dir",
                 pred_dir,
-                "--num_samples_full",
-                str(args.num_samples_full),
-                "--num_samples_completion",
-                str(args.num_samples_completion),
+                "--num_samples",
+                str(1),
                 "--local_data_path",
                 str(args.data_path),
             ] + model_extra_cmd

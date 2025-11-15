@@ -790,7 +790,7 @@ if __name__ == "__main__":
         help="HuggingFace dataset name or local path",
     )
     parser.add_argument(
-        "--data_path",
+        "--local_data_path",
         type=str,
         required=False,
         default=None,
