@@ -212,6 +212,10 @@ if __name__ == "__main__":
             str(args.num_processes),
             "--namespace",
             args.namespace,
+            "--repo",
+            "all",
+            "--save_dir",
+            "./results",
         ] + extra_cmd
         report_cmd = [
             "python",
