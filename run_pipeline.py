@@ -31,6 +31,7 @@ if __name__ == "__main__":
         type=str,
         help="Model name",
         choices=[
+            "gpt-o4-mini",
             "gpt-4o-2024-05-13",
             "gpt-4-0613",
             "gpt-4-turbo-2024-04-09",
