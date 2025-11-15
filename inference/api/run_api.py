@@ -33,24 +33,25 @@ MODEL_LIMITS = {
     "gpt-4-turbo-2024-04-09": 128_000,
     "gpt-4o-2024-05-13": 128_000,
     "gpt-4-0613": 8_192,
+    "gpt-4o-mini": 128_000,
     "Meta-Llama-3.1-405B-Instruct": 128_000,
 }
 
-# The cost per token for each model input.
 MODEL_COST_PER_INPUT = {
     "gpt-3.5-turbo-0125": 0.0000005,
     "gpt-4-turbo-2024-04-09": 0.00001,
     "gpt-4o-2024-05-13": 0.000005,
     "gpt-4-0613": 0.00001,
+    "gpt-4o-mini": 0.00000015,  # $0.15 per 1 M tokens → 0.00000015 per token
     "Meta-Llama-3.1-405B-Instruct": 0,
 }
 
-# The cost per token for each model output.
 MODEL_COST_PER_OUTPUT = {
     "gpt-3.5-turbo-0125": 0.0000015,
     "gpt-4-turbo-2024-04-09": 0.00003,
     "gpt-4o-2024-05-13": 0.000015,
     "gpt-4-0613": 0.00003,
+    "gpt-4o-mini": 0.00000060,  # $0.60 per 1 M tokens → 0.00000060 per token
     "Meta-Llama-3.1-405B-Instruct": 0,
 }
 
@@ -59,8 +60,10 @@ OUTPUT_LIMITS = {
     "gpt-4-turbo-2024-04-09": 8_192,
     "gpt-4o-2024-05-13": 4_096,
     "gpt-4-0613": 8_192,
+    "gpt-4o-mini": 8_192,  # max output ~16 K tokens
     "Meta-Llama-3.1-405B-Instruct": 4_096,
 }
+
 
 EPSILON = 1000
 
@@ -542,6 +545,7 @@ def anthropic_inference(
     postprocess_fn,
     system_message,
     system_message_full,
+    skip_full,
 ):
     """
     Runs inference on a dataset using the anthropic API.
