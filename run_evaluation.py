@@ -95,14 +95,14 @@ async def main(
     os.chmod(save_dir, 0o777)
 
     tasks = list(get_eval_refs(swe_bench_tasks).values())
-    logger.info(f"Number of tasks loaded: {len(tasks)}")
+    # logger.info(f"Number of tasks loaded: {len(tasks)}")
 
     if debug:
         print(f"First task keys: {pretty_repr(tasks[0].keys())}")
         print(f"Number of tasks: {len(tasks)}")
         # exit()
 
-    if repo is not None:
+    if repo != "all":
         tasks = [t for t in tasks if t[REPO_ID] == repo]
 
     if debug:
