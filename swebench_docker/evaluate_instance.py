@@ -1126,12 +1126,12 @@ def main(
             prompt_list = task_instance[KEY_PREDICTIONS]
         else:
             prompt_list = (
-                [task_instance[KEY_BASELINES][setting]]
+                task_instance[KEY_BASELINES][setting]
                 if only_baseline
-                else [task_instance[KEY_PREDICTIONS][setting]]
+                else task_instance[KEY_PREDICTIONS][setting]
             )
 
-        print(f"Prompt list: {prompt_list}")
+        # print(f"Prompt list: {prompt_list}")
 
         if setting == "full":
             full_processing(prompt_list, tcm, task_instance, skip_mutation)
