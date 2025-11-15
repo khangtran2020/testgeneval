@@ -1131,6 +1131,8 @@ def main(
                 else [task_instance[KEY_PREDICTIONS][setting]]
             )
 
+        print(f"Prompt list: {prompt_list}")
+
         if setting == "full":
             full_processing(prompt_list, tcm, task_instance, skip_mutation)
         elif (
