@@ -470,16 +470,22 @@ def call_anthropic(
     model_args (dict): A dictionary of model arguments.
     """
     try:
+        # Format prompt properly for legacy Anthropic completions API
+        if system_message:
+            formatted_prompt = f"{system_message}\n\nHuman: {inputs}\n\nAssistant:"
+        else:
+            formatted_prompt = f"\n\nHuman: {inputs}\n\nAssistant:"
+
         completion = anthropic.completions.create(
             model=model_name_or_path,
             max_tokens_to_sample=max_tokens,
-            prompt=inputs,
+            prompt=formatted_prompt,
             temperature=temperature,
             top_p=top_p,
             **model_args,
         )
         response = completion.completion
-        input_tokens = anthropic.count_tokens(inputs)
+        input_tokens = anthropic.count_tokens(formatted_prompt)
         output_tokens = anthropic.count_tokens(response)
         cost = calc_cost(model_name_or_path, input_tokens, output_tokens)
         return completion, cost
@@ -635,8 +641,9 @@ def anthropic_inference(
                             (
                                 system_message_full
                                 if prompt_name == "full"
-                                else system_message**model_args
+                                else system_message
                             ),
+                            **model_args,
                         )
                     except Exception as e:
                         logger.error(e)
