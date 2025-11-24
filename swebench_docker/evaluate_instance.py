@@ -897,232 +897,6 @@ def completion_processing(
             tcm.log.write(TESTS_FAILED)
 
 
-# def test_case_processing(
-#     prompt_list,
-#     tcm,
-#     task_instance,
-#     skip_mutation,
-#     get_branches: bool = False,
-#     index_to_key: dict = None,
-# ):
-#     successful_tests = []
-
-#     for tc_idx, prompt in enumerate(prompt_list):
-
-#         preamble, classes, test_functions = extract_preamble_classes_and_functions(
-#             prompt, tcm
-#         )
-
-#         repo = task_instance["repo"]
-#         django_repo = repo == "django/django"
-
-#         def needs_django_harness(preamble):
-#             no_django_test = "TestCase" not in preamble
-#             no_unittest = "unittest" not in preamble
-#             no_simple_test_case = "SimpleTestCase" not in preamble
-#             return no_django_test and no_unittest and no_simple_test_case
-
-#         added_class = False
-#         if django_repo and needs_django_harness(preamble):
-#             preamble = "from django.test import SimpleTestCase\n" + preamble
-#             class_wrapper_start = "\n\nclass TestsHarness(SimpleTestCase):\n"
-#             preamble += class_wrapper_start
-#             added_class = True
-
-#         test_content = f"{preamble}\n\n"
-
-#         if classes:
-#             for class_name, methods, start in classes:
-#                 class_content = postprocess_tests_testcase(
-#                     task_instance,
-#                     class_name,
-#                     methods,
-#                     added_class=added_class,
-#                 )
-#                 test_content = test_content + class_content + "\n"
-
-#         if test_functions:
-#             func_content = postprocess_functions_testcase(
-#                 task_instance, test_functions, added_class=added_class
-#             )
-#             test_content = test_content + func_content + "\n"
-
-#         with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
-#             f.write(test_content)
-
-#         _, success = tcm.run_tests_task(
-#             task_instance, log_data=False, skip_mutation=True
-#         )
-
-#         if get_branches:
-#             if os.path.exists(".coverage") == False:
-#                 raise Exception("Coverage file not found")
-
-#             data = CoverageData(
-#                 basename=".coverage",
-#                 suffix=None,
-#                 warn=None,
-#                 debug=None,
-#             )
-
-#             data.read()
-#             prefix = os.getcwd()
-#             code_file_name = os.path.join(prefix, task_instance["code_file"])
-#             logger.info(f"Testing for code file: {code_file_name}")
-#             logger.info(f"Dir: {os.getcwd()} {os.listdir()}")
-#             logger.info(f"Coverage data: {data._file_map}")
-
-#             arcs = data.arcs(filename=code_file_name)
-#             if arcs is None:
-#                 logger.info(f"\n\nArcs not found for test case: {tc_idx} \n\n")
-#                 continue
-
-#             init_lines = get_executed_lines(source_code=task_instance["code_src"])
-#             res = analyze_file(code=task_instance["code_src"])
-#             line_exclude = []
-#             for l in res:
-#                 if l["kind"] == "docstring":
-#                     line_exclude.append(l["start_line"])
-#                     line_exclude.append(l["end_line"])
-#                 elif l["kind"] == "class":
-#                     line_exclude.append(l["start_line"])
-#                 elif (l["kind"] == "function") or (l["kind"] == "async_function"):
-#                     print(l)
-#                     if "decorators" in l.keys():
-#                         i = 1
-#                         for decor in l["decorators"]:
-#                             line_exclude.append(l["start_line"] - i)
-#                             i += 1
-#                     line_exclude.append(l["start_line"])
-
-#             clean_arcs = []
-#             start_arcs = []
-
-#             for arc in arcs:
-#                 if arc[1] in line_exclude:
-#                     continue
-#                 if arc[0] < 0:
-#                     if arc[1] == -1 * arc[0]:
-#                         continue
-#                     else:
-#                         start_arcs.append((-1 * arc[0], arc[1]))
-#                 elif arc[0] in line_exclude:
-#                     if arc[1] in line_exclude:
-#                         continue
-#                     elif arc[1] < 0:
-#                         continue
-#                     else:
-#                         clean_arcs.append(arc)
-
-#                 else:
-#                     clean_arcs.append(arc)
-
-#             clean_arcs = sorted(clean_arcs)
-#             init_arcs = []
-#             remain_arcs = []
-#             for i, arc in enumerate(clean_arcs):
-#                 if arc[0] in init_lines and arc[1] in init_lines:
-#                     init_arcs.append(arc)
-#                 else:
-#                     remain_arcs.append(arc)
-
-#             init_arcs = sorted(init_arcs)
-#             rows = classify_lines(source=task_instance["code_src"])
-
-#             branches = []
-
-#             init_branch = []
-#             for arc in init_arcs:
-#                 if arc[0] not in init_branch:
-#                     init_branch.append(arc[0])
-#                 if arc[1] not in init_branch:
-#                     init_branch.append(arc[1])
-
-#             remain_arcs = sorted(remain_arcs)
-#             branch = []
-#             seen_loop = []
-#             current_arc = ""
-
-#             for arc in remain_arcs:
-#                 arc_0 = arc[0] if arc[0] > 0 else -1 * arc[0]
-#                 new_arc = rows[arc_0]["block"]
-
-#                 if current_arc == "":
-#                     current_arc = new_arc
-#                 else:
-#                     if new_arc != current_arc:
-#                         # end of branch
-#                         branches.append(branch)
-#                         branch = []
-#                         current_arc = new_arc
-
-#                 if arc[1] < 0:
-
-#                     if arc[0] == -1 * arc[1]:
-#                         continue
-
-#                     if arc[0] not in branch:
-#                         branch.append(arc[0])
-
-#                     if branch[0] != -1 * arc[1]:
-#                         branch = [-1 * arc[1]] + branch
-#                     if ("is_loop_start" in rows[arc[0]].keys()) and (
-#                         rows[arc[0]]["is_loop_start"] == True
-#                     ):
-#                         if arc[0] not in seen_loop:
-#                             seen_loop.append(arc[0])
-#                 else:
-#                     if arc[0] in branch:
-#                         branch.append(arc[1])
-#                     else:
-#                         branch.append(arc[0])
-#                         branch.append(arc[1])
-
-#             if len(branches) > 0:
-#                 branches = [init_branch] + branches
-
-#         if index_to_key is not None:
-#             task_instance["branches"][index_to_key[tc_idx]] = branches
-#             task_instance["arcs"][index_to_key[tc_idx]] = arcs
-
-#         if os.path.exists(".coverage"):
-#             logger.info("Removing coverage")
-#             os.remove(".coverage")
-
-#         if success:
-#             successful_tests.append(prompt)
-
-#     with open(
-#         os.path.join(tcm.log_dir, f"{task_instance[KEY_ID]}.json"),
-#         "w",
-#     ) as f:
-#         json.dump(task_instance, f)
-
-#     tcm.log.write(f"{TESTS_CONFIG}full pred\n")
-#     if len(successful_tests) > 0:
-#         success_tests = []
-#         class_definitions = {}
-#         for item in successful_tests:
-#             success_tests.append(item)
-
-#         success_tests_str = "\n\n===========================\n\n".join(success_tests)
-
-#         with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
-#             f.write(success_tests_str)
-
-#         _, success = tcm.run_tests_task(task_instance, skip_mutation=skip_mutation)
-
-#         total_tests = len(successful_tests)
-#         if success and len(successful_tests) == total_tests:
-#             tcm.log.write(UNFILTERED_TESTS_PASSED)
-#         else:
-#             tcm.log.write(UNFILTERED_TESTS_FAILED)
-#     else:
-#         tcm.log.write("TestsTime: 0.0")
-#         tcm.log.write(TESTS_FAILED)
-#         tcm.log.write(UNFILTERED_TESTS_FAILED)
-
-
 def test_case_processing(
     prompt_list,
     tcm,
@@ -1135,15 +909,50 @@ def test_case_processing(
 
     for tc_idx, prompt in enumerate(prompt_list):
 
+        preamble, classes, test_functions = extract_preamble_classes_and_functions(
+            prompt, tcm
+        )
+
+        repo = task_instance["repo"]
+        django_repo = repo == "django/django"
+
+        def needs_django_harness(preamble):
+            no_django_test = "TestCase" not in preamble
+            no_unittest = "unittest" not in preamble
+            no_simple_test_case = "SimpleTestCase" not in preamble
+            return no_django_test and no_unittest and no_simple_test_case
+
+        added_class = False
+        if django_repo and needs_django_harness(preamble):
+            preamble = "from django.test import SimpleTestCase\n" + preamble
+            class_wrapper_start = "\n\nclass TestsHarness(SimpleTestCase):\n"
+            preamble += class_wrapper_start
+            added_class = True
+
+        test_content = f"{preamble}\n\n"
+
+        if classes:
+            for class_name, methods, start in classes:
+                class_content = postprocess_tests_testcase(
+                    task_instance,
+                    class_name,
+                    methods,
+                    added_class=added_class,
+                )
+                test_content = test_content + class_content + "\n"
+
+        if test_functions:
+            func_content = postprocess_functions_testcase(
+                task_instance, test_functions, added_class=added_class
+            )
+            test_content = test_content + func_content + "\n"
+
         with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
-            test_content = prompt
             f.write(test_content)
 
         _, success = tcm.run_tests_task(
             task_instance, log_data=False, skip_mutation=True
         )
-
-        # check if .corverage exist
 
         if get_branches:
             if os.path.exists(".coverage") == False:
