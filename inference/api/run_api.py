@@ -35,6 +35,7 @@ MODEL_LIMITS = {
     "gpt-4-0613": 8_192,
     "gpt-4o-mini": 128_000,
     "Meta-Llama-3.1-405B-Instruct": 128_000,
+    "claude-sonnet-4-5-20250929": 200_000,
 }
 
 MODEL_COST_PER_INPUT = {
@@ -44,6 +45,7 @@ MODEL_COST_PER_INPUT = {
     "gpt-4-0613": 0.00001,
     "gpt-4o-mini": 0.00000015,  # $0.15 per 1 M tokens → 0.00000015 per token
     "Meta-Llama-3.1-405B-Instruct": 0,
+    "claude-sonnet-4-5-20250929": 0.000003,  # $3.00 per 1 M tokens → 0.000003 per token
 }
 
 MODEL_COST_PER_OUTPUT = {
@@ -53,6 +55,7 @@ MODEL_COST_PER_OUTPUT = {
     "gpt-4-0613": 0.00003,
     "gpt-4o-mini": 0.00000060,  # $0.60 per 1 M tokens → 0.00000060 per token
     "Meta-Llama-3.1-405B-Instruct": 0,
+    "claude-sonnet-4-5-20250929": 0.000015,  # $15.00 per 1 M tokens → 0.000015 per token
 }
 
 OUTPUT_LIMITS = {
@@ -62,6 +65,7 @@ OUTPUT_LIMITS = {
     "gpt-4-0613": 8_192,
     "gpt-4o-mini": 8_192,  # max output ~16 K tokens
     "Meta-Llama-3.1-405B-Instruct": 4_096,
+    "claude-sonnet-4-5-20250929": 8_192,
 }
 
 
