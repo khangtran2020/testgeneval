@@ -529,7 +529,6 @@ def call_anthropic_v2(
             max_tokens=max_tokens,
             model=model_name_or_path,
             temperature=temperature,
-            top_p=top_p,
             system=system_message,
         )
         input_tokens = response.usage.input_tokens
