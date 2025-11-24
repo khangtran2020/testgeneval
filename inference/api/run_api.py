@@ -651,8 +651,15 @@ def anthropic_inference(
                         logger.error(e)
                         traceback.print_exc()
                         continue
+                    # Handle different response formats between legacy completions API and Messages API
+                    if hasattr(completion, "completion"):
+                        # Legacy completions API response
+                        response_text = completion.completion
+                    else:
+                        # Messages API response
+                        response_text = completion.content[0].text
                     prompt_predictions.append(
-                        postprocess_fn(completion.completion, prompt_name == "full")
+                        postprocess_fn(response_text, prompt_name == "full")
                     )
                     total_cost += cost
                     if max_cost is not None and total_cost >= max_cost:
