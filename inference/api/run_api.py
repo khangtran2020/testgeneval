@@ -605,7 +605,10 @@ def anthropic_inference(
     }
     total_cost = 0
     print(f"Filtered to {len(test_dataset)} instances")
-    if "claude-3" in model_name_or_path.lower():
+    if (
+        "claude-3" in model_name_or_path.lower()
+        or "claude-sonnet" in model_name_or_path.lower()
+    ):
         call_api = call_anthropic_v2
     else:
         call_api = call_anthropic
