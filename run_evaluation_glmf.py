@@ -128,7 +128,7 @@ async def main(
             prediction_dict[id_key] = []
         prediction_dict[id_key].append(prediction_files[key])
 
-    # logger.info(f"Total predictions found: {prediction_dict.keys()}")
+    logger.info(f"Total predictions found: {prediction_dict[id_key]}")
 
     predictions = []
     new_tasks = []
