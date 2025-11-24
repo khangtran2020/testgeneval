@@ -128,6 +128,8 @@ async def main(
             prediction_dict[id_key] = []
         prediction_dict[id_key].append(prediction_files[key])
 
+    logger.info(f"Total predictions found: {prediction_dict.keys()}")
+
     predictions = []
     new_tasks = []
     for task in tasks:
@@ -140,12 +142,6 @@ async def main(
             }
             predictions.append(prediction)
             new_tasks.append(task)
-
-    # save prediction to a jsonl file
-    # pred_file_name = predictions_path.split("/")[-1].split(".")[0]
-    # preds_path = predictions_path.replace(
-    #     pred_file_name, f"{pred_file_name}_toeval.jsonl"
-    # )
 
     with open(save_dir, "w") as f:
         for pred in predictions:
