@@ -65,7 +65,7 @@ OUTPUT_LIMITS = {
     "gpt-4-0613": 8_192,
     "gpt-4o-mini": 8_192,  # max output ~16 K tokens
     "Meta-Llama-3.1-405B-Instruct": 4_096,
-    "claude-sonnet-4-5-20250929": 8_192,
+    "claude-sonnet-4-5-20250929": 4_096,
 }
 
 
