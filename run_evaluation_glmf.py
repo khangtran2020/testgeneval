@@ -123,12 +123,12 @@ async def main(
 
     prediction_dict = {}
     for key in prediction_files.keys():
-        id_key = key.split("_test_cases")[0]
+        id_key = key.split("_test_case")[0]
         if id_key not in prediction_dict.keys():
             prediction_dict[id_key] = []
         prediction_dict[id_key].append(prediction_files[key])
 
-    logger.info(f"Total predictions found: {prediction_dict.keys()}")
+    # logger.info(f"Total predictions found: {prediction_dict.keys()}")
 
     predictions = []
     new_tasks = []
