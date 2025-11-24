@@ -116,8 +116,15 @@ async def main(
     predictions_path = os.path.abspath(predictions_path)
 
     # Read prediction path which is a json file.
-    with open(predictions_path, "r", encoding="utf-8") as json_file:
-        prediction_files = json.load(json_file)
+    if predictions_path.endswith(".jsonl"):
+        with open(predictions_path, "r", encoding="utf-8") as json_file:
+            data = [json.loads(line) for line in json_file]
+            prediction_files = {}
+            for item in data:
+                prediction_files.update(item)
+    else:
+        with open(predictions_path, "r", encoding="utf-8") as json_file:
+            prediction_files = json.load(json_file)
 
     # print("prediction_keys:", list(prediction_files.keys())[:5])
 
