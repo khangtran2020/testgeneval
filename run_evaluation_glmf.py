@@ -130,7 +130,10 @@ async def main(
 
     prediction_dict = {}
     for key in prediction_files.keys():
-        id_key = key.split("_test_case")[0]
+        if "_test_case" in key:
+            id_key = key.split("_test_case")[0]
+        if "_testcase" in key:
+            id_key = key.split("_testcase")[0]
         if id_key not in prediction_dict.keys():
             prediction_dict[id_key] = []
         prediction_dict[id_key].append(prediction_files[key])
