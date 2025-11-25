@@ -545,37 +545,35 @@ class TaskEnvContextManager:
                     self.log.write(f"\n{TESTS_FAILED}\n")
                 else:
                     self.log.write(f"\n{TESTS_PASSED}\n")
-                    self.log.write(f"Current Working Directory: {os.getcwd()}")
 
-                    if (
-                        "image" in specifications
-                        and specifications["image"] == "python"
-                    ):
-                        coverage_data_cmd = f"coverage json -o coverage.json"
+                self.log.write(f"Current Working Directory: {os.getcwd()}")
+
+                if "image" in specifications and specifications["image"] == "python":
+                    coverage_data_cmd = f"coverage json -o coverage.json"
+                else:
+                    coverage_data_cmd = (
+                        f"{self.cmd_conda_run} coverage json -o coverage.json"
+                    )
+
+                self.exec(coverage_data_cmd.split(), shell=False, check=False)
+                cov_success = False
+                with open("coverage.json", "r") as cov_file:
+                    coverage_data = json.load(cov_file)
+                    if instance["code_file"] in coverage_data["files"].keys():
+                        file_data = coverage_data["files"][instance["code_file"]]
+                        cov_success = True
+                        self.log.write(
+                            f"\nCoverageLOG: {file_data['summary']['percent_covered']}%\n"
+                        )
                     else:
-                        coverage_data_cmd = (
-                            f"{self.cmd_conda_run} coverage json -o coverage.json"
+                        self.log.write(
+                            f"\nCoverageFAIL:{instance['code_file']} not found in coverage data\n"
                         )
-
-                    self.exec(coverage_data_cmd.split(), shell=False, check=False)
-                    cov_success = False
-                    with open("coverage.json", "r") as cov_file:
-                        coverage_data = json.load(cov_file)
-                        if instance["code_file"] in coverage_data["files"].keys():
-                            file_data = coverage_data["files"][instance["code_file"]]
-                            cov_success = True
-                            self.log.write(
-                                f"\nCoverageLOG: {file_data['summary']['percent_covered']}%\n"
-                            )
-                        else:
-                            self.log.write(
-                                f"\nCoverageFAIL:{instance['code_file']} not found in coverage data\n"
-                            )
-                    if cov_success and not skip_mutation:
-                        self.log.write("Running mutation testing")
-                        self.run_mutation_testing(
-                            instance, specifications, test_time, test_cmd
-                        )
+                if cov_success and not skip_mutation:
+                    self.log.write("Running mutation testing")
+                    self.run_mutation_testing(
+                        instance, specifications, test_time, test_cmd
+                    )
 
             self.log.write(f"Test script run successful")
             return True, out_test.returncode == 0
