@@ -909,50 +909,15 @@ def test_case_processing(
 
     for tc_idx, prompt in enumerate(prompt_list):
 
-        preamble, classes, test_functions = extract_preamble_classes_and_functions(
-            prompt, tcm
-        )
-
-        repo = task_instance["repo"]
-        django_repo = repo == "django/django"
-
-        def needs_django_harness(preamble):
-            no_django_test = "TestCase" not in preamble
-            no_unittest = "unittest" not in preamble
-            no_simple_test_case = "SimpleTestCase" not in preamble
-            return no_django_test and no_unittest and no_simple_test_case
-
-        added_class = False
-        if django_repo and needs_django_harness(preamble):
-            preamble = "from django.test import SimpleTestCase\n" + preamble
-            class_wrapper_start = "\n\nclass TestsHarness(SimpleTestCase):\n"
-            preamble += class_wrapper_start
-            added_class = True
-
-        test_content = f"{preamble}\n\n"
-
-        if classes:
-            for class_name, methods, start in classes:
-                class_content = postprocess_tests_testcase(
-                    task_instance,
-                    class_name,
-                    methods,
-                    added_class=added_class,
-                )
-                test_content = test_content + class_content + "\n"
-
-        if test_functions:
-            func_content = postprocess_functions_testcase(
-                task_instance, test_functions, added_class=added_class
-            )
-            test_content = test_content + func_content + "\n"
-
         with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
+            test_content = prompt
             f.write(test_content)
 
         _, success = tcm.run_tests_task(
             task_instance, log_data=False, skip_mutation=True
         )
+
+        # check if .corverage exist
 
         if get_branches:
             if os.path.exists(".coverage") == False:
