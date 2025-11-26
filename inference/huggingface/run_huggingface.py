@@ -462,7 +462,8 @@ def main():
             for line in lines_full:
                 f.write(json.dumps(line) + "\n")
 
-    extract_prompts_from_raw_files([], output_file_raw, output_file_prompt)
+    if os.path.exists(output_file_raw):
+        extract_prompts_from_raw_files([], output_file_raw, output_file_prompt)
 
     if os.path.exists(output_file_raw):
         with open(output_file_raw, "r") as f:
