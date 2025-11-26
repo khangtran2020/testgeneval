@@ -105,6 +105,13 @@ MODEL_CONFIG = {
         "eager": True,
         "huggingface": False,
     },
+    "Qwen2.5-Coder-7B-Instruct": {
+        "tensor_parallel_size": 2,
+        "max_context_window": 32_768,
+        "prompt_class": InstructPrompt,
+        "eager": True,
+        "huggingface": False,
+    },
 }
 
 EPSILON = 1000
