@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import warnings
 from collections import defaultdict
 
@@ -78,6 +79,11 @@ def complete_code(
     total = math.ceil(n_tasks)
     if use_huggingface:
         model.eval()
+
+    # Create directories if they don't exist
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    os.makedirs(os.path.dirname(prompt_file), exist_ok=True)
+
     with open(output_file, "a+") as pred_f, open(prompt_file, "a+") as prompt_f:
         if use_huggingface:
             with torch.no_grad():
