@@ -189,8 +189,6 @@ if __name__ == "__main__":
                 pred_dir,
                 "--num_samples_completion",
                 str(args.num_samples_completion),
-                "--num_samples_full",
-                str(args.num_samples_full),
                 "--temperature",
                 str(args.temperature),
                 "--local_data_path",
