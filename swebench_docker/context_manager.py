@@ -543,6 +543,11 @@ class TaskEnvContextManager:
                 # Write pass/fail status to log file
                 if out_test.returncode != 0:
                     self.log.write(f"\n{TESTS_FAILED}\n")
+
+                    self.log.write(f"Test Output:\n{out_test.stdout}")
+                    if out_test.stderr:
+                        self.log.write(f"Test Error:\n{out_test.stderr}")
+
                 else:
                     self.log.write(f"\n{TESTS_PASSED}\n")
 
