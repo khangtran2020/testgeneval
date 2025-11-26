@@ -46,6 +46,7 @@ if __name__ == "__main__":
             "mistralai/Codestral-22B-v0.1",
             "google/gemma-2-9b-it",
             "google/gemma-2-27b-it",
+            "Qwen/Qwen2.5-Coder-7B-Instruct",
             "baseline",
         ],
         required=True,
