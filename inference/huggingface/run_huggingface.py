@@ -152,12 +152,20 @@ def extract_prompts_from_raw_files(raw_outputs, raw_output_file, prompt_output):
 
 
 def parse_args():
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
         "--model_name_or_path",
         default="",
         help="Model to evaluate, provide a repo name in Hugging Face hub or a local path",
+    )
+    parser.add_argument(
+        "--local_data_path",
+        type=str,
+        required=False,
+        default=None,
+        help="Local path to data",
     )
     parser.add_argument(
         "--use_auth_token",
@@ -227,6 +235,7 @@ def parse_args():
     parser.add_argument(
         "--skip_completion", help="Skip completion setting", action="store_true"
     )
+
     args = parser.parse_args()
 
     precision_map = {
@@ -325,6 +334,7 @@ def truncate_prompts(dataset, tokenizer, max_tokens):
 
 
 def main():
+
     args = parse_args()
     model_nickname = Path(args.model_name_or_path).name
 
@@ -398,6 +408,13 @@ def main():
     else:
         dataset = load_dataset(args.dataset_name_or_path)
         dataset_nickname = args.dataset_name_or_path
+
+    if args.local_data_path is not None:
+        tasks = [json.loads(l) for l in open(args.local_data_path).readlines()]
+        filter_id = [task["id"] for task in tasks]
+        dataset = dataset.filter(
+            lambda x: x["id"] in filter_id, load_from_cache_file=False
+        )
 
     output_file = f"{model_nickname}__{dataset_nickname}__{args.temperature}__test"
 

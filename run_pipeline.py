@@ -192,6 +192,8 @@ if __name__ == "__main__":
                 str(args.num_samples_full),
                 "--temperature",
                 str(args.temperature),
+                "--local_data_path",
+                str(args.data_path),
             ]
             model_cmd += model_extra_cmd
             subprocess.run(model_cmd)
