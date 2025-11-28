@@ -105,6 +105,8 @@ def main(args):
             "--raw",
             str(0),
         ]
+        if args.with_imports:
+            eval_cmd.append("--with_imports")
         if args.debug:
             eval_cmd.append("--debug")
         subprocess.run(eval_cmd)
@@ -141,6 +143,8 @@ def main(args):
             args.namespace,
             # "--debug" if args.debug else "",
         ]  # + extra_cmd
+        if args.with_imports:
+            eval_cmd.append("--with_imports")
 
         report_cmd = [
             "python",
@@ -305,5 +309,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--gen_path", type=str, help="Path to the generated data")
     parser.add_argument("--results_path", type=str, help="Path to the results data")
+    parser.add_argument(
+        "--with_imports", action="store_true", help="(Optional) Include imports"
+    )
     args = parser.parse_args()
     main(args)

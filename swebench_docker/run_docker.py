@@ -29,6 +29,7 @@ async def run_docker_evaluation(
     verbose: bool = False,
     only_baseline: bool = False,
     skip_mutation: bool = False,
+    with_imports: bool = False,
 ) -> Dict:
     repo_name = task_instance["repo"].replace("/", "_")
 
@@ -90,6 +91,8 @@ async def run_docker_evaluation(
             f"ONLY_BASELINE={only_baseline}",
             "-e",
             f"SKIP_MUTATION={skip_mutation}",
+            "-e",
+            f"IMPORTS={True if with_imports else False}",
             docker_image,
         ]
     else:
@@ -118,6 +121,8 @@ async def run_docker_evaluation(
             f"ONLY_BASELINE={only_baseline}",
             "-e",
             f"SKIP_MUTATION={skip_mutation}",
+            "-e",
+            f"IMPORTS={True if with_imports else False}",
             docker_image,
         ]
 

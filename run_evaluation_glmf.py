@@ -71,6 +71,7 @@ async def main(
     num_processes: int = -1,
     skip_mutation: bool = False,
     debug: bool = False,
+    with_imports: bool = False,
 ):
     """
     Runs evaluation on predictions for each model/repo/version combination.
@@ -209,7 +210,12 @@ async def main(
             # for setting in task_instance[KEY_PREDICTIONS].keys():
             task = asyncio.create_task(
                 run_docker_throttled(
-                    task_instance, namespace, log_dir, "branch_eval", timeout
+                    task_instance,
+                    namespace,
+                    log_dir,
+                    "branch_eval",
+                    timeout,
+                    with_imports=with_imports,
                 )
             )
             tasks.append(task)
@@ -265,5 +271,8 @@ if __name__ == "__main__":
         "--skip_mutation", action="store_true", help="(Optional) Skip mutation"
     )
     parser.add_argument("--debug", action="store_true", help="(Optional) Debugging")
+    parser.add_argument(
+        "--with_imports", action="store_true", help="(Optional) Include imports"
+    )
     args = parser.parse_args()
     asyncio.run(main(**vars(args)))

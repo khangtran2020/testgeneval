@@ -26,6 +26,7 @@ async def main(
     timeout: int = 60,
     num_processes: int = -1,
     debug: bool = False,
+    with_imports: bool = False,
 ):
     """
     Runs evaluation on predictions for each model/repo/version combination.
@@ -130,6 +131,7 @@ async def main(
                     only_baseline=True,
                     verbose=True,
                     skip_mutation=True,
+                    with_imports=with_imports,
                 )
 
         task = asyncio.create_task(run_docker_throttled(task_instance))
@@ -270,5 +272,8 @@ if __name__ == "__main__":
     parser.add_argument("--timeout", type=int, default=60)
     parser.add_argument("--num_processes", type=int, default=-1)
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument(
+        "--with_imports", action="store_true", help="(Optional) Include imports"
+    )
     args = parser.parse_args()
     asyncio.run(main(**vars(args)))

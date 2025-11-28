@@ -171,6 +171,7 @@ if __name__ == "__main__":
                 str(1),
                 "--local_data_path",
                 str(args.data_path),
+                "--no_imports",
             ] + model_extra_cmd
             subprocess.run(model_cmd)
         elif args.model != "baseline":
@@ -193,6 +194,7 @@ if __name__ == "__main__":
                 str(args.temperature),
                 "--local_data_path",
                 str(args.data_path),
+                "--no_imports",
             ]
             model_cmd += model_extra_cmd
             subprocess.run(model_cmd)

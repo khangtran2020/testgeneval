@@ -904,13 +904,32 @@ def test_case_processing(
     skip_mutation,
     get_branches: bool = False,
     index_to_key: dict = None,
+    with_imports: bool = False,
 ):
     successful_tests = []
 
     for tc_idx, prompt in enumerate(prompt_list):
 
-        with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
+        if with_imports:
+            # remove all imports from prompt with ast
+            try:
+                tree = ast.parse(prompt)
+            except Exception as e:
+                logger.info(f"Error parsing prompt for imports: {e}")
+                continue
+
+            tree.body = [
+                node
+                for node in tree.body
+                if not isinstance(node, (ast.Import, ast.ImportFrom))
+            ]
+            test_body = ast.unparse(tree)
+            test_preamble = "\n".join(task_instance["local_imports"])
+            test_content = test_preamble + "\n\n" + test_body
+        else:
             test_content = prompt
+
+        with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
             f.write(test_content)
 
         _, success = tcm.run_tests_task(
@@ -1098,6 +1117,7 @@ def main(
     image_type: str = "conda",
     only_baseline: bool = False,
     skip_mutation: bool = False,
+    with_imports: bool = False,
 ):
     logger.info(
         "Instance ID: "
@@ -1110,6 +1130,7 @@ def main(
         + log_dir
         + "\nTest case: "
         + setting
+        + f"\nWith imports: {with_imports}"
     )
     logger.info(f"Only Baseline: {only_baseline}")
 
@@ -1178,6 +1199,7 @@ def main(
                 skip_mutation=skip_mutation,
                 get_branches=True if setting != "branch_eval" else False,
                 index_to_key=dict_index_to_tckey if setting != "branch_eval" else None,
+                with_imports=with_imports,
             )
         else:
             completion_processing(
@@ -1222,6 +1244,10 @@ if __name__ == "__main__":
     if setting is None:
         raise ValueError("SETTING environment variable is not set")
 
+    with_imports = os.getenv("IMPORTS")
+    if with_imports is None:
+        raise ValueError("IMPORTS environment variable is not set")
+
     main(
         task_instance=task_instance,
         testbed_name=testbed_name,
@@ -1232,4 +1258,5 @@ if __name__ == "__main__":
         image_type=os.getenv("IMAGE_TYPE", "conda"),
         only_baseline=os.getenv("ONLY_BASELINE") == "True",
         skip_mutation=os.getenv("SKIP_MUTATION") == "True",
+        with_imports=with_imports.lower() == "true",
     )
