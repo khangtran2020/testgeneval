@@ -149,7 +149,7 @@ async def main(
             prediction = {
                 KEY_ID: task[KEY_ID],
                 KEY_INSTANCE_ID: task[KEY_INSTANCE_ID],
-                KEY_MODEL: "glmf",
+                KEY_MODEL: model,
                 KEY_PREDICTIONS: prediction_dict[task[KEY_ID]],
             }
             predictions.append(prediction)
