@@ -141,6 +141,8 @@ def main(args):
             str(args.num_processes),
             "--namespace",
             args.namespace,
+            "--model",
+            args.model,
             # "--debug" if args.debug else "",
         ]  # + extra_cmd
         if args.with_imports:

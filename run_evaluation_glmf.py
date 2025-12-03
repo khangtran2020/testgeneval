@@ -66,6 +66,7 @@ async def main(
     log_dir: str,
     save_dir: str,
     repo: str = None,
+    model: str = "glmf",
     skip_existing: bool = False,
     timeout: int = 900,
     num_processes: int = -1,
@@ -260,6 +261,9 @@ if __name__ == "__main__":
         type=int,
         help="(Optional) Timeout in seconds (default: 60)",
         default=60,
+    )
+    parser.add_argument(
+        "--model", type=str, help="(Optional) Model name", default="glmf"
     )
     parser.add_argument(
         "--num_processes",
