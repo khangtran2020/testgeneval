@@ -1076,6 +1076,17 @@ def test_case_processing(
         if success:
             successful_tests.append(prompt)
 
+    if not get_branches:
+        # merge all successful tests
+        overall_testcase = "\n\n".join(prompt_list)
+
+        with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
+            f.write(overall_testcase)
+
+        _, success = tcm.run_tests_task(
+            task_instance, log_data=False, skip_mutation=True
+        )
+
     with open(
         os.path.join(tcm.log_dir, f"{task_instance[KEY_ID]}.json"),
         "w",
