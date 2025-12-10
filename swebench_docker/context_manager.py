@@ -501,6 +501,7 @@ class TaskEnvContextManager:
         instance: dict,
         log_data=True,
         skip_mutation=False,
+        appending: bool = False,
     ):
         """
         Run tests for task instance
@@ -511,6 +512,7 @@ class TaskEnvContextManager:
             bool: True if test script ran successfully, False otherwise
         """
         try:
+            
             if os.path.exists(".coveragerc"):
                 os.remove(".coveragerc")
 
@@ -526,6 +528,9 @@ class TaskEnvContextManager:
                 test_cmd = f"{instance['test_cmd']}"
             else:
                 test_cmd = f"{self.cmd_conda_run} {instance['test_cmd']}"
+
+            if appending and os.path.exists(".coverage"):
+                test_cmd = test_cmd.replace("--append", "")
 
             if log_data:
                 self.log.write(f"Test Script: {test_cmd};\n")

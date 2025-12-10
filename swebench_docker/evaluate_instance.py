@@ -55,6 +55,7 @@ from swebench_docker.constants import (
     TESTS_FAILED,
     UNFILTERED_TESTS_FAILED,
     UNFILTERED_TESTS_PASSED,
+    MAP_VERSION_TO_INSTALL,
     PatchType,
 )
 from swebench_docker.context_manager import TaskEnvContextManager
@@ -905,6 +906,7 @@ def test_case_processing(
     get_branches: bool = False,
     index_to_key: dict = None,
     with_imports: bool = False,
+    appending: bool = False,
 ):
     successful_tests = []
 
@@ -933,7 +935,7 @@ def test_case_processing(
             f.write(test_content)
 
         _, success = tcm.run_tests_task(
-            task_instance, log_data=False, skip_mutation=True
+            task_instance, log_data=False, skip_mutation=True, appending=appending
         )
 
         # check if .corverage exist
@@ -1065,27 +1067,16 @@ def test_case_processing(
             if len(branches) > 0:
                 branches = [init_branch] + branches
 
-        if index_to_key is not None:
-            task_instance["branches"][index_to_key[tc_idx]] = branches
-            task_instance["arcs"][index_to_key[tc_idx]] = arcs
+            if index_to_key is not None:
+                task_instance["branches"][index_to_key[tc_idx]] = branches
+                task_instance["arcs"][index_to_key[tc_idx]] = arcs
 
-        if os.path.exists(".coverage"):
-            logger.info("Removing coverage")
-            os.remove(".coverage")
+            if os.path.exists(".coverage"):
+                logger.info("Removing coverage")
+                os.remove(".coverage")
 
         if success:
             successful_tests.append(prompt)
-
-    if not get_branches:
-        # merge all successful tests
-        overall_testcase = "\n\n".join(prompt_list)
-
-        with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
-            f.write(overall_testcase)
-
-        _, success = tcm.run_tests_task(
-            task_instance, log_data=False, skip_mutation=True
-        )
 
     with open(
         os.path.join(tcm.log_dir, f"{task_instance[KEY_ID]}.json"),
@@ -1095,23 +1086,39 @@ def test_case_processing(
 
     tcm.log.write(f"{TESTS_CONFIG}full pred\n")
     if len(successful_tests) > 0:
-        success_tests = []
-        class_definitions = {}
-        for item in successful_tests:
-            success_tests.append(item)
+        if appending:
+            specifications = MAP_VERSION_TO_INSTALL[tcm.instance["repo"]][
+                tcm.instance["version"]
+            ]
+            if "image" in specifications and specifications["image"] == "python":
+                coverage_data_cmd = f"coverage json -o coverage.json"
+            else:
+                coverage_data_cmd = (
+                    f"{tcm.cmd_conda_run} coverage json -o coverage.json"
+                )
 
-        success_tests_str = "\n\n===========================\n\n".join(success_tests)
-
-        with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
-            f.write(success_tests_str)
-
-        _, success = tcm.run_tests_task(task_instance, skip_mutation=skip_mutation)
-
-        total_tests = len(successful_tests)
-        if success and len(successful_tests) == total_tests:
-            tcm.log.write(UNFILTERED_TESTS_PASSED)
+            tcm.exec(coverage_data_cmd.split(), shell=False, check=False)
+            cov_success = False
+            with open("coverage.json", "r") as cov_file:
+                coverage_data = json.load(cov_file)
+                if tcm.instance["code_file"] in coverage_data["files"].keys():
+                    file_data = coverage_data["files"][tcm.instance["code_file"]]
+                    cov_success = True
+                    tcm.log.write(
+                        f"\nCoverageLOG: {file_data['summary']['percent_covered']}%\n"
+                    )
+                else:
+                    tcm.log.write(
+                        f"\nCoverageFAIL:{tcm.instance['code_file']} not found in coverage data\n"
+                    )
+            
+            # Remove ".coverage"
+            if os.path.exists(".coverage"):
+                logger.info("Removing coverage")
+                os.remove(".coverage")
         else:
-            tcm.log.write(UNFILTERED_TESTS_FAILED)
+            tcm.log.write("TestsTime: 0.0")
+            tcm.log.write(f"Num test passed / total: {len(successful_tests)} / {len(prompt_list)}\n")
     else:
         tcm.log.write("TestsTime: 0.0")
         tcm.log.write(TESTS_FAILED)
@@ -1211,6 +1218,7 @@ def main(
                 get_branches=True if setting != "branch_eval" else False,
                 index_to_key=dict_index_to_tckey if setting != "branch_eval" else None,
                 with_imports=with_imports,
+                appending=True if setting == "branch_eval" else False,
             )
         else:
             completion_processing(

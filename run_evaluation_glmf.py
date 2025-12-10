@@ -171,7 +171,7 @@ async def main(
         task = tasks_map[prediction[KEY_ID]]
         test_type = MAP_REPO_TO_TEST_FRAMEWORK[task["repo"]]
         test_directives = get_test_directives(task)
-        test_cmd = f"{test_type} {' '.join(test_directives)}"
+        test_cmd = f"{test_type} --append {' '.join(test_directives)}"
 
         task_instances.append(
             {
