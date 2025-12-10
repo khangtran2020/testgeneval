@@ -169,9 +169,9 @@ async def main(
     # Set the relevant data on task_instances
     for prediction in tqdm(predictions):
         task = tasks_map[prediction[KEY_ID]]
-        test_type = MAP_REPO_TO_TEST_FRAMEWORK[task["repo"]]
+        test_type = MAP_REPO_TO_TEST_FRAMEWORK[task["repo"]].replace("--branch", "--append --branch")
         test_directives = get_test_directives(task)
-        test_cmd = f"{test_type} --append {' '.join(test_directives)}"
+        test_cmd = f"{test_type} {' '.join(test_directives)}"
 
         task_instances.append(
             {
