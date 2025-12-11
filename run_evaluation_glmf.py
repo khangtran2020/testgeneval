@@ -162,6 +162,34 @@ async def main(
     if len(predictions) == 0:
         logger.info("No predictions to evaluate")
         return
+    
+    # Remove predictions that have already been evaluated
+    if skip_existing:
+        # Skip logs that already exist
+        predictions_filtered = []
+        for p in predictions:
+            all_exist = True
+            if KEY_PREDICTIONS not in p:
+                continue
+            for setting in p[KEY_PREDICTIONS]:
+                log_file_name = f"{p[KEY_ID]}.{p[KEY_MODEL]}.{setting}.eval.log"
+                log_file = os.path.join(log_dir, log_file_name)
+                if not os.path.exists(log_file):
+                    all_exist = False
+                    break
+            if not all_exist:
+                predictions_filtered.append(p)
+        if len(predictions_filtered) == 0:
+            logger.info(f"All predictions already exist, skipping")
+            return
+        else:
+            logger.info(
+                f"# of predictions to evaluate: {len(predictions_filtered)} "
+                + f"({len(predictions) - len(predictions_filtered)} already evaluated)"
+            )
+            predictions = predictions_filtered
+    else:
+        logger.info(f"# of predictions to evaluate: {len(predictions)}")
 
     task_instances = []
 

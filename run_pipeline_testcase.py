@@ -144,7 +144,7 @@ def main(args):
             "--model",
             args.model,
             # "--debug" if args.debug else "",
-        ]  # + extra_cmd
+        ]  + extra_cmd
         if args.with_imports:
             eval_cmd.append("--with_imports")
 
