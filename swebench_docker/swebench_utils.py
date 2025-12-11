@@ -72,7 +72,10 @@ def get_logs_eval(log_fp: str) -> Dict[str, dict]:
 
         test_data = content.split(TESTS_CONFIG)[1:]
 
+        print(f"Processing {log_fp}: {test_data}")
+
         for config in test_data:
+            
             config_line = config.split("\n")[0].split()
 
             setting = config_line[0]
@@ -158,7 +161,6 @@ def get_logs_eval(log_fp: str) -> Dict[str, dict]:
             results[setting]["coverage"].append(coverage)
             results[setting]["test_time"].append(test_time)
             results[setting]["test_error"].append(classify_error(config))
-    print(f"Retrieved eval results for {log_fp}: {results}")
     return results
 
 
