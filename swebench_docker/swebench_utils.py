@@ -105,11 +105,10 @@ def get_logs_eval(log_fp: str) -> Dict[str, dict]:
                     results[setting]["mutation_num"] = []
 
             if "CoverageLOG" in config:
-                print(f"Processing {log_fp} - CoverageLOG:", "CoverageLOG" in config)
                 coverage = (
                     float(config.split("CoverageLOG: ")[1].split("%")[0])
-                    if test_passed
-                    else -1
+                    # if test_compiled
+                    # else -1
                 )
             else:
                 coverage = -1
