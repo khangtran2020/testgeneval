@@ -104,9 +104,15 @@ def get_logs_eval(log_fp: str) -> Dict[str, dict]:
                     results[setting]["mutation_uncertainty"] = []
                     results[setting]["mutation_num"] = []
 
-            if "CoverageLOG" in config:
+            if "CoverageLOG" in config and "CoverageLOG-Overall" not in config:
                 coverage = (
                     float(config.split("CoverageLOG: ")[1].split("%")[0])
+                    if test_compiled
+                    else -1
+                )
+            elif "CoverageLOG-Overall" in config:
+                coverage = (
+                    float(config.split("CoverageLOG-Overall: ")[1].split("%")[0])
                     # if test_compiled
                     # else -1
                 )

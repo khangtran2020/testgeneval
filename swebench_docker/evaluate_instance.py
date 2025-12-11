@@ -1086,6 +1086,9 @@ def test_case_processing(
 
     tcm.log.write(f"{TESTS_CONFIG}full pred\n")
     if len(successful_tests) > 0:
+        # Create a merge of successful tests
+        success_tests_str = "\n\n".join(successful_tests)
+
         if appending:
             specifications = MAP_VERSION_TO_INSTALL[tcm.instance["repo"]][
                 tcm.instance["version"]
@@ -1105,7 +1108,7 @@ def test_case_processing(
                     file_data = coverage_data["files"][tcm.instance["code_file"]]
                     cov_success = True
                     tcm.log.write(
-                        f"\nCoverageLOG: {file_data['summary']['percent_covered']}%\n"
+                        f"\nCoverageLOG-Overall: {file_data['summary']['percent_covered']}%\n"
                     )
                 else:
                     tcm.log.write(
@@ -1116,9 +1119,13 @@ def test_case_processing(
             if os.path.exists(".coverage"):
                 logger.info("Removing coverage")
                 os.remove(".coverage")
-        else:
-            tcm.log.write("TestsTime: 0.0")
-            tcm.log.write(f"Num test passed / total: {len(successful_tests)} / {len(prompt_list)}\n")
+
+        with open(task_instance[KEY_TEST_FILE_PATH], "w") as f:
+            f.write(success_tests_str)
+        _, success = tcm.run_tests_task(task_instance, skip_mutation=skip_mutation)
+
+        tcm.log.write("TestsTime: 0.0")
+        tcm.log.write(f"Num test passed / total: {len(successful_tests)} / {len(prompt_list)}\n")
     else:
         tcm.log.write("TestsTime: 0.0")
         tcm.log.write(TESTS_FAILED)
