@@ -158,7 +158,7 @@ def get_logs_eval(log_fp: str) -> Dict[str, dict]:
             results[setting]["coverage"].append(coverage)
             results[setting]["test_time"].append(test_time)
             results[setting]["test_error"].append(classify_error(config))
-
+    print(f"Retrieved eval results for {log_fp}: {results}")
     return results
 
 
