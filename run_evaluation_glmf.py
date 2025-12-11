@@ -171,12 +171,11 @@ async def main(
             all_exist = True
             if KEY_PREDICTIONS not in p:
                 continue
-            for setting in p[KEY_PREDICTIONS]:
-                log_file_name = f"{p[KEY_ID]}.{p[KEY_MODEL]}.{setting}.eval.log"
-                log_file = os.path.join(log_dir, log_file_name)
-                if not os.path.exists(log_file):
-                    all_exist = False
-                    break
+            # for setting in p[KEY_PREDICTIONS]:
+            log_file_name = f"{p[KEY_ID]}.{p[KEY_MODEL]}.branch_eval.eval.log"
+            log_file = os.path.join(log_dir, log_file_name)
+            if not os.path.exists(log_file):
+                all_exist = False
             if not all_exist:
                 predictions_filtered.append(p)
         if len(predictions_filtered) == 0:
