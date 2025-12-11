@@ -72,7 +72,7 @@ def get_logs_eval(log_fp: str) -> Dict[str, dict]:
 
         test_data = content.split(TESTS_CONFIG)[1:]
 
-        print(f"Processing {log_fp}: {test_data}")
+        # print(f"Processing {log_fp}: {test_data}")
 
         for config in test_data:
             
@@ -105,6 +105,7 @@ def get_logs_eval(log_fp: str) -> Dict[str, dict]:
                     results[setting]["mutation_num"] = []
 
             if "CoverageLOG" in config:
+                print(f"Processing {log_fp} - CoverageLOG:", "CoverageLOG" in config)
                 coverage = (
                     float(config.split("CoverageLOG: ")[1].split("%")[0])
                     if test_passed
