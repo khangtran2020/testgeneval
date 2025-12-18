@@ -12,7 +12,7 @@ WORKDIR /opt/isort
 
 RUN git -c advice.detachedHead=false checkout a6222a8
 
-RUN pip install --no-cache-dir -e .
+RUN pip install isort
 
 RUN pip install --no-cache-dir pytest pytest-cov coverage
 
