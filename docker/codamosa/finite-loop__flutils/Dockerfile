@@ -2,7 +2,7 @@ FROM aorwall/swe-bench-conda:bookworm-slim
 
 WORKDIR /opt
 
-WORKDIR /opt
+USER root
 
 RUN git clone https://gitlab.com/finite-loop/flutils.git
 
@@ -20,7 +20,6 @@ ENV TESTBED_NAME=finite-loop__flutils__df0f84e1
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/flutils
 
-WORKDIR /opt
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
 

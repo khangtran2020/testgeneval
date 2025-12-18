@@ -2,7 +2,7 @@ FROM aorwall/swe-bench-conda:bookworm-slim
 
 WORKDIR /opt
 
-WORKDIR /opt
+USER root
 
 RUN git clone https://github.com/tqdm/tqdm.git
 
@@ -20,7 +20,6 @@ ENV TESTBED_NAME=tqdm__tqdm__18d7aa4
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/tqdm
 
-WORKDIR /opt
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
 

@@ -2,9 +2,9 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
+USER root
 WORKDIR /opt
 
-WORKDIR /opt
 
 RUN git clone https://github.com/realpython/codetiming.git
 
@@ -22,7 +22,6 @@ ENV TESTBED_NAME=realpython__codetiming__a7ad85a
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/codetiming
 
-WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

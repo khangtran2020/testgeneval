@@ -2,9 +2,9 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
+USER root
 WORKDIR /opt
 
-WORKDIR /opt
 
 RUN git clone https://github.com/nvbn/thefuck.git
 
@@ -22,7 +22,6 @@ ENV TESTBED_NAME=nvbn__thefuck__0949d2e
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/thefuck
 
-WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

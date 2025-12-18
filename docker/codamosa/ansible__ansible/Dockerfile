@@ -2,9 +2,9 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
+USER root
 WORKDIR /opt
 
-WORKDIR /opt
 
 RUN git clone https://github.com/ansible/ansible.git
 
@@ -22,7 +22,6 @@ ENV TESTBED_NAME=ansible__ansible__f00f123
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/ansible
 
-WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

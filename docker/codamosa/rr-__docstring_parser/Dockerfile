@@ -2,9 +2,9 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
+USER root
 WORKDIR /opt
 
-WORKDIR /opt
 
 RUN git clone https://github.com/rr-/docstring_parser.git
 
@@ -22,7 +22,6 @@ ENV TESTBED_NAME=rr-__docstring_parser__a5dc2cd77
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/docstring_parser
 
-WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
