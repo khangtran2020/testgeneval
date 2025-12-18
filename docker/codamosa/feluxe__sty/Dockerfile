@@ -12,7 +12,7 @@ WORKDIR /opt/sty
 
 RUN git -c advice.detachedHead=false checkout f99e9186
 
-RUN pip install --no-cache-dir -e .
+RUN pip install sty
 
 RUN pip install --no-cache-dir pytest pytest-cov coverage
 
