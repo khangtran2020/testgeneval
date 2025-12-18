@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 RUN git clone https://github.com/cool-RR/PySnooper.git
 
-WORKDIR /data/khang/project/testgeneval/testbed/PySnooper
+WORKDIR /opt/PySnooper
 
 RUN git -c advice.detachedHead=false checkout 31bfc63
 
@@ -20,9 +20,9 @@ RUN git checkout 31bfc63 .
 
 ENV TESTBED_NAME=cool-RR__PySnooper__31bfc63
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/data/khang/project/testgeneval/testbed/PySnooper
+ENV REPO_DIR=/opt/PySnooper
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

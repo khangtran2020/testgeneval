@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 RUN git clone https://github.com/przemyslawjanpietrzak/pyMonet.git
 
-WORKDIR /data/khang/project/testgeneval/testbed/pyMonet
+WORKDIR /opt/pyMonet
 
 RUN git -c advice.detachedHead=false checkout f132cfa
 
@@ -20,9 +20,9 @@ RUN git checkout f132cfa .
 
 ENV TESTBED_NAME=przemyslawjanpietrzak__pyMonet__f132cfa
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/data/khang/project/testgeneval/testbed/pyMonet
+ENV REPO_DIR=/opt/pyMonet
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

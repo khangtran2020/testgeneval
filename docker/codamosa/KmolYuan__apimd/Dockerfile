@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 RUN git clone https://github.com/KmolYuan/apimd.git
 
-WORKDIR /data/khang/project/testgeneval/testbed/apimd
+WORKDIR /opt/apimd
 
 RUN git -c advice.detachedHead=false checkout f32841b
 
@@ -20,9 +20,9 @@ RUN git checkout f32841b .
 
 ENV TESTBED_NAME=KmolYuan__apimd__f32841b
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/data/khang/project/testgeneval/testbed/apimd
+ENV REPO_DIR=/opt/apimd
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

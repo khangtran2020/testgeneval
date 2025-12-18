@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 RUN git clone https://github.com/rr-/docstring_parser.git
 
-WORKDIR /data/khang/project/testgeneval/testbed/docstring_parser
+WORKDIR /opt/docstring_parser
 
 RUN git -c advice.detachedHead=false checkout a5dc2cd77
 
@@ -20,9 +20,9 @@ RUN git checkout a5dc2cd77 .
 
 ENV TESTBED_NAME=rr-__docstring_parser__a5dc2cd77
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/data/khang/project/testgeneval/testbed/docstring_parser
+ENV REPO_DIR=/opt/docstring_parser
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

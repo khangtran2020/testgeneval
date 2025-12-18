@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 RUN git clone https://github.com/keras-team/keras.git
 
-WORKDIR /data/khang/project/testgeneval/testbed/keras
+WORKDIR /opt/keras
 
 RUN git -c advice.detachedHead=false checkout 2c48a3b3
 
@@ -20,9 +20,9 @@ RUN git checkout 2c48a3b3 .
 
 ENV TESTBED_NAME=keras-team__keras__2c48a3b3
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/data/khang/project/testgeneval/testbed/keras
+ENV REPO_DIR=/opt/keras
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

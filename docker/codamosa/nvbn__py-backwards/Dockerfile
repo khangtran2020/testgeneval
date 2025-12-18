@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 RUN git clone https://github.com/nvbn/py-backwards.git
 
-WORKDIR /data/khang/project/testgeneval/testbed/py-backwards
+WORKDIR /opt/py-backwards
 
 RUN git -c advice.detachedHead=false checkout 8be3c4430
 
@@ -20,9 +20,9 @@ RUN git checkout 8be3c4430 .
 
 ENV TESTBED_NAME=nvbn__py-backwards__8be3c4430
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/data/khang/project/testgeneval/testbed/py-backwards
+ENV REPO_DIR=/opt/py-backwards
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

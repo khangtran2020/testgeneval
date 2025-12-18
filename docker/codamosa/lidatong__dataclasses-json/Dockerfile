@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 RUN git clone https://github.com/lidatong/dataclasses-json.git
 
-WORKDIR /data/khang/project/testgeneval/testbed/dataclasses-json
+WORKDIR /opt/dataclasses-json
 
 RUN git -c advice.detachedHead=false checkout 3dc59e01
 
@@ -20,9 +20,9 @@ RUN git checkout 3dc59e01 .
 
 ENV TESTBED_NAME=lidatong__dataclasses-json__3dc59e01
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/data/khang/project/testgeneval/testbed/dataclasses-json
+ENV REPO_DIR=/opt/dataclasses-json
 
-WORKDIR /data/khang/project/testgeneval/testbed
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
