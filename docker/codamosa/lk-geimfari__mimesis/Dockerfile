@@ -12,7 +12,7 @@ WORKDIR /opt/mimesis
 
 RUN git -c advice.detachedHead=false checkout 310092ce
 
-RUN pip install --no-cache-dir -e .
+RUN pip install mimesis
 
 RUN pip install --no-cache-dir pytest pytest-cov coverage
 
