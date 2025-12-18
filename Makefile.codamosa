@@ -122,7 +122,7 @@ docker/codamosa/relekang__python-semantic-release/.Dockerfile.stamp: docker/coda
 	touch docker/codamosa/relekang__python-semantic-release/.Dockerfile.stamp
 
 docker/codamosa/rr-__docstring_parser/.Dockerfile.stamp: docker/codamosa/rr-__docstring_parser/Dockerfile
-	docker build --network=host -t aorwall/swe-bench-codamosa-rr-_docstring_parser:latest -f docker/codamosa/rr-__docstring_parser/Dockerfile .
+	docker build --network=host -t aorwall/swe-bench-codamosa-rr_docstring_parser:latest -f docker/codamosa/rr-__docstring_parser/Dockerfile .
 	touch docker/codamosa/rr-__docstring_parser/.Dockerfile.stamp
 
 docker/codamosa/sanic-org__sanic/.Dockerfile.stamp: docker/codamosa/sanic-org__sanic/Dockerfile
