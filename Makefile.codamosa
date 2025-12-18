@@ -46,7 +46,7 @@ docker/codamosa/cookiecutter__cookiecutter/.Dockerfile.stamp: docker/codamosa/co
 	touch docker/codamosa/cookiecutter__cookiecutter/.Dockerfile.stamp
 
 docker/codamosa/cool-RR__PySnooper/.Dockerfile.stamp: docker/codamosa/cool-RR__PySnooper/Dockerfile
-	docker build --network=host -t aorwall/swe-bench-codamosa-cool-RR_PySnooper:latest -f docker/codamosa/cool-RR__PySnooper/Dockerfile .
+	docker build --network=host -t aorwall/swe-bench-codamosa-cool-rr_pysnooper:latest -f docker/codamosa/cool-RR__PySnooper/Dockerfile .
 	touch docker/codamosa/cool-RR__PySnooper/.Dockerfile.stamp
 
 docker/codamosa/daveoncode__python-string-utils/.Dockerfile.stamp: docker/codamosa/daveoncode__python-string-utils/Dockerfile
@@ -74,7 +74,7 @@ docker/codamosa/keras-team__keras/.Dockerfile.stamp: docker/codamosa/keras-team_
 	touch docker/codamosa/keras-team__keras/.Dockerfile.stamp
 
 docker/codamosa/KmolYuan__apimd/.Dockerfile.stamp: docker/codamosa/KmolYuan__apimd/Dockerfile
-	docker build --network=host -t aorwall/swe-bench-codamosa-KmolYuan_apimd:latest -f docker/codamosa/KmolYuan__apimd/Dockerfile .
+	docker build --network=host -t aorwall/swe-bench-codamosa-kmolyuan_apimd:latest -f docker/codamosa/KmolYuan__apimd/Dockerfile .
 	touch docker/codamosa/KmolYuan__apimd/.Dockerfile.stamp
 
 docker/codamosa/lidatong__dataclasses-json/.Dockerfile.stamp: docker/codamosa/lidatong__dataclasses-json/Dockerfile
@@ -102,7 +102,7 @@ docker/codamosa/pandas-dev__pandas/.Dockerfile.stamp: docker/codamosa/pandas-dev
 	touch docker/codamosa/pandas-dev__pandas/.Dockerfile.stamp
 
 docker/codamosa/przemyslawjanpietrzak__pyMonet/.Dockerfile.stamp: docker/codamosa/przemyslawjanpietrzak__pyMonet/Dockerfile
-	docker build --network=host -t aorwall/swe-bench-codamosa-przemyslawjanpietrzak_pyMonet:latest -f docker/codamosa/przemyslawjanpietrzak__pyMonet/Dockerfile .
+	docker build --network=host -t aorwall/swe-bench-codamosa-przemyslawjanpietrzak_pymonet:latest -f docker/codamosa/przemyslawjanpietrzak__pyMonet/Dockerfile .
 	touch docker/codamosa/przemyslawjanpietrzak__pyMonet/.Dockerfile.stamp
 
 docker/codamosa/psf__black/.Dockerfile.stamp: docker/codamosa/psf__black/Dockerfile
@@ -110,7 +110,7 @@ docker/codamosa/psf__black/.Dockerfile.stamp: docker/codamosa/psf__black/Dockerf
 	touch docker/codamosa/psf__black/.Dockerfile.stamp
 
 docker/codamosa/PyCQA__isort/.Dockerfile.stamp: docker/codamosa/PyCQA__isort/Dockerfile
-	docker build --network=host -t aorwall/swe-bench-codamosa-PyCQA_isort:latest -f docker/codamosa/PyCQA__isort/Dockerfile .
+	docker build --network=host -t aorwall/swe-bench-codamosa-pycqa_isort:latest -f docker/codamosa/PyCQA__isort/Dockerfile .
 	touch docker/codamosa/PyCQA__isort/.Dockerfile.stamp
 
 docker/codamosa/realpython__codetiming/.Dockerfile.stamp: docker/codamosa/realpython__codetiming/Dockerfile
