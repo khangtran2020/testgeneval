@@ -12,9 +12,7 @@ WORKDIR /opt/keras
 
 RUN git -c advice.detachedHead=false checkout 2c48a3b3
 
-RUN pip install --no-cache-dir -r requirements.txt
-
-RUN python pip_build.py --install
+RUN pip install --no-cache-dir keras
 
 RUN pip install --no-cache-dir pytest pytest-cov coverage
 
