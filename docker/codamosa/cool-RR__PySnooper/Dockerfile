@@ -2,6 +2,8 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
+RUN mkdir -p /opt && chmod 777 /opt
+
 WORKDIR /opt
 
 RUN git clone https://github.com/cool-RR/PySnooper.git
