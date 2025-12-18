@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /testbed
+RUN mkdir -p /data/khang/project/testgeneval/testbed
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 
 RUN git clone https://github.com/thonny/thonny.git
 
-WORKDIR /testbed/thonny
+WORKDIR /data/khang/project/testgeneval/testbed/thonny
 
 RUN git -c advice.detachedHead=false checkout fb389f4
 
@@ -20,9 +20,9 @@ RUN git checkout fb389f4 .
 
 ENV TESTBED_NAME=thonny__thonny__fb389f4
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/testbed/thonny
+ENV REPO_DIR=/data/khang/project/testgeneval/testbed/thonny
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

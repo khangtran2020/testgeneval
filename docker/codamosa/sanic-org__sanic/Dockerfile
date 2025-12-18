@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /testbed
+RUN mkdir -p /data/khang/project/testgeneval/testbed
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 
 RUN git clone https://github.com/sanic-org/sanic.git
 
-WORKDIR /testbed/sanic
+WORKDIR /data/khang/project/testgeneval/testbed/sanic
 
 RUN git -c advice.detachedHead=false checkout 93a0246
 
@@ -20,9 +20,9 @@ RUN git checkout 93a0246 .
 
 ENV TESTBED_NAME=sanic-org__sanic__93a0246
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/testbed/sanic
+ENV REPO_DIR=/data/khang/project/testgeneval/testbed/sanic
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

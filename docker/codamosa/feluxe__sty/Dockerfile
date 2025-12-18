@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /testbed
+RUN mkdir -p /data/khang/project/testgeneval/testbed
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 
 RUN git clone https://github.com/feluxe/sty.git
 
-WORKDIR /testbed/sty
+WORKDIR /data/khang/project/testgeneval/testbed/sty
 
 RUN git -c advice.detachedHead=false checkout f99e9186
 
@@ -20,9 +20,9 @@ RUN git checkout f99e9186 .
 
 ENV TESTBED_NAME=feluxe__sty__f99e9186
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/testbed/sty
+ENV REPO_DIR=/data/khang/project/testgeneval/testbed/sty
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

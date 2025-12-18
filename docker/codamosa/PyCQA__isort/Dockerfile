@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /testbed
+RUN mkdir -p /data/khang/project/testgeneval/testbed
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 
 RUN git clone https://github.com/PyCQA/isort.git
 
-WORKDIR /testbed/isort
+WORKDIR /data/khang/project/testgeneval/testbed/isort
 
 RUN git -c advice.detachedHead=false checkout a6222a8
 
@@ -20,9 +20,9 @@ RUN git checkout a6222a8 .
 
 ENV TESTBED_NAME=PyCQA__isort__a6222a8
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/testbed/isort
+ENV REPO_DIR=/data/khang/project/testgeneval/testbed/isort
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

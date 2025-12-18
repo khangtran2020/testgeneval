@@ -1,12 +1,12 @@
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /testbed
+RUN mkdir -p /data/khang/project/testgeneval/testbed
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 
 RUN git clone https://github.com/vst/pypara.git
 
-WORKDIR /testbed/pypara
+WORKDIR /data/khang/project/testgeneval/testbed/pypara
 
 RUN git -c advice.detachedHead=false checkout 7d705a54
 
@@ -18,9 +18,9 @@ RUN git checkout 7d705a54 .
 
 ENV TESTBED_NAME=vst__pypara__7d705a54
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/testbed/pypara
+ENV REPO_DIR=/data/khang/project/testgeneval/testbed/pypara
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
 

@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /testbed
+RUN mkdir -p /data/khang/project/testgeneval/testbed
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 
 RUN git clone https://github.com/relekang/python-semantic-release.git
 
-WORKDIR /testbed/python-semantic-release
+WORKDIR /data/khang/project/testgeneval/testbed/python-semantic-release
 
 RUN git -c advice.detachedHead=false checkout 3689157c2
 
@@ -20,9 +20,9 @@ RUN git checkout 3689157c2 .
 
 ENV TESTBED_NAME=relekang__python-semantic-release__3689157c2
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/testbed/python-semantic-release
+ENV REPO_DIR=/data/khang/project/testgeneval/testbed/python-semantic-release
 
-WORKDIR /testbed
+WORKDIR /data/khang/project/testgeneval/testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
