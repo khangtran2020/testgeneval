@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/tiangolo/fastapi.git
 
-WORKDIR /opt/fastapi
+WORKDIR /testbed/fastapi
 
 RUN git -c advice.detachedHead=false checkout 864643e
 
@@ -20,9 +20,9 @@ RUN git checkout 864643e .
 
 ENV TESTBED_NAME=tiangolo__fastapi__864643e
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/fastapi
+ENV REPO_DIR=/testbed/fastapi
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

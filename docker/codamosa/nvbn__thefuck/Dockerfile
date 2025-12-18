@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/nvbn/thefuck.git
 
-WORKDIR /opt/thefuck
+WORKDIR /testbed/thefuck
 
 RUN git -c advice.detachedHead=false checkout 0949d2e
 
@@ -20,9 +20,9 @@ RUN git checkout 0949d2e .
 
 ENV TESTBED_NAME=nvbn__thefuck__0949d2e
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/thefuck
+ENV REPO_DIR=/testbed/thefuck
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

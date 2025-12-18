@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/ansible/ansible.git
 
-WORKDIR /opt/ansible
+WORKDIR /testbed/ansible
 
 RUN git -c advice.detachedHead=false checkout f00f123
 
@@ -20,9 +20,9 @@ RUN git checkout f00f123 .
 
 ENV TESTBED_NAME=ansible__ansible__f00f123
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/ansible
+ENV REPO_DIR=/testbed/ansible
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

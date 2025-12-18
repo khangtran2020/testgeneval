@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/realpython/codetiming.git
 
-WORKDIR /opt/codetiming
+WORKDIR /testbed/codetiming
 
 RUN git -c advice.detachedHead=false checkout a7ad85a
 
@@ -20,9 +20,9 @@ RUN git checkout a7ad85a .
 
 ENV TESTBED_NAME=realpython__codetiming__a7ad85a
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/codetiming
+ENV REPO_DIR=/testbed/codetiming
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/cookiecutter/cookiecutter.git
 
-WORKDIR /opt/cookiecutter
+WORKDIR /testbed/cookiecutter
 
 RUN git -c advice.detachedHead=false checkout 1c0b5b11
 
@@ -20,9 +20,9 @@ RUN git checkout 1c0b5b11 .
 
 ENV TESTBED_NAME=cookiecutter__cookiecutter__1c0b5b11
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/cookiecutter
+ENV REPO_DIR=/testbed/cookiecutter
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

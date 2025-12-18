@@ -1,12 +1,12 @@
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/tornadoweb/tornado.git
 
-WORKDIR /opt/tornado
+WORKDIR /testbed/tornado
 
 RUN git -c advice.detachedHead=false checkout 2047e7a
 
@@ -18,9 +18,9 @@ RUN git checkout 2047e7a .
 
 ENV TESTBED_NAME=tornadoweb__tornado__2047e7a
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/tornado
+ENV REPO_DIR=/testbed/tornado
 
-WORKDIR /opt
+WORKDIR /testbed
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
 

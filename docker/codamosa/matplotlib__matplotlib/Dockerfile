@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/matplotlib/matplotlib.git
 
-WORKDIR /opt/matplotlib
+WORKDIR /testbed/matplotlib
 
 RUN git -c advice.detachedHead=false checkout 9765379
 
@@ -20,9 +20,9 @@ RUN git checkout 9765379 .
 
 ENV TESTBED_NAME=matplotlib__matplotlib__9765379
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/matplotlib
+ENV REPO_DIR=/testbed/matplotlib
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

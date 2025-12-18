@@ -1,12 +1,12 @@
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/ytdl-org/youtube-dl.git
 
-WORKDIR /opt/youtube-dl
+WORKDIR /testbed/youtube-dl
 
 RUN git -c advice.detachedHead=false checkout b224cf3
 
@@ -18,9 +18,9 @@ RUN git checkout b224cf3 .
 
 ENV TESTBED_NAME=ytdl-org__youtube-dl__b224cf3
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/youtube-dl
+ENV REPO_DIR=/testbed/youtube-dl
 
-WORKDIR /opt
+WORKDIR /testbed
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
 

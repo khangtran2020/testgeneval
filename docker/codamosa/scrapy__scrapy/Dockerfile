@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/scrapy/scrapy.git
 
-WORKDIR /opt/scrapy
+WORKDIR /testbed/scrapy
 
 RUN git -c advice.detachedHead=false checkout 61130c8
 
@@ -20,9 +20,9 @@ RUN git checkout 61130c8 .
 
 ENV TESTBED_NAME=scrapy__scrapy__61130c8
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/scrapy
+ENV REPO_DIR=/testbed/scrapy
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

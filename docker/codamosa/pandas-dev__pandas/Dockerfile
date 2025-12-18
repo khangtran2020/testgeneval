@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/pandas-dev/pandas.git
 
-WORKDIR /opt/pandas
+WORKDIR /testbed/pandas
 
 RUN git -c advice.detachedHead=false checkout 945c9ed
 
@@ -20,9 +20,9 @@ RUN git checkout 945c9ed .
 
 ENV TESTBED_NAME=pandas-dev__pandas__945c9ed
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/pandas
+ENV REPO_DIR=/testbed/pandas
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

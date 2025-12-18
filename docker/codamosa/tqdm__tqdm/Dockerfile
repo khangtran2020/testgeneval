@@ -1,12 +1,12 @@
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/tqdm/tqdm.git
 
-WORKDIR /opt/tqdm
+WORKDIR /testbed/tqdm
 
 RUN git -c advice.detachedHead=false checkout 18d7aa4
 
@@ -18,9 +18,9 @@ RUN git checkout 18d7aa4 .
 
 ENV TESTBED_NAME=tqdm__tqdm__18d7aa4
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/tqdm
+ENV REPO_DIR=/testbed/tqdm
 
-WORKDIR /opt
+WORKDIR /testbed
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
 

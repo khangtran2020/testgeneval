@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/lk-geimfari/mimesis.git
 
-WORKDIR /opt/mimesis
+WORKDIR /testbed/mimesis
 
 RUN git -c advice.detachedHead=false checkout 310092ce
 
@@ -20,9 +20,9 @@ RUN git checkout 310092ce .
 
 ENV TESTBED_NAME=lk-geimfari__mimesis__310092ce
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/mimesis
+ENV REPO_DIR=/testbed/mimesis
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

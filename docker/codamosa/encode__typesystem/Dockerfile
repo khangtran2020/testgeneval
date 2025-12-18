@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/encode/typesystem.git
 
-WORKDIR /opt/typesystem
+WORKDIR /testbed/typesystem
 
 RUN git -c advice.detachedHead=false checkout 6a9590c125
 
@@ -20,9 +20,9 @@ RUN git checkout 6a9590c125 .
 
 ENV TESTBED_NAME=encode__typesystem__6a9590c125
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/typesystem
+ENV REPO_DIR=/testbed/typesystem
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

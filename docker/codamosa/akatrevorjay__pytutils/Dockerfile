@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/akatrevorjay/pytutils.git
 
-WORKDIR /opt/pytutils
+WORKDIR /testbed/pytutils
 
 RUN git -c advice.detachedHead=false checkout 9813bb3
 
@@ -20,9 +20,9 @@ RUN git checkout 9813bb3 .
 
 ENV TESTBED_NAME=akatrevorjay__pytutils__9813bb3
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/pytutils
+ENV REPO_DIR=/testbed/pytutils
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

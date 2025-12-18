@@ -2,13 +2,13 @@
 
 FROM aorwall/swe-bench-conda:bookworm-slim
 
-RUN mkdir -p /opt && chmod 777 /opt
+RUN mkdir -p /testbed
 
-WORKDIR /opt
+WORKDIR /testbed
 
 RUN git clone https://github.com/psf/black.git
 
-WORKDIR /opt/black
+WORKDIR /testbed/black
 
 RUN git -c advice.detachedHead=false checkout 23541263
 
@@ -20,9 +20,9 @@ RUN git checkout 23541263 .
 
 ENV TESTBED_NAME=psf__black__23541263
 ENV IMAGE_TYPE=conda
-ENV REPO_DIR=/opt/black
+ENV REPO_DIR=/testbed/black
 
-WORKDIR /opt
+WORKDIR /testbed
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
