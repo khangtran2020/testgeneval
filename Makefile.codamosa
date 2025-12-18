@@ -1,0 +1,166 @@
+all: \
+	docker/codamosa/akatrevorjay__pytutils/.Dockerfile.stamp \
+	docker/codamosa/ansible__ansible/.Dockerfile.stamp \
+	docker/codamosa/cookiecutter__cookiecutter/.Dockerfile.stamp \
+	docker/codamosa/cool-RR__PySnooper/.Dockerfile.stamp \
+	docker/codamosa/daveoncode__python-string-utils/.Dockerfile.stamp \
+	docker/codamosa/encode__typesystem/.Dockerfile.stamp \
+	docker/codamosa/feluxe__sty/.Dockerfile.stamp \
+	docker/codamosa/httpie__httpie/.Dockerfile.stamp \
+	docker/codamosa/huzecong__flutes/.Dockerfile.stamp \
+	docker/codamosa/keras-team__keras/.Dockerfile.stamp \
+	docker/codamosa/KmolYuan__apimd/.Dockerfile.stamp \
+	docker/codamosa/lidatong__dataclasses-json/.Dockerfile.stamp \
+	docker/codamosa/lk-geimfari__mimesis/.Dockerfile.stamp \
+	docker/codamosa/matplotlib__matplotlib/.Dockerfile.stamp \
+	docker/codamosa/nvbn__py-backwards/.Dockerfile.stamp \
+	docker/codamosa/nvbn__thefuck/.Dockerfile.stamp \
+	docker/codamosa/pandas-dev__pandas/.Dockerfile.stamp \
+	docker/codamosa/przemyslawjanpietrzak__pyMonet/.Dockerfile.stamp \
+	docker/codamosa/psf__black/.Dockerfile.stamp \
+	docker/codamosa/PyCQA__isort/.Dockerfile.stamp \
+	docker/codamosa/realpython__codetiming/.Dockerfile.stamp \
+	docker/codamosa/relekang__python-semantic-release/.Dockerfile.stamp \
+	docker/codamosa/rr-__docstring_parser/.Dockerfile.stamp \
+	docker/codamosa/sanic-org__sanic/.Dockerfile.stamp \
+	docker/codamosa/scrapy__scrapy/.Dockerfile.stamp \
+	docker/codamosa/spotify__luigi/.Dockerfile.stamp \
+	docker/codamosa/thonny__thonny/.Dockerfile.stamp \
+	docker/codamosa/tiangolo__fastapi/.Dockerfile.stamp \
+	docker/codamosa/tornadoweb__tornado/.Dockerfile.stamp \
+	docker/codamosa/tqdm__tqdm/.Dockerfile.stamp \
+	docker/codamosa/vst__pypara/.Dockerfile.stamp \
+	docker/codamosa/ytdl-org__youtube-dl/.Dockerfile.stamp \
+	docker/codamosa/finite-loop__flutils/.Dockerfile.stamp
+
+docker/codamosa/akatrevorjay__pytutils/.Dockerfile.stamp: docker/codamosa/akatrevorjay__pytutils/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-akatrevorjay_pytutils:latest -f docker/codamosa/akatrevorjay__pytutils/Dockerfile .
+	touch docker/codamosa/akatrevorjay__pytutils/.Dockerfile.stamp
+
+docker/codamosa/ansible__ansible/.Dockerfile.stamp: docker/codamosa/ansible__ansible/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-ansible_ansible:latest -f docker/codamosa/ansible__ansible/Dockerfile .
+	touch docker/codamosa/ansible__ansible/.Dockerfile.stamp
+
+docker/codamosa/cookiecutter__cookiecutter/.Dockerfile.stamp: docker/codamosa/cookiecutter__cookiecutter/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-cookiecutter_cookiecutter:latest -f docker/codamosa/cookiecutter__cookiecutter/Dockerfile .
+	touch docker/codamosa/cookiecutter__cookiecutter/.Dockerfile.stamp
+
+docker/codamosa/cool-RR__PySnooper/.Dockerfile.stamp: docker/codamosa/cool-RR__PySnooper/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-cool-RR_PySnooper:latest -f docker/codamosa/cool-RR__PySnooper/Dockerfile .
+	touch docker/codamosa/cool-RR__PySnooper/.Dockerfile.stamp
+
+docker/codamosa/daveoncode__python-string-utils/.Dockerfile.stamp: docker/codamosa/daveoncode__python-string-utils/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-daveoncode_python-string-utils:latest -f docker/codamosa/daveoncode__python-string-utils/Dockerfile .
+	touch docker/codamosa/daveoncode__python-string-utils/.Dockerfile.stamp
+
+docker/codamosa/encode__typesystem/.Dockerfile.stamp: docker/codamosa/encode__typesystem/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-encode_typesystem:latest -f docker/codamosa/encode__typesystem/Dockerfile .
+	touch docker/codamosa/encode__typesystem/.Dockerfile.stamp
+
+docker/codamosa/feluxe__sty/.Dockerfile.stamp: docker/codamosa/feluxe__sty/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-feluxe_sty:latest -f docker/codamosa/feluxe__sty/Dockerfile .
+	touch docker/codamosa/feluxe__sty/.Dockerfile.stamp
+
+docker/codamosa/httpie__httpie/.Dockerfile.stamp: docker/codamosa/httpie__httpie/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-httpie_httpie:latest -f docker/codamosa/httpie__httpie/Dockerfile .
+	touch docker/codamosa/httpie__httpie/.Dockerfile.stamp
+
+docker/codamosa/huzecong__flutes/.Dockerfile.stamp: docker/codamosa/huzecong__flutes/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-huzecong_flutes:latest -f docker/codamosa/huzecong__flutes/Dockerfile .
+	touch docker/codamosa/huzecong__flutes/.Dockerfile.stamp
+
+docker/codamosa/keras-team__keras/.Dockerfile.stamp: docker/codamosa/keras-team__keras/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-keras-team_keras:latest -f docker/codamosa/keras-team__keras/Dockerfile .
+	touch docker/codamosa/keras-team__keras/.Dockerfile.stamp
+
+docker/codamosa/KmolYuan__apimd/.Dockerfile.stamp: docker/codamosa/KmolYuan__apimd/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-KmolYuan_apimd:latest -f docker/codamosa/KmolYuan__apimd/Dockerfile .
+	touch docker/codamosa/KmolYuan__apimd/.Dockerfile.stamp
+
+docker/codamosa/lidatong__dataclasses-json/.Dockerfile.stamp: docker/codamosa/lidatong__dataclasses-json/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-lidatong_dataclasses-json:latest -f docker/codamosa/lidatong__dataclasses-json/Dockerfile .
+	touch docker/codamosa/lidatong__dataclasses-json/.Dockerfile.stamp
+
+docker/codamosa/lk-geimfari__mimesis/.Dockerfile.stamp: docker/codamosa/lk-geimfari__mimesis/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-lk-geimfari_mimesis:latest -f docker/codamosa/lk-geimfari__mimesis/Dockerfile .
+	touch docker/codamosa/lk-geimfari__mimesis/.Dockerfile.stamp
+
+docker/codamosa/matplotlib__matplotlib/.Dockerfile.stamp: docker/codamosa/matplotlib__matplotlib/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-matplotlib_matplotlib:latest -f docker/codamosa/matplotlib__matplotlib/Dockerfile .
+	touch docker/codamosa/matplotlib__matplotlib/.Dockerfile.stamp
+
+docker/codamosa/nvbn__py-backwards/.Dockerfile.stamp: docker/codamosa/nvbn__py-backwards/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-nvbn_py-backwards:latest -f docker/codamosa/nvbn__py-backwards/Dockerfile .
+	touch docker/codamosa/nvbn__py-backwards/.Dockerfile.stamp
+
+docker/codamosa/nvbn__thefuck/.Dockerfile.stamp: docker/codamosa/nvbn__thefuck/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-nvbn_thefuck:latest -f docker/codamosa/nvbn__thefuck/Dockerfile .
+	touch docker/codamosa/nvbn__thefuck/.Dockerfile.stamp
+
+docker/codamosa/pandas-dev__pandas/.Dockerfile.stamp: docker/codamosa/pandas-dev__pandas/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-pandas-dev_pandas:latest -f docker/codamosa/pandas-dev__pandas/Dockerfile .
+	touch docker/codamosa/pandas-dev__pandas/.Dockerfile.stamp
+
+docker/codamosa/przemyslawjanpietrzak__pyMonet/.Dockerfile.stamp: docker/codamosa/przemyslawjanpietrzak__pyMonet/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-przemyslawjanpietrzak_pyMonet:latest -f docker/codamosa/przemyslawjanpietrzak__pyMonet/Dockerfile .
+	touch docker/codamosa/przemyslawjanpietrzak__pyMonet/.Dockerfile.stamp
+
+docker/codamosa/psf__black/.Dockerfile.stamp: docker/codamosa/psf__black/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-psf_black:latest -f docker/codamosa/psf__black/Dockerfile .
+	touch docker/codamosa/psf__black/.Dockerfile.stamp
+
+docker/codamosa/PyCQA__isort/.Dockerfile.stamp: docker/codamosa/PyCQA__isort/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-PyCQA_isort:latest -f docker/codamosa/PyCQA__isort/Dockerfile .
+	touch docker/codamosa/PyCQA__isort/.Dockerfile.stamp
+
+docker/codamosa/realpython__codetiming/.Dockerfile.stamp: docker/codamosa/realpython__codetiming/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-realpython_codetiming:latest -f docker/codamosa/realpython__codetiming/Dockerfile .
+	touch docker/codamosa/realpython__codetiming/.Dockerfile.stamp
+
+docker/codamosa/relekang__python-semantic-release/.Dockerfile.stamp: docker/codamosa/relekang__python-semantic-release/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-relekang_python-semantic-release:latest -f docker/codamosa/relekang__python-semantic-release/Dockerfile .
+	touch docker/codamosa/relekang__python-semantic-release/.Dockerfile.stamp
+
+docker/codamosa/rr-__docstring_parser/.Dockerfile.stamp: docker/codamosa/rr-__docstring_parser/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-rr-_docstring_parser:latest -f docker/codamosa/rr-__docstring_parser/Dockerfile .
+	touch docker/codamosa/rr-__docstring_parser/.Dockerfile.stamp
+
+docker/codamosa/sanic-org__sanic/.Dockerfile.stamp: docker/codamosa/sanic-org__sanic/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-sanic-org_sanic:latest -f docker/codamosa/sanic-org__sanic/Dockerfile .
+	touch docker/codamosa/sanic-org__sanic/.Dockerfile.stamp
+
+docker/codamosa/scrapy__scrapy/.Dockerfile.stamp: docker/codamosa/scrapy__scrapy/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-scrapy_scrapy:latest -f docker/codamosa/scrapy__scrapy/Dockerfile .
+	touch docker/codamosa/scrapy__scrapy/.Dockerfile.stamp
+
+docker/codamosa/spotify__luigi/.Dockerfile.stamp: docker/codamosa/spotify__luigi/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-spotify_luigi:latest -f docker/codamosa/spotify__luigi/Dockerfile .
+	touch docker/codamosa/spotify__luigi/.Dockerfile.stamp
+
+docker/codamosa/thonny__thonny/.Dockerfile.stamp: docker/codamosa/thonny__thonny/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-thonny_thonny:latest -f docker/codamosa/thonny__thonny/Dockerfile .
+	touch docker/codamosa/thonny__thonny/.Dockerfile.stamp
+
+docker/codamosa/tiangolo__fastapi/.Dockerfile.stamp: docker/codamosa/tiangolo__fastapi/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-tiangolo_fastapi:latest -f docker/codamosa/tiangolo__fastapi/Dockerfile .
+	touch docker/codamosa/tiangolo__fastapi/.Dockerfile.stamp
+
+docker/codamosa/tornadoweb__tornado/.Dockerfile.stamp: docker/codamosa/tornadoweb__tornado/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-tornadoweb_tornado:latest -f docker/codamosa/tornadoweb__tornado/Dockerfile .
+	touch docker/codamosa/tornadoweb__tornado/.Dockerfile.stamp
+
+docker/codamosa/tqdm__tqdm/.Dockerfile.stamp: docker/codamosa/tqdm__tqdm/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-tqdm_tqdm:latest -f docker/codamosa/tqdm__tqdm/Dockerfile .
+	touch docker/codamosa/tqdm__tqdm/.Dockerfile.stamp
+
+docker/codamosa/vst__pypara/.Dockerfile.stamp: docker/codamosa/vst__pypara/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-vst_pypara:latest -f docker/codamosa/vst__pypara/Dockerfile .
+	touch docker/codamosa/vst__pypara/.Dockerfile.stamp
+
+docker/codamosa/ytdl-org__youtube-dl/.Dockerfile.stamp: docker/codamosa/ytdl-org__youtube-dl/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-ytdl-org_youtube-dl:latest -f docker/codamosa/ytdl-org__youtube-dl/Dockerfile .
+	touch docker/codamosa/ytdl-org__youtube-dl/.Dockerfile.stamp
+
+docker/codamosa/finite-loop__flutils/.Dockerfile.stamp: docker/codamosa/finite-loop__flutils/Dockerfile
+	docker build --network=host -t aorwall/swe-bench-codamosa-finite-loop_flutils:latest -f docker/codamosa/finite-loop__flutils/Dockerfile .
+	touch docker/codamosa/finite-loop__flutils/.Dockerfile.stamp
