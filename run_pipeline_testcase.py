@@ -1,5 +1,5 @@
 import os
-import asyncio
+import sys
 import argparse
 import subprocess
 from utils.data import Data
@@ -52,6 +52,7 @@ def main(args):
 
     if args.debug:
         console.log("Debug mode on")
+        sys.exit(0)
 
     if args.process_data_only:
         exit(0)
@@ -144,7 +145,7 @@ def main(args):
             "--model",
             args.model,
             # "--debug" if args.debug else "",
-        ]  + extra_cmd
+        ] + extra_cmd
         if args.with_imports:
             eval_cmd.append("--with_imports")
 
