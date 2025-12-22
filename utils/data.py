@@ -434,7 +434,7 @@ class Data(object):
                 + ", ".join([*classes, *functions])
                 + "\n"
             )
-            idx = data["module_name"]
+            idx = data["module_name"].replace(".", "_")
             self.console.log(f"[blue]Working on module: {idx}[/blue]")
             processed_data = {
                 "repo": repo,

@@ -20,8 +20,12 @@ def get_eval_refs(data_path_or_name: str) -> Dict:
         data = load_from_disk(data_path_or_name)
         decode_keys = True
     else:
-        data = load_dataset(data_path_or_name)
-        decode_keys = True
+        if "testgeneval" in data_path_or_name:
+            data = load_dataset(data_path_or_name)
+            decode_keys = True
+        else:
+            with open(data_path_or_name, "r") as f:
+                data = [json.loads(line) for line in f.readlines()]
     if isinstance(data, dict):
         all_data = list()
         all_data.extend(data["test"])

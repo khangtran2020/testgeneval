@@ -52,7 +52,6 @@ def main(args):
 
     if args.debug:
         console.log("Debug mode on")
-        sys.exit(0)
 
     if args.process_data_only:
         exit(0)
