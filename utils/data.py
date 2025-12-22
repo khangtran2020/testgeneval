@@ -453,7 +453,7 @@ class Data(object):
 
             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.console.log(f"Done {idx} at {current_time}")
-            return len(processed_data["test_cases"].keys())
+            return
 
 
 def handle_django_testcase(trimmed_code: str, test_name: str):
