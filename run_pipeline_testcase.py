@@ -43,7 +43,7 @@ def main(args):
         save_path=args.data_path,
         console=console,
         num_processes=args.num_processes,
-        data_path=None,
+        data_path=os.path.join(args.data_path, f"{data_suf}.jsonl"),
     )
     dataset.load_raw_data()
     dataset.process_data()
