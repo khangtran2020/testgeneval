@@ -114,7 +114,8 @@ class Data(object):
     ) -> None:
 
         if (
-            data_name not in ["kjain14/testgeneval", "kjain14/testgenevallite"]
+            data_name
+            not in ["kjain14/testgeneval", "kjain14/testgenevallite", "codamosa"]
             and data_path is None
         ):
             raise ValueError(
@@ -130,12 +131,19 @@ class Data(object):
             os.makedirs(self.save_path, exist_ok=True)
 
     def load_raw_data(self) -> None:
-        if self.data_path is None:
-            dataset = load_dataset(self.data_name, split="test")
+        if "testgeneval" in self.data_name:
+            if self.data_path is None:
+                dataset = load_dataset(self.data_name, split="test")
+            else:
+                dataset = load_from_disk(self.data_path)
+            self.dataset = dataset
+            self.console.log(f"Data {self.data_name} loaded successfully")
+        elif self.data_name == "codamosa":
+            dataset = load_dataset("json", data_dir=self.data_path)
+            self.dataset = dataset
+            self.console.log(f"Data {self.data_name} loaded successfully")
         else:
-            dataset = load_from_disk(self.data_path)
-        self.dataset = dataset
-        self.console.log(f"Data {self.data_name} loaded successfully")
+            raise ValueError("Invalid data name")
 
     def process_data(self) -> None:
         if os.path.exists(
@@ -143,9 +151,12 @@ class Data(object):
         ):
             self.console.log(f"Data {self.data_name} already processed")
             return
-        asyncio.run(self.process_raw_data())
+        if self.data_name in ["kjain14/testgeneval", "kjain14/testgenevallite"]:
+            asyncio.run(self.process_raw_data_testgeneval())
+        elif self.data_name == "codamosa":
+            pass
 
-    async def process_raw_data(self) -> None:
+    async def process_raw_data_testgeneval(self) -> None:
         data_list = []
         num_test_cases = 0
         num_data_point = 0
@@ -385,6 +396,53 @@ class Data(object):
 
             if len(processed_data["test_cases"].keys()) == 0:
                 self.console.log(f"No test cases found for {idx}")
+
+            async with aiofiles.open(
+                os.path.join(self.save_path, f"{self.data_name.split('/')[-1]}.jsonl"),
+                "a",
+            ) as f:
+                await f.write(json.dumps(processed_data) + "\n")
+
+            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.console.log(f"Done {idx} at {current_time}")
+            return len(processed_data["test_cases"].keys())
+
+    async def process_raw_data_codamosa(self) -> None:
+        semaphore = asyncio.Semaphore(self.num_processes)
+
+        tasks = [
+            self.process_one_raw_codamosa(self.dataset[i], semaphore)
+            for i in range(len(self.dataset))
+        ]
+        await asyncio.gather(*tasks)
+
+    async def process_one_raw_codamosa(self, data: Dict, semaphore) -> Dict:
+
+        async with semaphore:
+
+            repo = data["repo_name"]
+            code_src = data["source_code"]
+            code_file = data["module_path"]
+            test_file = "./src_test.py"
+            classes = [cls["name"] for cls in data["classes"]]
+            functions = data["functions"]
+            local_imports = (
+                "from "
+                + data["module_name"]
+                + " import "
+                + ", ".join([*classes, *functions])
+                + "\n"
+            )
+            idx = data["module_name"]
+            self.console.log(f"[blue]Working on module: {idx}[/blue]")
+            processed_data = {
+                "repo": repo,
+                "code_src": code_src,
+                "code_file": code_file,
+                "test_file": test_file,
+                "local_imports": local_imports,
+                "id": idx,
+            }
 
             async with aiofiles.open(
                 os.path.join(self.save_path, f"{self.data_name.split('/')[-1]}.jsonl"),
