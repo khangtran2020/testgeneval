@@ -155,7 +155,7 @@ class Data(object):
         if self.data_name in ["kjain14/testgeneval", "kjain14/testgenevallite"]:
             asyncio.run(self.process_raw_data_testgeneval())
         elif self.data_name == "codamosa":
-            pass
+            asyncio.run(self.process_raw_data_codamosa())
 
     async def process_raw_data_testgeneval(self) -> None:
         data_list = []
