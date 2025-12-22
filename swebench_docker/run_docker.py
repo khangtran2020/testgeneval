@@ -19,6 +19,41 @@ dotenv.load_dotenv()
 
 # Needs to be a fully qualified path for log dir
 
+REPO_DICT = {
+    "apimd": "codamosa-kmolyuan_apimd",
+    "codetiming": "codamosa-realpython_codetiming",
+    "dataclasses_json": "codamosa-lidatong_dataclasses-json",
+    "docstring_parser": "codamosa-rr_docstring_parser",
+    "flutes": "codamosa-huzecong_flutes",
+    "flutils": "codamosa-finite-loop_flutils",
+    "httpie": "codamosa-httpie_httpie",
+    "isort": "codamosa-pycqa_isort",
+    "mimesis": "codamosa-lk-geimfari_mimesis",
+    "py_backwards": "codamosa-nvbn_py-backwards",
+    "pymonet": "codamosa-przemyslawjanpietrzak_pymonet",
+    "pypara": "codamosa-vst_pypara",
+    "semantic_release": "codamosa-relekang_python-semantic-release",
+    "string_utils": "codamosa-daveoncode_python-string-utils",
+    "pytutils": "codamosa-akatrevorjay_pytutils",
+    "sanic": "codamosa-sanic-org_sanic",
+    "sty": "codamosa-feluxe_sty",
+    "thonny": "codamosa-thonny_thonny",
+    "typesystem": "codamosa-encode_typesystem",
+    "pysnooper": "codamosa-cool-rr_pysnooper",
+    "ansible": "codamosa-ansible_ansible",
+    "cookiecutter": "codamosa-cookiecutter_cookiecutter",
+    "fastapi": "codamosa-tiangolo_fastapi",
+    "keras": "codamosa-keras-team_keras",
+    "luigi": "codamosa-spotify_luigi",
+    "pandas": "codamosa-pandas-dev_pandas",
+    "scrapy": "codamosa-scrapy_scrapy",
+    "spacy": "codamosa-explosion_spacy",
+    "thefuck": "codamosa-nvbn_thefuck",
+    "tornado": "codamosa-tornadoweb_tornado",
+    "tqdm": "codamosa-tqdm_tqdm",
+    "youtube_dl": "codamosa-ytdl-org_youtube-dl",
+}
+
 
 async def run_docker_evaluation(
     task_instance: dict,
@@ -33,9 +68,9 @@ async def run_docker_evaluation(
 ) -> Dict:
     repo_name = task_instance["repo"].replace("/", "_")
 
-    specifications = MAP_VERSION_TO_INSTALL[task_instance["repo"]][
-        task_instance["version"]
-    ]
+    specifications = MAP_VERSION_TO_INSTALL.get(task_instance["repo"], {}).get(
+        task_instance.get("version", ""), {}
+    )
     image_prefix = "swe-bench"
 
     # TODO: Change this when deciding
@@ -47,9 +82,10 @@ async def run_docker_evaluation(
     if specifications.get("instance_image", False):
         docker_image = f"{namespace}/{image_prefix}-{repo_name}-instance:{task_instance['instance_id']}"
     else:
-        docker_image = (
-            f"{namespace}/{image_prefix}-{repo_name}-testbed:{task_instance['version']}"
-        )
+        if repo_name not in REPO_DICT.keys():
+            docker_image = f"{namespace}/{image_prefix}-{repo_name}-testbed:{task_instance['version']}"
+        else:
+            docker_image = f"{namespace}/{image_prefix}-{REPO_DICT[repo_name]}:latest"
 
     swebench_docker_fork_dir = os.environ.get("SWEBENCH_DOCKER_FORK_DIR")
     logger.info(f"SWEBENCH_DOCKER_FORK_DIR: {swebench_docker_fork_dir}")

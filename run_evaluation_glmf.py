@@ -148,7 +148,7 @@ async def main(
         if task[KEY_ID] in prediction_dict.keys():
             prediction = {
                 KEY_ID: task[KEY_ID],
-                KEY_INSTANCE_ID: task[KEY_INSTANCE_ID],
+                KEY_INSTANCE_ID: task.get(KEY_INSTANCE_ID, None),
                 KEY_MODEL: model,
                 KEY_PREDICTIONS: prediction_dict[task[KEY_ID]],
             }
@@ -162,7 +162,7 @@ async def main(
     if len(predictions) == 0:
         logger.info("No predictions to evaluate")
         return
-    
+
     # Remove predictions that have already been evaluated
     if skip_existing:
         # Skip logs that already exist
@@ -196,24 +196,34 @@ async def main(
     # Set the relevant data on task_instances
     for prediction in tqdm(predictions):
         task = tasks_map[prediction[KEY_ID]]
-        test_type = MAP_REPO_TO_TEST_FRAMEWORK[task["repo"]].replace("--branch", "--append --branch")
+        test_type = MAP_REPO_TO_TEST_FRAMEWORK[task["repo"]].replace(
+            "--branch", "--append --branch"
+        )
         test_directives = get_test_directives(task)
         test_cmd = f"{test_type} {' '.join(test_directives)}"
+        # processed_data = {
+        #     "repo": repo,
+        #     "code_src": code_src,
+        #     "code_file": code_file,
+        #     "test_file": test_file,
+        #     "local_imports": local_imports,
+        #     "id": idx,
+        # }
 
         task_instances.append(
             {
                 "repo": task["repo"],
-                "version": task["version"],
-                "base_commit": task["base_commit"],
+                "version": task.get("version", None),
+                "base_commit": task.get("base_commit", None),
                 KEY_ID: prediction[KEY_ID],
                 KEY_INSTANCE_ID: prediction[KEY_INSTANCE_ID],
                 KEY_MODEL: prediction[KEY_MODEL],
                 KEY_PREDICTIONS: prediction[KEY_PREDICTIONS],
-                "preds_context": task["preds_context"],
-                "test_patch": task["test_patch"],
+                "preds_context": task.get("preds_context", None),
+                "test_patch": task.get("test_patch", None),
                 "test_file": task["test_file"],
                 "code_file": task["code_file"],
-                "patch": task["patch"],
+                "patch": task.get("patch", None),
                 "test_directives": test_directives,
                 "test_cmd": test_cmd,
             }

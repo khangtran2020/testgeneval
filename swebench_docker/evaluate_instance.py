@@ -926,7 +926,11 @@ def test_case_processing(
                 if not isinstance(node, (ast.Import, ast.ImportFrom))
             ]
             test_body = ast.unparse(tree)
-            test_preamble = "\n".join(task_instance["local_imports"])
+            test_preamble = (
+                "\n".join(task_instance["local_imports"])
+                if isinstance(task_instance.get("local_imports"), list)
+                else task_instance.get("local_imports", "")
+            )
             test_content = test_preamble + "\n\n" + test_body
         else:
             test_content = prompt
@@ -1114,7 +1118,7 @@ def test_case_processing(
                     tcm.log.write(
                         f"\nCoverageFAIL:{tcm.instance['code_file']} not found in coverage data\n"
                     )
-            
+
             # Remove ".coverage"
             if os.path.exists(".coverage"):
                 logger.info("Removing coverage")
@@ -1125,7 +1129,9 @@ def test_case_processing(
         _, success = tcm.run_tests_task(task_instance, skip_mutation=skip_mutation)
 
         tcm.log.write("TestsTime: 0.0")
-        tcm.log.write(f"Num test passed / total: {len(successful_tests)} / {len(prompt_list)}\n")
+        tcm.log.write(
+            f"Num test passed / total: {len(successful_tests)} / {len(prompt_list)}\n"
+        )
     else:
         tcm.log.write("TestsTime: 0.0")
         tcm.log.write(TESTS_FAILED)
@@ -1177,15 +1183,20 @@ def main(
         mutation_timeout=3600,
         image_type=image_type,
     ) as tcm:
-        test_patch = task_instance["test_patch"]
-        if not tcm.apply_patch(
-            task_instance["patch"], patch_type=PatchType.PATCH_GOLD.value
-        ) or (
-            test_patch
-            and not tcm.apply_patch(test_patch, patch_type=PatchType.PATCH_TEST.value)
-        ):
-            logger.warning("Evaluation failed")
-            sys.exit(1)
+        test_patch = task_instance.get("test_patch", None)
+        patch = task_instance.get("patch", None)
+        if test_patch is not None or patch is not None:
+            logger.info("Applying patches...")
+            if not tcm.apply_patch(
+                task_instance["patch"], patch_type=PatchType.PATCH_GOLD.value
+            ) or (
+                test_patch
+                and not tcm.apply_patch(
+                    test_patch, patch_type=PatchType.PATCH_TEST.value
+                )
+            ):
+                logger.warning("Evaluation failed")
+                sys.exit(1)
 
         if (setting == "ground_truth") or (setting == "branch_evaluation"):
             dict_tckey_to_index = dict(

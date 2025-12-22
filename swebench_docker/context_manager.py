@@ -512,14 +512,17 @@ class TaskEnvContextManager:
             bool: True if test script ran successfully, False otherwise
         """
         try:
-            
+
             if os.path.exists(".coveragerc"):
                 os.remove(".coveragerc")
 
             # Run test command for task instance
-            specifications = MAP_VERSION_TO_INSTALL[self.instance["repo"]][
-                self.instance["version"]
-            ]
+            # specifications = MAP_VERSION_TO_INSTALL[self.instance["repo"]][
+            #     self.instance["version"]
+            # ]
+            specifications = MAP_VERSION_TO_INSTALL.get(self.instance["repo"], {}).get(
+                self.instance["version"], {}
+            )
 
             if "tox" in instance["test_cmd"]:
                 test_cmd = self.add_coverage_tox("tox.ini")
