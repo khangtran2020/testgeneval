@@ -139,7 +139,8 @@ class Data(object):
             self.dataset = dataset
             self.console.log(f"Data {self.data_name} loaded successfully")
         elif self.data_name == "codamosa":
-            dataset = load_dataset("json", data_dir=self.data_path)
+            with open(self.data_path, "r") as f:
+                dataset = [json.loads(line) for line in f.readlines()]
             self.dataset = dataset
             self.console.log(f"Data {self.data_name} loaded successfully")
         else:
