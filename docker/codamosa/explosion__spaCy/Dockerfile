@@ -22,6 +22,7 @@ ENV TESTBED_NAME=explosion__spaCy__800737b
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/spaCy
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

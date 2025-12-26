@@ -22,6 +22,7 @@ ENV TESTBED_NAME=matplotlib__matplotlib__9765379
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/matplotlib
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

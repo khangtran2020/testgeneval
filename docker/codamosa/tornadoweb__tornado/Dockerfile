@@ -20,6 +20,8 @@ ENV TESTBED_NAME=tornadoweb__tornado__2047e7a
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/tornado
 
+WORKDIR /opt
+
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
 

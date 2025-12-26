@@ -22,6 +22,7 @@ ENV TESTBED_NAME=PyCQA__isort__a6222a8
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/isort
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

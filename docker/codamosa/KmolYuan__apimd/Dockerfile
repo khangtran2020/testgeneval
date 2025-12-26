@@ -22,6 +22,7 @@ ENV TESTBED_NAME=KmolYuan__apimd__f32841b
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/apimd
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

@@ -20,6 +20,8 @@ ENV TESTBED_NAME=finite-loop__flutils__df0f84e1
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/flutils
 
+WORKDIR /opt
+
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
 

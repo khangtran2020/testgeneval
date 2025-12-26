@@ -22,6 +22,7 @@ ENV TESTBED_NAME=keras-team__keras__2c48a3b3
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/keras
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

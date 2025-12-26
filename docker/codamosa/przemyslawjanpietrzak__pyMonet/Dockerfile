@@ -22,6 +22,7 @@ ENV TESTBED_NAME=przemyslawjanpietrzak__pyMonet__f132cfa
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/pyMonet
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

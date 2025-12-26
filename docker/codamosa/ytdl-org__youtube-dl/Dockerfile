@@ -20,6 +20,8 @@ ENV TESTBED_NAME=ytdl-org__youtube-dl__b224cf3
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/youtube-dl
 
+WORKDIR /opt
+
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
 

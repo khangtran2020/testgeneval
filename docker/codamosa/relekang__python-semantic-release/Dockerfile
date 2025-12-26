@@ -22,6 +22,7 @@ ENV TESTBED_NAME=relekang__python-semantic-release__3689157c2
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/python-semantic-release
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

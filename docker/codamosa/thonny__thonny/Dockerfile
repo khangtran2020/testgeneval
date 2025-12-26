@@ -22,6 +22,7 @@ ENV TESTBED_NAME=thonny__thonny__fb389f4
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/thonny
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

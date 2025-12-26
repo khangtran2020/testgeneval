@@ -20,6 +20,8 @@ ENV TESTBED_NAME=vst__pypara__7d705a54
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/pypara
 
+WORKDIR /opt
+
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
 

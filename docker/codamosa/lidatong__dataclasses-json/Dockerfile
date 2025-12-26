@@ -22,6 +22,7 @@ ENV TESTBED_NAME=lidatong__dataclasses-json__3dc59e01
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/dataclasses-json
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

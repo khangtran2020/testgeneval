@@ -22,6 +22,7 @@ ENV TESTBED_NAME=httpie__httpie__bb36897
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/httpie
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

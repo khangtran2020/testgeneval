@@ -22,6 +22,7 @@ ENV TESTBED_NAME=cool-RR__PySnooper__31bfc63
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/PySnooper
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

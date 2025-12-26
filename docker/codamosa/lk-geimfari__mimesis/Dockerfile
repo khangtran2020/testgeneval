@@ -22,6 +22,7 @@ ENV TESTBED_NAME=lk-geimfari__mimesis__310092ce
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/mimesis
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

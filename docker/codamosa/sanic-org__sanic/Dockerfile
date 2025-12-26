@@ -22,6 +22,7 @@ ENV TESTBED_NAME=sanic-org__sanic__93a0246
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/sanic
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

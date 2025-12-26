@@ -22,6 +22,7 @@ ENV TESTBED_NAME=spotify__luigi__f2f631b
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/luigi
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

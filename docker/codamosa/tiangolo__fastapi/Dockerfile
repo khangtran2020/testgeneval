@@ -22,6 +22,7 @@ ENV TESTBED_NAME=tiangolo__fastapi__864643e
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/fastapi
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

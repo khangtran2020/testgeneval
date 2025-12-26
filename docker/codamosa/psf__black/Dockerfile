@@ -22,6 +22,7 @@ ENV TESTBED_NAME=psf__black__23541263
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/black
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

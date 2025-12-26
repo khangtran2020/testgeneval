@@ -22,6 +22,7 @@ ENV TESTBED_NAME=huzecong__flutes__49647e4b
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/flutes
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

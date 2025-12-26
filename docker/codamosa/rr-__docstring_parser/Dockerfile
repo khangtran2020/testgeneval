@@ -22,6 +22,7 @@ ENV TESTBED_NAME=rr-__docstring_parser__a5dc2cd77
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/docstring_parser
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .

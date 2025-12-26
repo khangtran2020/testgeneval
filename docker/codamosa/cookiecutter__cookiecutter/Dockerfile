@@ -22,6 +22,7 @@ ENV TESTBED_NAME=cookiecutter__cookiecutter__1c0b5b11
 ENV IMAGE_TYPE=conda
 ENV REPO_DIR=/opt/cookiecutter
 
+WORKDIR /opt
 
 COPY swebench_docker swebench_docker
 COPY --chmod=0755 docker/entrypoint.sh .
