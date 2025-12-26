@@ -75,7 +75,7 @@ def get_logs_eval(log_fp: str) -> Dict[str, dict]:
         # print(f"Processing {log_fp}: {test_data}")
 
         for config in test_data:
-            
+
             config_line = config.split("\n")[0].split()
 
             setting = config_line[0]
@@ -594,7 +594,7 @@ def get_test_directives(instance: dict, keep_as_files: bool = False) -> list:
         directives (list): List of test directives
     """
     # For seq2seq code repos, testing command is fixed
-    if instance["repo"] == "swe-bench/humaneval":
+    if instance["repo"] == "swe-bench/humaneval" or "test_patch" not in instance.keys():
         return ["test.py"]
 
     # Get test directives from test patch and remove non-test files

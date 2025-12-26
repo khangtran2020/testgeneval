@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import argparse
 import subprocess
 from utils.data import Data
@@ -47,6 +48,12 @@ def main(args):
     )
     dataset.load_raw_data()
     dataset.process_data()
+
+    # log number of tasks
+    data_path = os.path.join(args.data_path, f"{data_suf}.jsonl")
+    with open(data_path, "r", encoding="utf-8") as f:
+        tasks = [json.loads(line) for line in f.readlines()]
+    console.log(f"Number of tasks in dataset: {len(tasks)}")
 
     # for task in dataset.tasks:
 
