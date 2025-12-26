@@ -114,6 +114,8 @@ async def main(
     # Verify arguments are formatted correctly
     if not isinstance(tasks, list):
         raise ValueError(f"{swe_bench_tasks} must contain an array of tasks")
+    for task in tasks:
+        task[KEY_ID] = task[KEY_ID].replace(".", "_")
     tasks_map = {t[KEY_ID]: t for t in tasks}
     # Print sample of tasks_map
     sample_keys = list(tasks_map.keys())[:5]
