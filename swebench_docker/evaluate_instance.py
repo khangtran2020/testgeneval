@@ -1094,9 +1094,13 @@ def test_case_processing(
         success_tests_str = "\n\n".join(successful_tests)
 
         if appending:
-            specifications = MAP_VERSION_TO_INSTALL[tcm.instance["repo"]][
-                tcm.instance["version"]
-            ]
+            specifications = (
+                MAP_VERSION_TO_INSTALL[tcm.instance["repo"]][tcm.instance["version"]]
+                if tcm.instance["repo"] in MAP_VERSION_TO_INSTALL
+                and tcm.instance["version"]
+                in MAP_VERSION_TO_INSTALL[tcm.instance["repo"]]
+                else {}
+            )
             if "image" in specifications and specifications["image"] == "python":
                 coverage_data_cmd = f"coverage json -o coverage.json"
             else:
