@@ -204,9 +204,11 @@ def get_eval_reports_for_logs(
             instance_id = eval_log.split("/")[-1].split(".")[0]
 
             if raw_only:
-                eval_sm["baseline_covs"] = swe_bench_instances[instance_id][
-                    "baseline_covs"
-                ]
+                eval_sm["baseline_covs"] = (
+                    swe_bench_instances[instance_id]["baseline_covs"]
+                    if "baseline_covs" in swe_bench_instances[instance_id]
+                    else {}
+                )
 
             report = (
                 get_eval_report(eval_sm, swe_bench_instances, instance_id, is_baseline)
