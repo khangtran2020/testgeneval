@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 3dc59e01 .
 
 ENV TESTBED_NAME=lidatong__dataclasses-json__3dc59e01
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/dataclasses-json
 
 WORKDIR /opt

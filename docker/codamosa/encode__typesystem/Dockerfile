@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 6a9590c125 .
 
 ENV TESTBED_NAME=encode__typesystem__6a9590c125
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/typesystem
 
 WORKDIR /opt

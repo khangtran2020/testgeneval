@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 7d705a54 .
 
 ENV TESTBED_NAME=vst__pypara__7d705a54
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/pypara
 
 WORKDIR /opt

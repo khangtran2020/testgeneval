@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout f99e9186 .
 
 ENV TESTBED_NAME=feluxe__sty__f99e9186
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/sty
 
 WORKDIR /opt

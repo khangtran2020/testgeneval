@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 31bfc63 .
 
 ENV TESTBED_NAME=cool-RR__PySnooper__31bfc63
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/PySnooper
 
 WORKDIR /opt

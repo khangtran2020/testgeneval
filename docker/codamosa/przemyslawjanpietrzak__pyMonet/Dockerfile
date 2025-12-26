@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout f132cfa .
 
 ENV TESTBED_NAME=przemyslawjanpietrzak__pyMonet__f132cfa
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/pyMonet
 
 WORKDIR /opt

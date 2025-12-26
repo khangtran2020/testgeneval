@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout a5dc2cd77 .
 
 ENV TESTBED_NAME=rr-__docstring_parser__a5dc2cd77
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/docstring_parser
 
 WORKDIR /opt

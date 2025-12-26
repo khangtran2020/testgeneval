@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout f00f123 .
 
 ENV TESTBED_NAME=ansible__ansible__f00f123
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/ansible
 
 WORKDIR /opt

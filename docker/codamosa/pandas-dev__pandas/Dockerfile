@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 945c9ed .
 
 ENV TESTBED_NAME=pandas-dev__pandas__945c9ed
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/pandas
 
 WORKDIR /opt

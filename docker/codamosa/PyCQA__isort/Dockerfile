@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout a6222a8 .
 
 ENV TESTBED_NAME=PyCQA__isort__a6222a8
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/isort
 
 WORKDIR /opt

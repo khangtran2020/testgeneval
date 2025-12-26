@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 61130c8 .
 
 ENV TESTBED_NAME=scrapy__scrapy__61130c8
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/scrapy
 
 WORKDIR /opt

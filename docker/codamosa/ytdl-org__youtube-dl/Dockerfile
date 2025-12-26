@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout b224cf3 .
 
 ENV TESTBED_NAME=ytdl-org__youtube-dl__b224cf3
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/youtube-dl
 
 WORKDIR /opt

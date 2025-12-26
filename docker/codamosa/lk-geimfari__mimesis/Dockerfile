@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 310092ce .
 
 ENV TESTBED_NAME=lk-geimfari__mimesis__310092ce
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/mimesis
 
 WORKDIR /opt

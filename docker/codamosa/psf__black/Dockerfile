@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 23541263 .
 
 ENV TESTBED_NAME=psf__black__23541263
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/black
 
 WORKDIR /opt

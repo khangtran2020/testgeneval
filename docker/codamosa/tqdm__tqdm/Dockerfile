@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 18d7aa4 .
 
 ENV TESTBED_NAME=tqdm__tqdm__18d7aa4
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/tqdm
 
 WORKDIR /opt

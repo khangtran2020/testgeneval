@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 1c0b5b11 .
 
 ENV TESTBED_NAME=cookiecutter__cookiecutter__1c0b5b11
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/cookiecutter
 
 WORKDIR /opt

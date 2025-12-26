@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 2c48a3b3 .
 
 ENV TESTBED_NAME=keras-team__keras__2c48a3b3
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/keras
 
 WORKDIR /opt

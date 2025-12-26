@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout fb389f4 .
 
 ENV TESTBED_NAME=thonny__thonny__fb389f4
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/thonny
 
 WORKDIR /opt

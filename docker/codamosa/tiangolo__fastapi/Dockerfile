@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 864643e .
 
 ENV TESTBED_NAME=tiangolo__fastapi__864643e
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/fastapi
 
 WORKDIR /opt

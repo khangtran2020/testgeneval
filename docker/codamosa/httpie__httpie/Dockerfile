@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout bb36897 .
 
 ENV TESTBED_NAME=httpie__httpie__bb36897
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/httpie
 
 WORKDIR /opt

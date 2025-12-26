@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout d903db3c2 .
 
 ENV TESTBED_NAME=daveoncode__python-string-utils__d903db3c2
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/python-string-utils
 
 WORKDIR /opt

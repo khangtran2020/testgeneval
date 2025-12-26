@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout df0f84e1 .
 
 ENV TESTBED_NAME=finite-loop__flutils__df0f84e1
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/flutils
 
 WORKDIR /opt

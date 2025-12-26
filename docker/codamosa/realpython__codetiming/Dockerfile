@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout a7ad85a .
 
 ENV TESTBED_NAME=realpython__codetiming__a7ad85a
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/codetiming
 
 WORKDIR /opt

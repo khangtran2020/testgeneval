@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 93a0246 .
 
 ENV TESTBED_NAME=sanic-org__sanic__93a0246
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/sanic
 
 WORKDIR /opt

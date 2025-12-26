@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout f32841b .
 
 ENV TESTBED_NAME=KmolYuan__apimd__f32841b
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/apimd
 
 WORKDIR /opt

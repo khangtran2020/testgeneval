@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 800737b .
 
 ENV TESTBED_NAME=explosion__spaCy__800737b
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/spaCy
 
 WORKDIR /opt

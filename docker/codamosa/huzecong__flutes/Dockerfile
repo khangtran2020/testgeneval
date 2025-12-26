@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 49647e4b .
 
 ENV TESTBED_NAME=huzecong__flutes__49647e4b
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/flutes
 
 WORKDIR /opt

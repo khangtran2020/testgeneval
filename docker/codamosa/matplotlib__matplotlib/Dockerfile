@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 9765379 .
 
 ENV TESTBED_NAME=matplotlib__matplotlib__9765379
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/matplotlib
 
 WORKDIR /opt

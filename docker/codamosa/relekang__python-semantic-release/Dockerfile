@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 3689157c2 .
 
 ENV TESTBED_NAME=relekang__python-semantic-release__3689157c2
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/python-semantic-release
 
 WORKDIR /opt

@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir tox pytest pytest-cov coverage
 RUN git checkout 9813bb3 .
 
 ENV TESTBED_NAME=akatrevorjay__pytutils__9813bb3
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/pytutils
 
 WORKDIR /opt

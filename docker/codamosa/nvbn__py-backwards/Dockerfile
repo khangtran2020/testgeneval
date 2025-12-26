@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 8be3c4430 .
 
 ENV TESTBED_NAME=nvbn__py-backwards__8be3c4430
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/py-backwards
 
 WORKDIR /opt

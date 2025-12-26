@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir pytest pytest-cov coverage
 RUN git checkout 0949d2e .
 
 ENV TESTBED_NAME=nvbn__thefuck__0949d2e
-ENV IMAGE_TYPE=conda
+ENV IMAGE_TYPE=python
 ENV REPO_DIR=/opt/thefuck
 
 WORKDIR /opt
