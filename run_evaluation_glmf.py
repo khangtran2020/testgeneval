@@ -129,6 +129,8 @@ async def main(
         with open(predictions_path, "r", encoding="utf-8") as json_file:
             prediction_files = json.load(json_file)
 
+    logger.info(f"prediction_files len: {len(prediction_files)}")
+
     # print("prediction_keys:", list(prediction_files.keys())[:5])
 
     prediction_dict = {}
