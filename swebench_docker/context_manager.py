@@ -205,36 +205,37 @@ class TaskEnvContextManager:
 
         self.log.write(enter_msg, mode="w")
 
-        self.exec(
-            f"git config --global --add safe.directory {self.repo_dir}".split(" ")
-        )
-        self.exec(
-            f"git -c advice.detachedHead=false checkout {self.instance['base_commit']}".split(
-                " "
+        if self.instance[KEY_INSTANCE_ID] is not None:
+            self.exec(
+                f"git config --global --add safe.directory {self.repo_dir}".split(" ")
             )
-        )
-
-        specifications = MAP_VERSION_TO_INSTALL[self.instance["repo"]][
-            self.instance["version"]
-        ]
-        if "pre_test" in specifications:
-            for cmd_pre_install in specifications["pre_test"]:
-                self.log.write(f"Running pre-test command: {cmd_pre_install}")
-                cmd_pre_install = f"{self.cmd_conda_run} {cmd_pre_install}"
-
-                out_pre_install = self.exec(
-                    cmd_pre_install, timeout=self.timeout, shell=True
+            self.exec(
+                f"git -c advice.detachedHead=false checkout {self.instance['base_commit']}".split(
+                    " "
                 )
-                with open(self.log_file, "a") as f:
-                    f.write(f"Pre-installation Command: {cmd_pre_install}\n")
-                    f.write(f"Std. Output: {out_pre_install.stdout}\n")
-                    if out_pre_install.stderr:
-                        f.write(f"Std. Error: {out_pre_install.stderr}\n")
-                if out_pre_install.returncode != 0:
-                    self.log.write(f"Pre-install setup failed", level=ERROR)
+            )
+
+            specifications = MAP_VERSION_TO_INSTALL[self.instance["repo"]][
+                self.instance["version"]
+            ]
+            if "pre_test" in specifications:
+                for cmd_pre_install in specifications["pre_test"]:
+                    self.log.write(f"Running pre-test command: {cmd_pre_install}")
+                    cmd_pre_install = f"{self.cmd_conda_run} {cmd_pre_install}"
+
+                    out_pre_install = self.exec(
+                        cmd_pre_install, timeout=self.timeout, shell=True
+                    )
                     with open(self.log_file, "a") as f:
-                        f.write(f"\n{INSTALL_FAIL}\n")
-                    return False
+                        f.write(f"Pre-installation Command: {cmd_pre_install}\n")
+                        f.write(f"Std. Output: {out_pre_install.stdout}\n")
+                        if out_pre_install.stderr:
+                            f.write(f"Std. Error: {out_pre_install.stderr}\n")
+                    if out_pre_install.returncode != 0:
+                        self.log.write(f"Pre-install setup failed", level=ERROR)
+                        with open(self.log_file, "a") as f:
+                            f.write(f"\n{INSTALL_FAIL}\n")
+                        return False
 
         return self
 
