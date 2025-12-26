@@ -116,6 +116,7 @@ async def main(
         raise ValueError(f"{swe_bench_tasks} must contain an array of tasks")
     tasks_map = {t[KEY_ID]: t for t in tasks}
     predictions_path = os.path.abspath(predictions_path)
+    logger.logger.info(f"Predictions path: {predictions_path}")
 
     # Read prediction path which is a json file.
     if predictions_path.endswith(".jsonl"):
