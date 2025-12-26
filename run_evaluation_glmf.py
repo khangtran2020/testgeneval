@@ -118,9 +118,9 @@ async def main(
         task[KEY_ID] = task[KEY_ID].replace(".", "_")
     tasks_map = {t[KEY_ID]: t for t in tasks}
     # Print sample of tasks_map
-    sample_keys = list(tasks_map.keys())[:5]
-    sample_tasks = {k: tasks_map[k] for k in sample_keys}
-    print(f"Sample tasks_map: {pretty_repr(sample_tasks)}")
+    # sample_keys = list(tasks_map.keys())[:5]
+    # sample_tasks = {k: tasks_map[k] for k in sample_keys}
+    # print(f"Sample tasks_map: {pretty_repr(sample_tasks)}")
 
     predictions_path = os.path.abspath(predictions_path)
     logger.info(f"Predictions path: {predictions_path}")
