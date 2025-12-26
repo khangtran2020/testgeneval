@@ -1110,18 +1110,21 @@ def test_case_processing(
 
             tcm.exec(coverage_data_cmd.split(), shell=False, check=False)
             cov_success = False
-            with open("coverage.json", "r") as cov_file:
-                coverage_data = json.load(cov_file)
-                if tcm.instance["code_file"] in coverage_data["files"].keys():
-                    file_data = coverage_data["files"][tcm.instance["code_file"]]
-                    cov_success = True
-                    tcm.log.write(
-                        f"\nCoverageLOG-Overall: {file_data['summary']['percent_covered']}%\n"
-                    )
-                else:
-                    tcm.log.write(
-                        f"\nCoverageFAIL:{tcm.instance['code_file']} not found in coverage data\n"
-                    )
+            if os.path.exists("coverage.json"):
+                with open("coverage.json", "r") as cov_file:
+                    coverage_data = json.load(cov_file)
+                    if tcm.instance["code_file"] in coverage_data["files"].keys():
+                        file_data = coverage_data["files"][tcm.instance["code_file"]]
+                        cov_success = True
+                        tcm.log.write(
+                            f"\nCoverageLOG-Overall: {file_data['summary']['percent_covered']}%\n"
+                        )
+                    else:
+                        tcm.log.write(
+                            f"\nCoverageFAIL:{tcm.instance['code_file']} not found in coverage data\n"
+                        )
+            else:
+                tcm.log.write("\nCoverageFAIL: coverage.json not found\n")
 
             # Remove ".coverage"
             if os.path.exists(".coverage"):
