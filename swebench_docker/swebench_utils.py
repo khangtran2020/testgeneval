@@ -326,7 +326,11 @@ def get_eval_report(
         )
 
         if not is_baseline:
-            baseline_cov_info = swe_bench_instances[instance_id]["baseline_covs"]
+            baseline_cov_info = (
+                swe_bench_instances[instance_id]["baseline_covs"]
+                if "baseline_covs" in swe_bench_instances[instance_id]
+                else {}
+            )
 
             add_execution_metric(
                 eval_sm, final_results, setting, baseline_cov_info, "coverage"
