@@ -1150,23 +1150,23 @@ def main(
     skip_mutation: bool = False,
     with_imports: bool = False,
 ):
-    instance_id = task_instance.get("instance_id", "unknown")
-    if instance_id is None:
-        instance_id = "unknown"
-    logger.info(
-        "Instance ID: "
-        + instance_id
-        + "\nID: "
-        + task_instance["id"]
-        + "\nTestbed: "
-        + testbed_name
-        + "\nLog dir: "
-        + log_dir
-        + "\nTest case: "
-        + setting
-        + f"\nWith imports: {with_imports}"
-    )
-    logger.info(f"Only Baseline: {only_baseline}")
+    # instance_id = task_instance.get("instance_id", "unknown")
+    # if instance_id is None:
+    #     instance_id = "unknown"
+    # logger.info(
+    #     "Instance ID: "
+    #     + instance_id
+    #     + "\nID: "
+    #     + task_instance["id"]
+    #     + "\nTestbed: "
+    #     + testbed_name
+    #     + "\nLog dir: "
+    #     + log_dir
+    #     + "\nTest case: "
+    #     + setting
+    #     + f"\nWith imports: {with_imports}"
+    # )
+    # logger.info(f"Only Baseline: {only_baseline}")
 
     if only_baseline:
         task_instance[KEY_MODEL] = "baseline"
