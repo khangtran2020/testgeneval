@@ -121,6 +121,7 @@ async def main(
     # sample_keys = list(tasks_map.keys())[:5]
     # sample_tasks = {k: tasks_map[k] for k in sample_keys}
     # print(f"Sample tasks_map: {pretty_repr(sample_tasks)}")
+    logger.info(f"Total number of tasks: {len(tasks_map)}")
 
     predictions_path = os.path.abspath(predictions_path)
     logger.info(f"Predictions path: {predictions_path}")
