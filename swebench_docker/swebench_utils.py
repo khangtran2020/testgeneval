@@ -594,8 +594,11 @@ def get_test_directives(instance: dict, keep_as_files: bool = False) -> list:
         directives (list): List of test directives
     """
     # For seq2seq code repos, testing command is fixed
-    if instance["repo"] == "swe-bench/humaneval" or "test_patch" not in instance.keys():
+    if instance["repo"] == "swe-bench/humaneval":
         return ["test.py"]
+    if "test_patch" not in instance.keys():
+        # codamosa case
+        return [instance["test_file"]]
 
     # Get test directives from test patch and remove non-test files
     diff_pat = r"diff --git a/.* b/(.*)"
