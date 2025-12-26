@@ -1151,6 +1151,8 @@ def main(
     with_imports: bool = False,
 ):
     instance_id = task_instance.get("instance_id", "unknown")
+    if instance_id is None:
+        instance_id = "unknown"
     logger.info(
         "Instance ID: "
         + instance_id
