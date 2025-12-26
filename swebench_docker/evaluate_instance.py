@@ -1150,9 +1150,10 @@ def main(
     skip_mutation: bool = False,
     with_imports: bool = False,
 ):
+    instance_id = task_instance.get("instance_id", "unknown")
     logger.info(
         "Instance ID: "
-        + str(task_instance["instance_id"])
+        + instance_id
         + "\nID: "
         + task_instance["id"]
         + "\nTestbed: "
