@@ -571,18 +571,21 @@ class TaskEnvContextManager:
 
                 self.exec(coverage_data_cmd.split(), shell=False, check=False)
                 cov_success = False
-                with open("coverage.json", "r") as cov_file:
-                    coverage_data = json.load(cov_file)
-                    if instance["code_file"] in coverage_data["files"].keys():
-                        file_data = coverage_data["files"][instance["code_file"]]
-                        cov_success = True
-                        self.log.write(
-                            f"\nCoverageLOG: {file_data['summary']['percent_covered']}%\n"
-                        )
-                    else:
-                        self.log.write(
-                            f"\nCoverageFAIL:{instance['code_file']} not found in coverage data\n"
-                        )
+                if os.path.exists("coverage.json"):
+                    with open("coverage.json", "r") as cov_file:
+                        coverage_data = json.load(cov_file)
+                        if instance["code_file"] in coverage_data["files"].keys():
+                            file_data = coverage_data["files"][instance["code_file"]]
+                            cov_success = True
+                            self.log.write(
+                                f"\nCoverageLOG: {file_data['summary']['percent_covered']}%\n"
+                            )
+                        else:
+                            self.log.write(
+                                f"\nCoverageFAIL:{instance['code_file']} not found in coverage data\n"
+                            )
+                else:
+                    self.log.write(f"\nCoverageFAIL: coverage.json not found\n")
                 if cov_success and not skip_mutation:
                     self.log.write("Running mutation testing")
                     self.run_mutation_testing(
