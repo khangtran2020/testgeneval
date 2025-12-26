@@ -137,6 +137,11 @@ class Data(object):
             else:
                 if "raw" in self.data_path:
                     self.data_path = self.data_path.replace("_raw", "")
+                    with open(self.data_path, "r") as f:
+                        dataset = [json.loads(line) for line in f.readlines()]
+                    self.dataset = dataset
+                    self.console.log(f"Data {self.data_name} loaded successfully")
+                    return
                 dataset = load_from_disk(self.data_path)
             self.dataset = dataset
             self.console.log(f"Data {self.data_name} loaded successfully")
