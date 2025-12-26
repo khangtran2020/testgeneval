@@ -135,6 +135,8 @@ class Data(object):
             if self.data_path is None:
                 dataset = load_dataset(self.data_name, split="test")
             else:
+                if "raw" in self.data_path:
+                    self.data_path = self.data_path.replace("_raw", "")
                 dataset = load_from_disk(self.data_path)
             self.dataset = dataset
             self.console.log(f"Data {self.data_name} loaded successfully")
