@@ -1152,7 +1152,7 @@ def main(
 ):
     logger.info(
         "Instance ID: "
-        + task_instance["instance_id"]
+        + str(task_instance["instance_id"])
         + "\nID: "
         + task_instance["id"]
         + "\nTestbed: "
