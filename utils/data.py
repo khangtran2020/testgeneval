@@ -424,7 +424,7 @@ class Data(object):
             repo = data["repo_name"]
             code_src = data["source_code"]
             code_file = data["module_path"]
-            test_file = f"{data["module_name"]}/test_codamosa.py"
+            test_file = f"{data['module_name']}/test_codamosa.py"
             classes = [cls["name"] for cls in data["classes"]]
             functions = data["functions"]
             local_imports = (
