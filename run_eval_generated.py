@@ -169,8 +169,19 @@ async def main(
     overall_overlap_generated = 0
     num_tasks = 0
 
+    # Track metrics per repo
+    repo_metrics = {}
+
     # Compute branch accuracy and overlap
     for task_id in evaluation_dict.keys():
+        task_repo = task_dict[task_id][REPO_ID]
+        if task_repo not in repo_metrics:
+            repo_metrics[task_repo] = {
+                "acc": 0,
+                "overlap_original": 0,
+                "overlap_generated": 0,
+                "num_tasks": 0,
+            }
         total_cases = len(evaluation_dict[task_id]["original_branches"].keys())
 
         # Compute branch accuracy
@@ -189,6 +200,8 @@ async def main(
         accuracy = correct_cases / total_cases if total_cases > 0 else 0
         overall_acc += accuracy
         num_tasks += 1
+        repo_metrics[task_repo]["acc"] += accuracy
+        repo_metrics[task_repo]["num_tasks"] += 1
         logger.info(
             f"Task {task_id} - Branch Accuracy: {correct_cases}/{total_cases} = {accuracy:.2f}"
         )
@@ -220,19 +233,40 @@ async def main(
         )
         overall_overlap_original += average_overlap_original
         overall_overlap_generated += average_overlap_generated
+        repo_metrics[task_repo]["overlap_original"] += average_overlap_original
+        repo_metrics[task_repo]["overlap_generated"] += average_overlap_generated
         logger.info(
             f"Task {task_id} - Average Branch Overlap Original: {average_overlap_original:.2f}, Generated: {average_overlap_generated:.2f}"
         )
 
+    # Compute per-repo averages
+    repo_results = {}
+    for repo, metrics in repo_metrics.items():
+        n = metrics["num_tasks"]
+        repo_results[repo] = {
+            "branch_accuracy": metrics["acc"] / n if n > 0 else 0,
+            "average_branch_overlap_original": (
+                metrics["overlap_original"] / n if n > 0 else 0
+            ),
+            "average_branch_overlap_generated": (
+                metrics["overlap_generated"] / n if n > 0 else 0
+            ),
+            "num_tasks": n,
+        }
+
     # Save the computed metrics
     evaluation_results = {
-        "branch_accuracy": overall_acc / num_tasks if num_tasks > 0 else 0,
-        "average_branch_overlap_original": (
-            overall_overlap_original / num_tasks if num_tasks > 0 else 0
-        ),
-        "average_branch_overlap_generated": (
-            overall_overlap_generated / num_tasks if num_tasks > 0 else 0
-        ),
+        "overall": {
+            "branch_accuracy": overall_acc / num_tasks if num_tasks > 0 else 0,
+            "average_branch_overlap_original": (
+                overall_overlap_original / num_tasks if num_tasks > 0 else 0
+            ),
+            "average_branch_overlap_generated": (
+                overall_overlap_generated / num_tasks if num_tasks > 0 else 0
+            ),
+            "num_tasks": num_tasks,
+        },
+        "by_repo": repo_results,
     }
     eval_result_path = os.path.join(res_path, f"{name}_evaluation_report.json")
     with open(eval_result_path, "w") as f:

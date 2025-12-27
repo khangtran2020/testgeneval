@@ -53,20 +53,45 @@ def get_preds_report(preds_path, instances):
         "baseline_loc": [],
         "baseline_num_methods": [],
     }
+    # Track per-repo metrics
+    repo_preds_report = {}
+
     found_full = False
     from tqdm import tqdm
 
     for pred in tqdm(preds):
         if "full" in pred["preds"]:
+            # Get repo for this prediction
+            pred_id = pred["id"]
+            repo = instances[pred_id].get("repo", "unknown")
+
+            # Initialize repo entry if needed
+            if repo not in repo_preds_report:
+                repo_preds_report[repo] = {
+                    "loc": [],
+                    "num_methods": [],
+                    "baseline_loc": [],
+                    "baseline_num_methods": [],
+                }
+
             for pred_text in pred["preds"]["full"]:
-                preds_report["loc"].append(get_lines_of_code(pred_text))
-                preds_report["num_methods"].append(count_methods(pred_text))
+                loc = get_lines_of_code(pred_text)
+                num_methods = count_methods(pred_text)
+                preds_report["loc"].append(loc)
+                preds_report["num_methods"].append(num_methods)
+                repo_preds_report[repo]["loc"].append(loc)
+                repo_preds_report[repo]["num_methods"].append(num_methods)
+
             baseline_test = instances[pred["id"]]["preds_context"]["last"]
             if type(baseline_test) is list:
                 baseline_test = baseline_test[0]
 
-            preds_report["baseline_loc"].append(get_lines_of_code(baseline_test))
-            preds_report["baseline_num_methods"].append(count_methods(baseline_test))
+            baseline_loc = get_lines_of_code(baseline_test)
+            baseline_methods = count_methods(baseline_test)
+            preds_report["baseline_loc"].append(baseline_loc)
+            preds_report["baseline_num_methods"].append(baseline_methods)
+            repo_preds_report[repo]["baseline_loc"].append(baseline_loc)
+            repo_preds_report[repo]["baseline_num_methods"].append(baseline_methods)
             found_full = True
 
     final_report = {}
@@ -83,6 +108,21 @@ def get_preds_report(preds_path, instances):
         final_report["av_baseline_num_methods"] = sum(
             preds_report["baseline_num_methods"]
         ) / len(preds_report["baseline_num_methods"])
+
+        # Add per-repo breakdown
+        final_report["by_repo"] = {}
+        for repo, repo_data in repo_preds_report.items():
+            if len(repo_data["loc"]) > 0:
+                final_report["by_repo"][repo] = {
+                    "av_pred_full_loc": sum(repo_data["loc"]) / len(repo_data["loc"]),
+                    "av_pred_full_num_methods": sum(repo_data["num_methods"])
+                    / len(repo_data["num_methods"]),
+                    "av_baseline_loc": sum(repo_data["baseline_loc"])
+                    / len(repo_data["baseline_loc"]),
+                    "av_baseline_num_methods": sum(repo_data["baseline_num_methods"])
+                    / len(repo_data["baseline_num_methods"]),
+                    "num_predictions": len(repo_data["loc"]),
+                }
     return final_report
 
 
@@ -90,7 +130,6 @@ def generate_report(
     swe_bench_tasks: str, predictions_path: str, log_dir: str, output_dir: str
 ):
     instances = get_eval_refs(swe_bench_tasks)
-
     predictions = get_instances(predictions_path)
     model_name_or_path = predictions[0]["model_name_or_path"]
 
@@ -98,8 +137,19 @@ def generate_report(
         log_dir, instances, verbose=False, raw_only=True, model_name=model_name_or_path
     )
 
+    # Group report_net by repo
+    repo_report_net = {}
+    for task_id, metrics in report_net.items():
+        repo = instances[task_id].get("repo", "unknown")
+        if repo not in repo_report_net:
+            repo_report_net[repo] = {}
+        repo_report_net[repo][task_id] = metrics
+
     with open(f"{output_dir}/{model_name_or_path}_full.json", "w") as f:
         f.write(json.dumps(report_net, indent=4))
+
+    with open(f"{output_dir}/{model_name_or_path}_full_by_repo.json", "w") as f:
+        f.write(json.dumps(repo_report_net, indent=4))
 
     lexical_report = get_preds_report(predictions_path, instances)
 
@@ -112,8 +162,25 @@ def generate_report(
 
     summary.update(lexical_report)
 
+    # Generate per-repo summaries
+    unique_repos = set(inst.get("repo", "unknown") for inst in instances.values())
+    repo_summaries = {}
+    for repo in unique_repos:
+        repo_summary = get_model_eval_summary(
+            predicts_path=predictions_path,
+            eval_dir=log_dir,
+            swe_bench_instances=instances,
+            model_name=model_name_or_path,
+            repo=repo,
+        )
+        if repo_summary["total_predictions"] > 0:
+            repo_summaries[repo] = repo_summary
+
+    # Combine overall and per-repo summaries
+    combined_summary = {"overall": summary, "by_repo": repo_summaries}
+
     with open(f"{output_dir}/{model_name_or_path}_summary.json", "w") as f:
-        f.write(json.dumps(summary, indent=4))
+        f.write(json.dumps(combined_summary, indent=4))
 
     report = get_model_report(
         verbose=True,
@@ -122,8 +189,20 @@ def generate_report(
         log_dir=log_dir,
     )
 
+    # Group report by repo
+    repo_report = {}
+    for category, task_ids in report.items():
+        repo_report[category] = {}
+        for task_id in task_ids:
+            repo = instances.get(task_id, {}).get("repo", "unknown")
+            if repo not in repo_report[category]:
+                repo_report[category][repo] = []
+            repo_report[category][repo].append(task_id)
+
+    combined_report = {"overall": report, "by_repo": repo_report}
+
     with open(f"{output_dir}/{model_name_or_path}_report.json", "w") as f:
-        f.write(json.dumps(report, indent=4))
+        f.write(json.dumps(combined_report, indent=4))
 
 
 if __name__ == "__main__":
