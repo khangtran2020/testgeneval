@@ -92,7 +92,7 @@ async def main(
 
     new_tasks = []
     for task in tasks:
-        if task[KEY_ID] in gen_dict:
+        if task[KEY_INSTANCE_ID] in gen_dict:
             # since the train/test split is divided by the instance_id, the instance should have all test cases
             evaluation_dict[task[KEY_ID]] = {
                 "original_branches": {
