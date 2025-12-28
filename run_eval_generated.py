@@ -73,6 +73,9 @@ async def main(
         if "_test_case_" in key:
             uuid = key.split("_test_case_")[0]
             test_id = key.split("_test_case_")[-1]
+        elif "_testcase_" in key:
+            uuid = key.split("_testcase_")[0]
+            test_id = key.split("_testcase_")[-1]
         else:
             test_id = key.split("_")[-1].strip()
             uuid = key.replace(f"_{test_id}", "")
