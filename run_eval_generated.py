@@ -98,12 +98,12 @@ async def main(
                 "original_branches": {
                     k: v
                     for k, v in task["branches"].items()
-                    if k in gen_dict[task[KEY_ID]]["branches"].keys()
+                    if k in gen_dict[task[KEY_INSTANCE_ID]]["branches"].keys()
                 },
-                "generated_branches": gen_dict[task[KEY_ID]]["branches"],
+                "generated_branches": gen_dict[task[KEY_INSTANCE_ID]]["branches"],
             }
-            task["test_cases"] = gen_dict[task[KEY_ID]]["test_cases"]
-            task["branches"] = gen_dict[task[KEY_ID]]["branches"]
+            task["test_cases"] = gen_dict[task[KEY_INSTANCE_ID]]["test_cases"]
+            task["branches"] = gen_dict[task[KEY_INSTANCE_ID]]["branches"]
             new_tasks.append(task)
 
     num_test_case = 0
