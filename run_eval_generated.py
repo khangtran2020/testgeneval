@@ -35,6 +35,8 @@ async def main(
         raise ValueError("--log_dir must exist and point at a directory")
     os.chmod(log_dir, 0o777)
 
+    logger.info(f"Log dir: {log_dir}")
+
     # Get ground truth data
     tasks = get_test_tasks(data_path)
     if not isinstance(tasks, list):
