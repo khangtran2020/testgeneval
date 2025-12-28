@@ -57,6 +57,7 @@ async def main(
         with open(gen_path, "r", encoding="utf-8") as json_file:
             gen_data = json.load(json_file)
 
+    logger.info(f"Len of generated data: {len(gen_data)}")
     if isinstance(gen_data, list):
         gen_data = {list(item.keys())[0]: list(item.values())[0] for item in gen_data}
 
