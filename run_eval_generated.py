@@ -61,6 +61,11 @@ async def main(
     if isinstance(gen_data, list):
         gen_data = {list(item.keys())[0]: list(item.values())[0] for item in gen_data}
 
+    # log 1 sample of generated data
+    sample_key = list(gen_data.keys())[0]
+    logger.info(f"Sample generated data key: {sample_key}")
+    logger.info(f"Sample generated data value: {pretty_repr(gen_data[sample_key])}")
+
     evaluation_dict = {}
     gen_dict = {}
     for key, value in gen_data.items():
