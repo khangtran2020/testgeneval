@@ -174,6 +174,7 @@ def get_eval_reports_for_logs(
     eval_logs: list,
     swe_bench_instances: dict,
     callback: Optional[Callable[[str], bool]] = None,
+    repo: str = None,
     verbose: bool = False,
     raw_only: bool = False,
     is_baseline: bool = False,
@@ -197,13 +198,13 @@ def get_eval_reports_for_logs(
     for eval_log in tqdm(eval_logs):
         # Remove task instances that do not satisfy callback
         print("Processing eval log:", eval_log)
-        if callback is not None and not callback(eval_log):
+        if repo is not None and repo not in get_repo_from_lp(eval_log):
             print(
                 "Processing eval log:",
                 eval_log,
-                "skipped by callback",
-                callback,
-                callback(eval_log),
+                "skipped by repo filter",
+                repo,
+                get_repo_from_lp(eval_log),
             )
             continue
         try:
@@ -413,6 +414,7 @@ def get_eval_reports_for_dir(
     eval_dir: str,
     swe_bench_instances: dict,
     model_name,
+    repo: str = None,
     callback: Optional[Callable[[str], bool]] = None,
     verbose=False,
     raw_only=False,
@@ -428,8 +430,21 @@ def get_eval_reports_for_dir(
     if not os.path.exists(eval_dir):
         raise ValueError(f"Path {eval_dir} does not exist")
     logs_list = [x for x in glob.glob(os.path.join(eval_dir, f"*{model_name}*.log"))]
+    # eval_logs: list,
+    # swe_bench_instances: dict,
+    # callback: Optional[Callable[[str], bool]] = None,
+    # repo: str = None,
+    # verbose: bool = False,
+    # raw_only: bool = False,
+    # is_baseline: bool = False,
     return get_eval_reports_for_logs(
-        logs_list, swe_bench_instances, callback, verbose, raw_only, is_baseline
+        eval_logs=logs_list,
+        swe_bench_instances=swe_bench_instances,
+        callback=callback,
+        repo=repo,
+        verbose=verbose,
+        raw_only=raw_only,
+        is_baseline=is_baseline,
     )
 
 
@@ -464,16 +479,18 @@ def get_model_eval_summary(
         criteria_eval_sm = None
         if repo is not None:
             repo_name = repo.split("/")[-1]
-            print("Filtering eval summary for repo:", repo_name)
             criteria_pred = lambda pred: repo_name in pred[KEY_ID]
             criteria_eval_sm = lambda eval_log: repo_name in eval_log
             preds = [x for x in preds if criteria_pred(x)]
+        else:
+            repo_name = None
 
         # Get reports
         report_net = get_eval_reports_for_dir(
             eval_dir,
             swe_bench_instances,
             is_baseline=is_baseline,
+            repo=repo_name,
             callback=criteria_eval_sm,
             verbose=False,
             model_name=model_name,
