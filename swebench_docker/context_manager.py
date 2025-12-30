@@ -578,6 +578,9 @@ class TaskEnvContextManager:
                             file_data = coverage_data["files"][instance["code_file"]]
                             cov_success = True
                             self.log.write(
+                                f"Coverage information: {file_data['summary']}"
+                            )
+                            self.log.write(
                                 f"\nCoverageLOG: {file_data['summary']['percent_branches_covered']}%\n"
                             )
                         else:
