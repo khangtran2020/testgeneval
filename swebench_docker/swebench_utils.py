@@ -231,6 +231,9 @@ def get_eval_reports_for_logs(
     for eval_log in eval_logs:
         instance_id = eval_log.split("/")[-1].split(".")[0]
         if instance_id not in report_final:
+            print(
+                f"Key: {get_file_name_from_lp(eval_log)} is in report tests: {get_file_name_from_lp(eval_log) in report_tests.keys()}"
+            )
             report_final[instance_id] = report_tests[get_file_name_from_lp(eval_log)]
         else:
             report_final[instance_id].update(
