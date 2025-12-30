@@ -223,6 +223,10 @@ def get_eval_reports_for_logs(
 
     report_final = {}
 
+    print(
+        f"Total eval logs processed: {len(report_tests)} with keys: {list(report_tests.keys())}"
+    )
+
     # Merge settings
     for eval_log in eval_logs:
         instance_id = eval_log.split("/")[-1].split(".")[0]
