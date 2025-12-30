@@ -1117,7 +1117,7 @@ def test_case_processing(
                         file_data = coverage_data["files"][tcm.instance["code_file"]]
                         cov_success = True
                         tcm.log.write(
-                            f"\nCoverageLOG-Overall: {file_data['summary']['percent_covered']}%\n"
+                            f"\nCoverageLOG-Overall: {file_data['summary']['percent_branches_covered']}%\n"
                         )
                     else:
                         tcm.log.write(
