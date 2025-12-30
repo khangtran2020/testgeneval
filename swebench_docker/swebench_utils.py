@@ -197,7 +197,6 @@ def get_eval_reports_for_logs(
 
     for eval_log in tqdm(eval_logs):
         # Remove task instances that do not satisfy callback
-        print("Processing eval log:", eval_log)
         if repo is not None and repo not in get_repo_from_lp(eval_log):
             print(
                 "Processing eval log:",
@@ -238,11 +237,10 @@ def get_eval_reports_for_logs(
 
     # Merge settings
     for eval_log in eval_logs:
+        if (repo is not None) and (repo not in get_repo_from_lp(eval_log)):
+            continue
         instance_id = eval_log.split("/")[-1].split(".")[0]
         if instance_id not in report_final:
-            print(
-                f"Key: {get_file_name_from_lp(eval_log)} is in report tests: {get_file_name_from_lp(eval_log) in report_tests.keys()}"
-            )
             report_final[instance_id] = report_tests[get_file_name_from_lp(eval_log)]
         else:
             report_final[instance_id].update(
