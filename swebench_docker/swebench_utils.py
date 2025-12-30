@@ -455,8 +455,9 @@ def get_model_eval_summary(
         # Filter by repo if provided
         criteria_eval_sm = None
         if repo is not None:
-            criteria_pred = lambda pred: repo in pred[KEY_ID]
-            criteria_eval_sm = lambda eval_log: repo in eval_log
+            repo_name = repo.split("/")[-1]
+            criteria_pred = lambda pred: repo_name in pred[KEY_ID]
+            criteria_eval_sm = lambda eval_log: repo_name in eval_log
             preds = [x for x in preds if criteria_pred(x)]
 
         # Get reports
