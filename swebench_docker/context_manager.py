@@ -577,12 +577,25 @@ class TaskEnvContextManager:
                         if instance["code_file"] in coverage_data["files"].keys():
                             file_data = coverage_data["files"][instance["code_file"]]
                             cov_success = True
-                            self.log.write(
-                                f"Coverage information: {file_data['summary']}"
-                            )
-                            self.log.write(
-                                f"\nCoverageLOG: {file_data['summary']['percent_branches_covered']}%\n"
-                            )
+                            if (
+                                "percent_branches_covered"
+                                in file_data["summary"].keys()
+                            ):
+                                branch_cov = file_data["summary"][
+                                    "percent_branches_covered"
+                                ]
+                            elif (
+                                ("covered_branches" in file_data["summary"].keys())
+                                and ("num_branches" in file_data["summary"].keys())
+                                and (file_data["summary"]["num_branches"] > 0)
+                            ):
+                                branch_cov = (
+                                    file_data["summary"]["covered_branches"]
+                                    / file_data["summary"]["num_branches"]
+                                ) * 100
+                            else:
+                                branch_cov = 0.0
+                            self.log.write(f"\nCoverageLOG: {branch_cov}%\n")
                         else:
                             self.log.write(
                                 f"\nCoverageFAIL:{instance['code_file']} not found in coverage data\n"
