@@ -196,6 +196,7 @@ def get_eval_reports_for_logs(
 
     for eval_log in tqdm(eval_logs):
         # Remove task instances that do not satisfy callback
+        print("Processing eval log:", eval_log)
         if callback is not None and not callback(eval_log):
             continue
         try:
@@ -456,6 +457,7 @@ def get_model_eval_summary(
         criteria_eval_sm = None
         if repo is not None:
             repo_name = repo.split("/")[-1]
+            print("Filtering eval summary for repo:", repo_name)
             criteria_pred = lambda pred: repo_name in pred[KEY_ID]
             criteria_eval_sm = lambda eval_log: repo_name in eval_log
             preds = [x for x in preds if criteria_pred(x)]
