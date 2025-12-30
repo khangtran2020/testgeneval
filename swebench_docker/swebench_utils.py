@@ -198,7 +198,13 @@ def get_eval_reports_for_logs(
         # Remove task instances that do not satisfy callback
         print("Processing eval log:", eval_log)
         if callback is not None and not callback(eval_log):
-            print("Processing eval log:", eval_log, "skipped by callback")
+            print(
+                "Processing eval log:",
+                eval_log,
+                "skipped by callback",
+                callback,
+                callback(eval_log),
+            )
             continue
         try:
             # Get eval logs
